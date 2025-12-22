@@ -75,8 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             { label: 'Month', value: stats.checkInsMonth },
             { label: 'Year', value: stats.checkInsYear },
           ]}
-        />
-      </div>
+                  />      </div>
 
       <UpcomingArrivals
         arrivals={upcomingArrivals}

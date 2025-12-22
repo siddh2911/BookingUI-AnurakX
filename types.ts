@@ -52,7 +52,7 @@ export interface Payment {
 
 export interface Booking {
   id: string;
-  roomId: string;
+  roomId: number;
   guestName: string;
   guestEmail?: string;
   guestPhone?: string;
@@ -69,7 +69,7 @@ export interface Booking {
 }
 
 export interface Room {
-  id: string;
+  id: number;
   number: string;
   type: RoomType;
   pricePerNight: number;

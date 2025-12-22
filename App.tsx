@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType } from './types';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER } from './constants';
+import { getAvailableRooms } from './services/api';
 
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
@@ -9,9 +10,28 @@ import BookingList from './components/bookings/BookingList';
 import NewBookingModal from './components/modals/NewBookingModal';
 import PaymentModal from './components/modals/PaymentModal';
 
+// Helper function to get YYYY-MM-DD date string in IST
+const getISTDateString = (date: Date) => {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60 * 1000);
+  const istDate = new Date(utc + IST_OFFSET_MS);
+
+  const year = istDate.getFullYear();
+  const month = (istDate.getMonth() + 1).toString().padStart(2, '0');
+  const day = istDate.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getISTDateStringAhead = (daysAhead: number, baseDate: Date = new Date()) => {
+  const date = new Date(baseDate.getTime());
+  date.setDate(date.getDate() + daysAhead);
+  return getISTDateString(date);
+};
+
 export default function App() {
   // --- State ---
   const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const roomsRef = useRef(rooms); // Create a ref to always hold the latest rooms
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currentUser] = useState<User>(MOCK_USER);
@@ -29,6 +49,24 @@ export default function App() {
   const [forecastPage, setForecastPage] = useState(0);
   const [currentBookingPayments, setCurrentBookingPayments] = useState<Payment[]>([]); // State for payments of the currently selected booking
 
+  useEffect(() => {
+    roomsRef.current = rooms; // Keep the ref updated with the latest rooms state
+  }, [rooms]);
+
+  const fetchRooms = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8080/rooms'); // Assuming this endpoint exists
+      if (!response.ok) {
+        throw new Error(`Failed to fetch rooms: ${response.statusText}`);
+      }
+      const data: Room[] = await response.json();
+      setRooms(data);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      setRooms(INITIAL_ROOMS); // Fallback to initial mock data if API call fails
+    }
+  }, []);
+
   const fetchBookingPayments = useCallback(async (bookingId: string) => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}/payments`);
@@ -44,7 +82,7 @@ export default function App() {
   }, []);
 
   // Filter State
-  const [bookingFilter, setBookingFilter] = useState<{ 
+  const [bookingFilter, setBookingFilter] = useState<{
       status?: BookingStatus; 
       date?: string; 
       type?: 'checkin' | 'checkout' | 'pending';
@@ -52,15 +90,14 @@ export default function App() {
   } | null>(null);
 
   // Derived State
-  const today = new Date().toISOString().split('T')[0];
-
+  const today = getISTDateString(new Date());
   const [newBookingData, setNewBookingData] = useState({
     guestName: '',
     guestEmail: '',
     guestPhone: '',
     checkIn: today,
-    checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    roomId: '',
+    checkOut: getISTDateStringAhead(1),
+    roomId: null, // Change from '' to null
     advance: 0,
     roomRate: 0,
     source: BookingSource.DIRECT,
@@ -70,7 +107,7 @@ export default function App() {
 
   const fetchBookings = useCallback(async () => {
     try {
-      const response = await fetch('https://booking-anurakx.onrender.com/allBooking');
+      const response = await fetch('http://localhost:8080/allBooking');
       if (!response.ok) {
         throw new Error(`Failed to fetch bookings: ${response.statusText}`);
       }
@@ -92,8 +129,8 @@ export default function App() {
           guestName: b.guest,
           guestEmail: b.guestEmail, // Assuming this is correct for email
           guestPhone: b.contactNumber, // Map contactNumber from API to guestPhone
-          checkInDate: new Date(b.checkInDate).toISOString().split('T')[0],
-          checkOutDate: new Date(b.checkOutDate).toISOString().split('T')[0],
+          checkInDate: b.checkInDate,
+          checkOutDate: b.checkOutDate,
           source: b.bookingSource as BookingSource, // Ensure type compatibility
           status: b.status as BookingStatus, // Ensure type compatibility
           totalPaid: b.totalPaid, // Map totalPaid from backend
@@ -107,9 +144,37 @@ export default function App() {
     }
   }, [rooms, setBookings]); // Added setBookings to dependencies
 
+  // Consolidated initial data loading
   useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
+    const loadInitialData = async () => {
+      await fetchRooms(); // Fetch rooms first
+      // fetchBookings will be called automatically once rooms state is updated and fetchBookings' dependency array (rooms) triggers it
+    };
+    loadInitialData();
+  }, [fetchRooms]); // Run only when fetchRooms changes (on mount)
+
+  useEffect(() => {
+    if (rooms.length > 0) { // Only fetch bookings if rooms are available
+      fetchBookings();
+    }
+  }, [fetchBookings, rooms]); // Re-fetch bookings when rooms are updated
+
+  // Demonstration of getAvailableRooms
+  useEffect(() => {
+    const fetchAndLogAvailableRooms = async () => {
+      const startDate = today;
+      const endDate = getISTDateStringAhead(1);
+
+      try {
+        console.log(`Fetching available rooms for startDate: ${startDate}, endDate: ${endDate}`);
+        const availableRooms = await getAvailableRooms({ startDate, endDate });
+        console.log('Available Rooms:', availableRooms);
+      } catch (error) {
+        console.error('Error fetching available rooms:', error);
+      }
+    };
+    fetchAndLogAvailableRooms();
+  }, []); // Run once on component mount
 
   const stats = useMemo(() => {
     const parseDate = (dateStr: string) => {
@@ -230,42 +295,30 @@ export default function App() {
     return Array.from({length: DAYS_PER_PAGE}, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() + startOffset + i - 1);
-        d.setHours(0,0,0,0);
-        const dateStr = d.toISOString().split('T')[0];
+        d.setHours(0,0,0,0); // Ensure it's start of the day in local time before converting
+        const dateStr = getISTDateString(d); // Use IST helper here
+
+
+        
         const available = rooms.filter(room => {
-                                    const nextDayDate = new Date(d);
-                                    nextDayDate.setDate(nextDayDate.getDate() + 1);
-                                    const nextDayCheckInDateStr = nextDayDate.toISOString().split('T')[0];
-                        
-                                    // Start of debug logging for a specific room and date
-                                    if (room.id === '101' && dateStr === today) { // Focus on Room 101 for today
-                                      console.log(`--- DEBUG: Availability Forecast for Room ${room.id} on ${dateStr} ---`);
-                                      console.log(`  nextDayCheckInDateStr: ${nextDayCheckInDateStr}`);
-                                    }
                                     const isBooked = bookings.some(b => {
-                                        const isStandardBooked = b.checkInDate <= dateStr && b.checkOutDate > dateStr;
-                                        const isBookedForNextDayArrival = b.checkInDate === nextDayCheckInDateStr;
-                        
-                                        if (room.id === '101' && dateStr === today) {
-                                          console.log(`  Checking booking ID: ${b.id}`);
-                                          console.log(`    b.roomId (${b.roomId}) === room.id (${room.id}): ${b.roomId === room.id}`);
-                                          console.log(`    b.status (${b.status}) !== CANCELLED: ${b.status !== BookingStatus.CANCELLED}`);
-                                          console.log(`    b.status (${b.status}) !== CHECKED_OUT: ${b.status !== BookingStatus.CHECKED_OUT}`);
-                                          console.log(`    Standard Booked: b.checkInDate (${b.checkInDate}) <= dateStr (${dateStr}) && b.checkOutDate (${b.checkOutDate}) > dateStr (${dateStr}) -> ${isStandardBooked}`);
-                                          console.log(`    Booked for next day arrival: b.checkInDate (${b.checkInDate}) === nextDayCheckInDateStr (${nextDayCheckInDateStr}) -> ${isBookedForNextDayArrival}`);
-                                        }
                                         const match = b.roomId === room.id &&
                                                       b.status !== BookingStatus.CANCELLED &&
                                                       b.status !== BookingStatus.CHECKED_OUT &&
-                                                      (isStandardBooked || isBookedForNextDayArrival);
-                                        if (room.id === '101' && dateStr === today && match) {
-                                            console.log(`  Match found for booking ID: ${b.id}`);
+                                                      b.checkInDate <= dateStr &&
+                                                      dateStr < b.checkOutDate;
+                                        if (room.id === '101' && dateStr === "2025-12-21") {
+                                            console.log(`  DEBUG 21st: Booking ${b.id}, checkIn=${b.checkInDate}, checkOut=${b.checkOutDate}, isBooked for ${dateStr}? ${match}`);
+                                        }
+                                        if (room.id === '101' && dateStr === "2025-12-22") {
+                                            console.log(`  DEBUG 22nd: Booking ${b.id}, checkIn=${b.checkInDate}, checkOut=${b.checkOutDate}, isBooked for ${dateStr}? ${match}`);
+                                        }
+                                        if (room.id === '101' && dateStr === "2025-12-23") {
+                                            console.log(`  DEBUG 23rd: Booking ${b.id}, checkIn=${b.checkInDate}, checkOut=${b.checkOutDate}, isBooked for ${dateStr}? ${match}`);
                                         }
                                         return match;
                                     });
-                                    if (room.id === '101' && dateStr === today) {
-                                      console.log(`--- END DEBUG: isBooked for Room ${room.id} on ${dateStr}: ${isBooked} ---`);
-                                    }            return !isBooked; // If booked, filter it out
+                                    return !isBooked; // If booked, filter it out
         });
         return { date: d, availableRooms: available };
     });
@@ -293,9 +346,10 @@ export default function App() {
     setEditingBookingId(null);
     setNewBookingData({
       guestName: '', guestEmail: '', guestPhone: '',
-      checkIn: preSelectedDate ? preSelectedDate.toISOString().split('T')[0] : today,
-      checkOut: preSelectedDate ? new Date(preSelectedDate.getTime() + 86400000).toISOString().split('T')[0] : new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
+      checkIn: preSelectedDate ? getISTDateString(preSelectedDate) : today,
+      checkOut: preSelectedDate ? getISTDateStringAhead(1, preSelectedDate) : getISTDateStringAhead(1),
+      roomId: defaultRoom?.id || null, // Change from '' to null
+      advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
       source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: ''
     });
     setIsBookingModalOpen(true);
@@ -306,30 +360,42 @@ export default function App() {
   const handleEditBooking = useCallback(async (booking: Booking, isViewOnly = false) => {
     setEditingBookingId(booking.id);
     setIsViewOnlyMode(isViewOnly); // Set the view-only mode state
+    console.log('DEBUG: rooms array content at start of handleEditBooking:', rooms.map(r => ({id: r.id, number: r.number})));
     try {
-      const response = await fetch(`https://booking-anurakx.onrender.com/bookings/${booking.id}`); // Fetch specific booking
+      const response = await fetch(`http://localhost:8080/bookings/${booking.id}`); // Fetch specific booking
       if (!response.ok) {
         throw new Error(`Failed to fetch booking for edit: ${response.statusText}`);
       }
       const fetchedBookingData = await response.json(); // Assuming backend returns BookingDTO or similar
       
       // Map fetched data to newBookingData state format
-      // Note: The fetchedBookingData might be in the BookingDTO format or similar
-      // Need to adjust mapping if fields are different. Assuming here it's similar to our DTO
-      setNewBookingData({
-        guestName: fetchedBookingData.fullName || '', // Map to guestName
-        guestEmail: fetchedBookingData.emailId || '', // Map to guestEmail
-        guestPhone: fetchedBookingData.mobileNumber || '', // Map to guestPhone
-        checkIn: fetchedBookingData.checkInDate || '', // YYYY-MM-DD
-        checkOut: fetchedBookingData.checkOutDate || '', // YYYY-MM-DD
-        roomId: rooms.find(r => r.number === fetchedBookingData.roomNo)?.id || '', // Map room number to ID
-        roomRate: fetchedBookingData.nightlyRate || 0, // Map nightlyRate
-        advance: fetchedBookingData.advanceAmount || 0, // Map advanceAmount
-        source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, // Map bookingSource
-        paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH, // Map paymentMethod
-        notes: fetchedBookingData.internalNotes || '' // Map internalNotes
+      console.log('DEBUG: fetchedBookingData.roomNo from API:', fetchedBookingData.roomNo, ' (type: ', typeof fetchedBookingData.roomNo, ')');
+      console.log('DEBUG: All rooms in state (for lookup, from ref):', roomsRef.current.map(r => ({ id: r.id, number: r.number, type: typeof r.number })));
+      const foundRoom = roomsRef.current.find(r => String(r.number) === String(fetchedBookingData.roomNo)); // Use ref for latest rooms
+      console.log('DEBUG: foundRoom based on fetchedBookingData.roomNo (after type-agnostic comparison, from ref):', foundRoom);
+      const mappedRoomId = foundRoom?.id || '';
+      console.log('DEBUG: mappedRoomId after lookup (should be room ID if found):', mappedRoomId);
+      
+      setNewBookingData((prevData: any) => {
+        const newData = {
+          ...prevData,
+          guestName: fetchedBookingData.fullName || '', // Map to guestName
+          guestEmail: fetchedBookingData.emailId || '', // Map to guestEmail
+          guestPhone: fetchedBookingData.mobileNumber || '', // Map to guestPhone
+          checkIn: fetchedBookingData.checkInDate || '', // YYYY-MM-DD
+          checkOut: fetchedBookingData.checkOutDate || '', // YYYY-MM-DD
+          roomId: mappedRoomId, // Map room number to ID
+          roomRate: fetchedBookingData.nightlyRate || 0, // Map nightlyRate
+          advance: fetchedBookingData.advanceAmount || 0, // Map advanceAmount
+          source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, // Map bookingSource
+          paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH, // Map paymentMethod
+          notes: fetchedBookingData.internalNotes || '', // Map internalNotes
+          totalAmount: fetchedBookingData.totalAmount || 0 // Map totalAmount
+        };
+        console.log('DEBUG: newBookingData after setNewBookingData:', newData);
+        return newData;
       });
-      setIsBookingModalOpen(true);
+      setIsBookingModalOpen(true); // Open modal only if fetch is successful
     } catch (error: any) {
       console.error('Error fetching booking for edit:', error.message);
       alert(`Error fetching booking for edit: ${error.message}`);
@@ -337,13 +403,20 @@ export default function App() {
     }
   }, [setEditingBookingId, setNewBookingData, setIsBookingModalOpen, rooms]);
 
-  const handleSaveBooking = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveBooking = useCallback(async (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => {
     e.preventDefault();
     const { roomId, checkIn, checkOut, guestName, roomRate, advance, paymentMethod, source, notes, guestEmail, guestPhone } = newBookingData;
-    const room = rooms.find(r => r.id === roomId);
+    const room = selectedRoom; // Use the passed selectedRoom
     if (!room) {
-      alert("Selected room not found.");
+      alert("Selected room not found. Please select a valid room.");
       return;
+    }
+    console.log('Debug: Room object received by handleSaveBooking:', room);
+    console.log('Debug: room.roomNumber property in handleSaveBooking:', room.roomNumber);
+
+    if (!room.roomNumber || room.roomNumber.trim() === '') {
+        alert("Selected room has an invalid or missing room number. Please select a different room.");
+        return;
     }
 
     if (new Date(checkOut) <= new Date(checkIn)) {
@@ -358,7 +431,7 @@ export default function App() {
       mobileNumber: guestPhone,
       checkInDate: checkIn,
       checkOutDate: checkOut,
-      roomNo: room.number, // Use room number from the found room
+      roomNo: room.roomNumber, // Use room.roomNumber
       nightlyRate: roomRate,
       bookingSource: source,
       advanceAmount: advance,
@@ -369,11 +442,11 @@ export default function App() {
 
     try {
       let response;
-      let url = 'https://booking-anurakx.onrender.com/saveBooking'; // Updated for new booking API
+      let url = 'http://localhost:8080/saveBooking'; // Updated for new booking API
       let method = 'POST';
 
       if (editingBookingId) {
-        url = `https://booking-anurakx.onrender.com/bookings/${editingBookingId}`; // Updated for specific update API
+        url = `http://localhost:8080/bookings/${editingBookingId}`; // Updated for specific update API
         method = 'PUT';
       }
 
@@ -417,22 +490,30 @@ export default function App() {
       setNewBookingData({
         guestName: '', guestEmail: '', guestPhone: '',
         checkIn: today,
-        checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        roomId: '', advance: 0, roomRate: 0,
+        checkOut: getISTDateStringAhead(1),
+        roomId: null, // Change from '' to null
+        advance: 0, roomRate: 0,
         source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: ''
       });
       fetchBookings(); // Refresh the list after save/update
       
     } catch (error: any) {
       console.error(`Error ${editingBookingId ? 'updating' : 'saving'} booking:`, error.message);
-      alert(`Error ${editingBookingId ? 'updating' : 'saving'} booking: ${error.message}`);
+      let userFacingMessage = `Error ${editingBookingId ? 'updating' : 'saving'} booking: ${error.message}`;
+      if (error.message.includes('duplicate key value violates unique constraint "guests_email_key"')) {
+        userFacingMessage = "A guest with this email address already exists. Please use a different email or update the existing guest.";
+      } else if (error.message.includes('Server error during POST booking') || error.message.includes('Server error during PUT booking')) {
+        // This is a generic server error from non-JSON response, prompt to check backend logs.
+        userFacingMessage = `Server encountered an unexpected error. Please check backend logs for details: ${error.message}`;
+      }
+      alert(userFacingMessage);
     }
   }, [newBookingData, rooms, editingBookingId, addLog, setIsBookingModalOpen, setNewBookingData, today, fetchBookings]);
 
   const handleDeleteBooking = useCallback((bookingId: string) => {
     if (window.confirm("Are you sure you want to delete this booking? This action cannot be undone.")) {
       // Assuming a DELETE API endpoint for bookings
-      const url = `https://booking-anurakx.onrender.com/bookings/${bookingId}`; // Updated for specific delete API
+      const url = `http://localhost:8080/bookings/${bookingId}`; // Updated for specific delete API
       fetch(url, {
         method: 'DELETE',
       })
@@ -528,14 +609,15 @@ export default function App() {
     setActiveTab('bookings');
   }, [setBookingFilter, setActiveTab]);
 
-  const bookingNights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
-  const bookingTotal = (newBookingData.roomRate || 0) * bookingNights;
+  let bookingNights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
+  let bookingTotal = (newBookingData.roomRate || 0) * bookingNights;
 
   let paidAmount = newBookingData.advance; // Default for new booking
   let bookingPending = bookingTotal - paidAmount; // Default for new booking
 
   if (editingBookingId) {
     const originalBooking = bookings.find(b => b.id === editingBookingId);
+    bookingTotal = newBookingData.totalAmount || bookingTotal; // Use fetched totalAmount for edited bookings
     if (originalBooking) {
       // For edited bookings, use the pendingBalance from the fetched original booking
       // and derive paidAmount based on the current bookingTotal
@@ -601,17 +683,18 @@ export default function App() {
 
       <NewBookingModal
         isOpen={isBookingModalOpen}
-        onClose={() => { setIsBookingModalOpen(false); setIsViewOnlyMode(false); }} // Reset view-only mode on close
+        onClose={() => { setIsBookingModalOpen(false); setIsViewOnlyMode(false); }}
         editingBookingId={editingBookingId}
         newBookingData={newBookingData}
         setNewBookingData={setNewBookingData}
         handleSaveBooking={handleSaveBooking}
         rooms={rooms}
+        bookings={bookings} // Pass bookings state
         bookingNights={bookingNights}
         bookingTotal={bookingTotal}
         paidAmount={paidAmount}
         bookingPending={bookingPending}
-        readOnly={isViewOnlyMode} // Pass the state to the modal
+        readOnly={isViewOnlyMode}
       />
 
       <PaymentModal
