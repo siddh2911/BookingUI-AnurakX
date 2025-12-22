@@ -55,7 +55,7 @@ export default function App() {
 
   const fetchRooms = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8080/rooms'); // Assuming this endpoint exists
+      const response = await fetch('https://booking-ui-anurak-x.vercel.app/rooms'); // Assuming this endpoint exists
       if (!response.ok) {
         throw new Error(`Failed to fetch rooms: ${response.statusText}`);
       }
@@ -107,7 +107,7 @@ export default function App() {
 
   const fetchBookings = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8080/allBooking');
+      const response = await fetch('https://booking-ui-anurak-x.vercel.app/allBooking');
       if (!response.ok) {
         throw new Error(`Failed to fetch bookings: ${response.statusText}`);
       }
@@ -362,7 +362,7 @@ export default function App() {
     setIsViewOnlyMode(isViewOnly); // Set the view-only mode state
     console.log('DEBUG: rooms array content at start of handleEditBooking:', rooms.map(r => ({id: r.id, number: r.number})));
     try {
-      const response = await fetch(`http://localhost:8080/bookings/${booking.id}`); // Fetch specific booking
+      const response = await fetch(`https://booking-ui-anurak-x.vercel.app/bookings/${booking.id}`); // Fetch specific booking
       if (!response.ok) {
         throw new Error(`Failed to fetch booking for edit: ${response.statusText}`);
       }
@@ -442,11 +442,11 @@ export default function App() {
 
     try {
       let response;
-      let url = 'http://localhost:8080/saveBooking'; // Updated for new booking API
+      let url = 'https://booking-ui-anurak-x.vercel.app/saveBooking'; // Updated for new booking API
       let method = 'POST';
 
       if (editingBookingId) {
-        url = `http://localhost:8080/bookings/${editingBookingId}`; // Updated for specific update API
+        url = `https://booking-ui-anurak-x.vercel.app/bookings/${editingBookingId}`; // Updated for specific update API
         method = 'PUT';
       }
 
@@ -513,7 +513,7 @@ export default function App() {
   const handleDeleteBooking = useCallback((bookingId: string) => {
     if (window.confirm("Are you sure you want to delete this booking? This action cannot be undone.")) {
       // Assuming a DELETE API endpoint for bookings
-      const url = `http://localhost:8080/bookings/${bookingId}`; // Updated for specific delete API
+      const url = `https://booking-ui-anurak-x.vercel.app/bookings/${bookingId}`; // Updated for specific delete API
       fetch(url, {
         method: 'DELETE',
       })
