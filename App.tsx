@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Menu, X } from 'lucide-react';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType } from './types';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER } from './constants';
-import { getAvailableRooms } from './services/api';
+import { getAvailableRooms } from '@services/api';
 
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/dashboard/Dashboard';
