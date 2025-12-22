@@ -1,0 +1,255 @@
+import React from 'react';
+import Modal from '../ui/Modal';
+import { Room, BookingSource, PaymentMethod, RoomStatus } from '../../types';
+import { Users, CalendarDays, CreditCard } from 'lucide-react';
+
+interface NewBookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  editingBookingId: string | null;
+  newBookingData: any;
+  setNewBookingData: (data: any) => void;
+  handleSaveBooking: (e: React.FormEvent<HTMLFormElement>) => void;
+  rooms: Room[];
+  bookingNights: number;
+  bookingTotal: number;
+  paidAmount: number;
+  bookingPending: number;
+  readOnly?: boolean; // New prop for view-only mode
+}
+
+const NewBookingModal: React.FC<NewBookingModalProps> = ({
+  isOpen,
+  onClose,
+  editingBookingId,
+  newBookingData,
+  setNewBookingData,
+  handleSaveBooking,
+  rooms,
+  bookingNights,
+  bookingTotal,
+  paidAmount,
+  bookingPending,
+  readOnly = false, // Default to false if not provided
+}) => {
+  console.log('Rooms in modal:', rooms);
+  const modalTitle = readOnly
+    ? "View Booking"
+    : editingBookingId
+      ? "Edit Booking"
+      : "New Booking";
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
+       <form onSubmit={handleSaveBooking} className="space-y-6">
+          
+          {/* Guest Details */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Users size={16}/> Guest Information</h3>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                   <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
+                   <input 
+                      name="guestName" 
+                      required 
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                      placeholder="John Doe" 
+                      value={newBookingData.guestName}
+                      onChange={(e) => setNewBookingData({...newBookingData, guestName: e.target.value})}
+                      disabled={readOnly}
+                   />
+                </div>
+                <div>
+                   <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
+                   <input 
+                      name="guestEmail" 
+                      type="email" 
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                      placeholder="john@example.com"
+                      value={newBookingData.guestEmail}
+                      onChange={(e) => setNewBookingData({...newBookingData, guestEmail: e.target.value})}
+                      disabled={readOnly}
+                   />
+                </div>
+                 <div>
+                   <label className="block text-xs font-medium text-slate-500 mb-1">Mobile Number</label>
+                   <input 
+                      name="guestPhone" 
+                      required
+                      pattern="^(?:\+91)?[0-9]{10}$"
+                      title="Please enter a valid 10-digit Indian mobile number, optionally starting with +91"
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                      placeholder="+91 98765 43210"
+                      value={newBookingData.guestPhone}
+                      onChange={(e) => setNewBookingData({...newBookingData, guestPhone: e.target.value})}
+                      disabled={readOnly}
+                   />
+                </div>
+             </div>
+          </div>
+
+          {/* Stay Details */}
+           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><CalendarDays size={16}/> Stay Details</h3>
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                 <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Check In</label>
+                    <input 
+                       name="checkIn" 
+                       type="date" 
+                       required 
+                       className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                       value={newBookingData.checkIn}
+                       onChange={(e) => setNewBookingData({...newBookingData, checkIn: e.target.value})}
+                       disabled={readOnly}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Check Out</label>
+                    <input 
+                       name="checkOut" 
+                       type="date" 
+                       required 
+                       className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                       value={newBookingData.checkOut}
+                       onChange={(e) => setNewBookingData({...newBookingData, checkOut: e.target.value})}
+                       disabled={readOnly}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Select Room</label>
+                    <select 
+                       name="roomId" 
+                       required 
+                       className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200"
+                       value={newBookingData.roomId}
+                       onChange={(e) => {
+                           const r = rooms.find(room => room.id === e.target.value);
+                           setNewBookingData({
+                               ...newBookingData, 
+                               roomId: e.target.value,
+                               roomRate: r ? r.pricePerNight : 0
+                           });
+                       }}
+                       disabled={readOnly}
+                    >
+                       <option value="">Select a Room</option>
+                       {rooms.filter(r => r.status === RoomStatus.AVAILABLE || r.id === newBookingData.roomId).map(r => (
+                          <option key={r.id} value={r.id}>{r.number}</option>
+                       ))}
+                    </select>
+                 </div>
+                 <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Nightly Rate (₹)</label>
+                                       <input 
+                                          name="roomRate" 
+                                          type="number" 
+                                          required 
+                                          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                                          value={newBookingData.roomRate}
+                                          onChange={(e) => setNewBookingData({...newBookingData, roomRate: parseFloat(e.target.value) || 0})}
+                                          disabled={readOnly}
+                                       />
+                                    </div>
+                                </div>
+                                <div className="mt-4">
+                                   <label className="block text-xs font-medium text-slate-500 mb-1">Booking Source</label>
+                                   <select 
+                                      name="source" 
+                                      required 
+                                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200"
+                                      value={newBookingData.source}
+                                      onChange={(e) => setNewBookingData({...newBookingData, source: e.target.value as BookingSource})}
+                                      disabled={readOnly}
+                                   >
+                                      {Object.values(BookingSource).map(s => <option key={s} value={s}>{s}</option>)}
+                                   </select>
+                                </div>
+                             </div>
+                    
+                             {/* Payment & Summary */}
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Payment Input (Hidden in Edit Mode) */}
+                                {!editingBookingId && !readOnly && ( // Only show if not editing AND not readOnly
+                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                                       <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><CreditCard size={16}/> Initial Payment</h3>
+                                       <div className="space-y-4">
+                                          <div>
+                                             <label className="block text-xs font-medium text-slate-500 mb-1">Advance Amount (₹)</label>
+                                             <input 
+                                                name="advanceAmount" 
+                                                type="number" 
+                                                min="0"
+                                                step="0.01"
+                                                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none h-10 bg-slate-50 border-slate-200" 
+                                                placeholder="0.00"
+                                                value={newBookingData.advance}
+                                                onChange={(e) => setNewBookingData({...newBookingData, advance: parseFloat(e.target.value) || 0})}
+                                                disabled={readOnly}
+                                             />                       </div>
+                       <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Payment Method</label>
+                          <select 
+                             name="paymentMethod" 
+                             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none h-10 bg-slate-50 border-slate-200"
+                             value={newBookingData.paymentMethod}
+                             onChange={(e) => setNewBookingData({...newBookingData, paymentMethod: e.target.value as PaymentMethod})}
+                             disabled={readOnly}
+                          >
+                             {Object.values(PaymentMethod).map(m => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                       </div>
+                    </div>
+                 </div>
+             )}
+
+             {/* Live Summary */}
+             <div className={`bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between ${editingBookingId || readOnly ? 'col-span-2' : ''}`}>
+                 <h3 className="text-sm font-bold text-blue-800 mb-4">Booking Summary</h3>
+                 <div className="space-y-3 text-sm">
+                     <div className="flex justify-between">
+                        <span className="text-slate-500">Room Rate</span>
+                        <span className="font-medium text-slate-800">₹{newBookingData.roomRate} x {bookingNights} nights</span>
+                     </div>
+                     <div className="flex justify-between border-t border-slate-100 pt-3">
+                        <span className="font-bold text-slate-800">Total Cost</span>
+                        <span className="font-bold text-slate-800">₹{bookingTotal.toLocaleString()}</span>
+                     </div>
+                     <div className="flex justify-between text-green-700">
+                        <span>{editingBookingId ? 'Previously Paid' : 'Advance Paid'}</span>
+                        <span>-₹{paidAmount.toLocaleString()}</span>
+                     </div>
+                     <div className="flex justify-between border-t border-slate-100 pt-3 mt-1">
+                        <span className="font-bold text-red-600">Pending Balance</span>
+                        <span className="font-bold text-red-600">₹{bookingPending.toLocaleString()}</span>
+                     </div>
+                 </div>
+             </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+             <label className="block text-xs font-medium text-slate-500 mb-2">Internal Notes</label>
+             <textarea 
+                 name="notes" 
+                 className="w-full border rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 border-slate-200" 
+                 placeholder="Special requests, housekeeping notes, etc..."
+                 value={newBookingData.notes}
+                 onChange={(e) => setNewBookingData({...newBookingData, notes: e.target.value})}
+                 disabled={readOnly}
+             ></textarea>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+             <button type="button" onClick={onClose} className="px-6 py-2.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">Cancel</button>
+             {!readOnly && ( // Only show save button if not in read-only mode
+               <button type="submit" className="px-8 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-bold shadow-sm transition-colors">
+                   {editingBookingId ? "Update Booking" : "Confirm Booking"}
+               </button>
+             )}
+          </div>
+       </form>
+    </Modal>
+  );
+};
+
+export default NewBookingModal;
