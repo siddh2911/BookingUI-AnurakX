@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Modal from '../ui/Modal';
 import { Room, BookingSource, PaymentMethod, RoomStatus, Booking } from '../../types';
 import { Users, CalendarDays, CreditCard } from 'lucide-react';
-import { getAvailableRooms } from '../../services/api';
+import { getAvailableRooms } from "../../services/api";
 
 interface NewBookingModalProps {
   isOpen: boolean;
