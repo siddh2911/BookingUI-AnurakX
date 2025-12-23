@@ -5,8 +5,10 @@ import UpcomingArrivals from './UpcomingArrivals';
 import ActivityLog from './ActivityLog';
 import AvailabilityForecast from './AvailabilityForecast';
 import { PaymentQRCard } from './PaymentQRCard';
+import UrgentArrivals from './UrgentArrivals';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
 import { Booking, Room, AuditLog, BookingStatus } from '../../types';
+
 
 interface DashboardProps {
   stats: any;
@@ -43,6 +45,13 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   return (
     <div className="space-y-6">
+      <UrgentArrivals
+        arrivals={upcomingArrivals}
+        rooms={rooms}
+        today={today}
+        onEditBooking={handleEditBooking}
+      />
+
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
@@ -78,6 +87,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           icon={<Users size={20} />}
           onClick={() => handleDashboardFilter({ type: 'checkin', date: today, label: "Today's Check-ins" })}
           details={[
+            { label: 'Week', value: stats.checkInsWeek },
+            { label: 'Month', value: stats.checkInsMonth },
             { label: 'Year', value: stats.checkInsYear },
           ]}
         />
@@ -92,6 +103,8 @@ const Dashboard: React.FC<DashboardProps> = ({
         onEditBooking={handleEditBooking}
         today={today}
       />
+
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {isRevenueVisible && (
