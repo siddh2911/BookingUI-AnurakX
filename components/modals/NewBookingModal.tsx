@@ -85,8 +85,8 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const modalTitle = readOnly ? "Reservation Details" : editingBookingId ? "Modify Reservation" : "New Reservation";
 
    // Luxury Styles
-   const sectionHeader = "text-xl text-slate-900 mb-6 flex items-center gap-3 font-medium";
-   const elegantInput = "w-full bg-slate-50/50 border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-3 text-base transition-all outline-none placeholder:text-slate-300 hover:bg-slate-50 focus:bg-transparent";
+   const sectionHeader = "text-lg md:text-xl text-slate-900 mb-4 md:mb-6 flex items-center gap-3 font-medium";
+   const elegantInput = "w-full bg-slate-50/50 border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-2 md:py-3 text-sm md:text-base transition-all outline-none placeholder:text-slate-300 hover:bg-slate-50 focus:bg-transparent";
    const elegantLabel = "text-xs font-bold text-slate-400 uppercase tracking-widest";
    const floatingGroup = "relative";
 
@@ -187,7 +187,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
                {/* RIGHT: BILLING CARD (5 Cols) */}
                <div className="lg:col-span-5">
-                  <div className="bg-slate-900 rounded-3xl p-8 text-white h-full flex flex-col justify-between shadow-2xl shadow-slate-900/20 relative overflow-hidden">
+                  <div className="bg-slate-900 rounded-2xl md:rounded-3xl p-5 md:p-8 text-white h-full flex flex-col justify-between shadow-2xl shadow-slate-900/20 relative overflow-hidden">
                      {/* Decorative gradient blob */}
                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 

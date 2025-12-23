@@ -14,6 +14,7 @@ import FinancePage from './components/pages/FinancePage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
 import PaymentModal from './components/modals/PaymentModal';
+import SecurityModal from './components/modals/SecurityModal';
 
 export default function App() {
   const API_BASE_URL = 'https://booking-anurakx.onrender.com';
@@ -47,6 +48,17 @@ export default function App() {
   const [forecastPage, setForecastPage] = useState(0);
   const [currentBookingPayments, setCurrentBookingPayments] = useState<Payment[]>([]);
   const [isRevenueVisible, setIsRevenueVisible] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+
+  const handleToggleRevenue = (visible: boolean) => {
+    if (visible) {
+      // User wants to see revenue -> require auth
+      setIsSecurityModalOpen(true);
+    } else {
+      // User wants to hide revenue -> allow immediately
+      setIsRevenueVisible(false);
+    }
+  };
 
   // Filter State
   const [bookingFilter, setBookingFilter] = useState<{
@@ -450,7 +462,7 @@ export default function App() {
   const dashboardProps = {
     stats, revenueChartData, upcomingArrivals, rooms, logs, availabilityForecast,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking,
-    today, isRevenueVisible, setIsRevenueVisible
+    today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
   };
 
   const bookingProps = {
@@ -483,8 +495,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/app" replace />} />
-        <Route path="/app" element={<DashboardLayout />}>
+        <Route path="/" element={<DashboardLayout />}>
           <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
           <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
           <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
@@ -493,7 +504,7 @@ export default function App() {
           <Route path="finance" element={<FinancePage />} />
         </Route>
         {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/app" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       <NewBookingModal
@@ -518,6 +529,15 @@ export default function App() {
         selectedBooking={selectedBooking}
         handleAddPayment={handleAddPayment}
         payments={currentBookingPayments}
+      />
+
+      <SecurityModal
+        isOpen={isSecurityModalOpen}
+        onClose={() => setIsSecurityModalOpen(false)}
+        onAuthenticated={() => {
+          setIsRevenueVisible(true);
+          setIsSecurityModalOpen(false);
+        }}
       />
     </Router>
   );

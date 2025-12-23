@@ -10,6 +10,6 @@ export const INITIAL_BOOKINGS: Booking[] = [];
 
 export const MOCK_USER = {
   id: 'u_1',
-  name: 'Alex Admin',
+  name: 'Sanjeev Kumar Singh',
   role: 'Manager' as const
 };

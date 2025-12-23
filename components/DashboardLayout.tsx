@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, Bell, Search } from 'lucide-react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { User } from '../types';
 import { MOCK_USER } from '../constants';
@@ -28,10 +28,10 @@ export default function DashboardLayout() {
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
                 {/* Mobile Header */}
                 <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-20">
-                    <div className="flex flex-col">
+                    <Link to="/" className="flex flex-col">
                         <span className="font-bold text-lg text-white tracking-widest leading-tight" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
                         <span className="text-[9px] text-blue-200 uppercase tracking-widest font-sans">Dashboard</span>
-                    </div>
+                    </Link>
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
                         {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>

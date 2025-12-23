@@ -75,13 +75,14 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[calc(100vh-140px)]">
             {/* Controls */}
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+            {/* Controls */}
+            <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
                         <button onClick={handlePrev} className="p-1.5 hover:bg-white rounded-md transition duration-200 hover:shadow-sm text-slate-600">
                             <ChevronLeft size={20} />
                         </button>
-                        <button onClick={() => setStartDate(new Date())} className="px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-white rounded-md transition duration-200">
+                        <button onClick={() => setStartDate(new Date())} className="px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-white rounded-md transition duration-200 whitespace-nowrap">
                             Today
                         </button>
                         <button onClick={handleNext} className="p-1.5 hover:bg-white rounded-md transition duration-200 hover:shadow-sm text-slate-600">
@@ -90,24 +91,24 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                     </div>
                     <div className="flex items-center gap-2">
                         <CalendarIcon size={18} className="text-slate-400" />
-                        <span className="font-bold text-slate-700 text-lg">
-                            {startDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                        <span className="font-bold text-slate-700 text-sm md:text-lg whitespace-nowrap">
+                            {startDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
                         </span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500 mr-4">
-                        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500 rounded-sm"></div> Confirmed</span>
-                        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500 rounded-sm"></div> Checked In</span>
-                        <span className="flex items-center gap-1"><div className="w-3 h-3 bg-slate-400 rounded-sm"></div> Checked Out</span>
+                <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto">
+                    <div className="flex items-center gap-2 text-[10px] md:text-xs font-medium text-slate-500 mr-4 whitespace-nowrap">
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-sm"></div> Confirmed</span>
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-sm"></div> In</span>
+                        <span className="flex items-center gap-1"><div className="w-2 h-2 md:w-3 md:h-3 bg-slate-400 rounded-sm"></div> Out</span>
                     </div>
-                    <div className="relative">
+                    <div className="relative hidden md:block">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search booking..."
-                            className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 w-64"
+                            placeholder="Search..."
+                            className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 w-32 md:w-64"
                         />
                     </div>
                 </div>
@@ -115,19 +116,20 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
 
             {/* Calendar Grid */}
             <div className="flex-1 overflow-auto relative custom-scrollbar bg-slate-50/50">
-                <div className="min-w-[1200px]">
+                <div className="min-w-[800px] md:min-w-[1200px]">
                     {/* Header Row */}
                     <div className="flex sticky top-0 z-20 bg-white shadow-sm border-b border-slate-200">
-                        <div className="w-48 flex-shrink-0 p-4 font-bold text-slate-700 border-r border-slate-200 bg-slate-50">
-                            Room
+                        <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-4 font-bold text-slate-700 border-r border-slate-200 bg-slate-50 flex items-center justify-center md:justify-start">
+                            <span className="hidden md:inline">Room</span>
+                            <span className="md:hidden">Rm</span>
                         </div>
                         <div className="flex-1 flex">
                             {dates.map(date => (
-                                <div key={date.toISOString()} className={`flex-1 min-w-[80px] p-2 text-center border-r border-slate-100 ${isToday(date) ? 'bg-blue-50' : ''}`}>
-                                    <div className={`text-xs uppercase font-bold mb-1 ${isToday(date) ? 'text-blue-600' : 'text-slate-400'}`}>
-                                        {date.toLocaleDateString(undefined, { weekday: 'short' })}
+                                <div key={date.toISOString()} className={`flex-1 min-w-[50px] md:min-w-[80px] p-2 text-center border-r border-slate-100 ${isToday(date) ? 'bg-blue-50' : ''}`}>
+                                    <div className={`text-[10px] md:text-xs uppercase font-bold mb-1 ${isToday(date) ? 'text-blue-600' : 'text-slate-400'}`}>
+                                        {date.toLocaleDateString(undefined, { weekday: 'short' }).charAt(0)}
                                     </div>
-                                    <div className={`text-lg font-bold w-8 h-8 flex items-center justify-center rounded-full mx-auto ${isToday(date) ? 'bg-blue-600 text-white shadow-md' : 'text-slate-700'}`}>
+                                    <div className={`text-sm md:text-lg font-bold w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-full mx-auto ${isToday(date) ? 'bg-blue-600 text-white shadow-md' : 'text-slate-700'}`}>
                                         {date.getDate()}
                                     </div>
                                 </div>
@@ -138,14 +140,14 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                     {/* Room Rows */}
                     {rooms.map(room => (
                         <div key={room.id} className="flex border-b border-slate-200 bg-white hover:bg-slate-50 transition-colors h-16 group">
-                            <div className="w-48 flex-shrink-0 p-3 border-r border-slate-200 flex flex-col justify-center sticky left-0 z-10 bg-white group-hover:bg-slate-50">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-bold text-slate-800 text-lg">{room.number}</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${room.status === RoomStatus.AVAILABLE ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-3 border-r border-slate-200 flex flex-col justify-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 text-center md:text-left">
+                                <div className="flex flex-col md:flex-row items-center md:justify-between">
+                                    <span className="font-bold text-slate-800 text-sm md:text-lg">{room.number}</span>
+                                    <span className={`text-[8px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded font-bold uppercase hidden md:inline-block ${room.status === RoomStatus.AVAILABLE ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                                         {room.status}
                                     </span>
                                 </div>
-                                <span className="text-xs text-slate-400">{room.type}</span>
+                                <span className="text-[10px] md:text-xs text-slate-400 hidden md:block">{room.type}</span>
                             </div>
 
                             <div className="flex-1 relative">
