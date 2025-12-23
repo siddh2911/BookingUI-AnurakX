@@ -40,8 +40,6 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
   const [roomFetchError, setRoomFetchError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null); // New state for date validation
 
-  console.log('Rooms in modal:', rooms);
-
   // Effect for date validation
   useEffect(() => {
     if (newBookingData.checkIn && newBookingData.checkOut) {
@@ -61,7 +59,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
   // Effect to fetch available rooms from API
   useEffect(() => {
-    if (!isOpen || !newBookingData.checkIn || !newBookingData.checkOut) {
+    if (readOnly || !isOpen || !newBookingData.checkIn || !newBookingData.checkOut) {
       setApiAvailableRooms([]);
       return;
     }
@@ -99,13 +97,12 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
         setRoomFetchError(error.message || 'Failed to fetch available rooms');
         setApiAvailableRooms([]);
       } finally {
-        console.log('fetchAvailableRooms: finally block executed, setting isLoadingRooms to false');
         setIsLoadingRooms(false);
       }
     };
 
     fetchAvailableRooms();
-  }, [isOpen, newBookingData.checkIn, newBookingData.checkOut, setNewBookingData]);
+  }, [isOpen, newBookingData.checkIn, newBookingData.checkOut, readOnly]);
 
   const modalTitle = readOnly
     ? "View Booking"
@@ -118,14 +115,9 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
        <form onSubmit={(e) => {
           e.preventDefault(); // Prevent default form submission to handle it manually
-          console.log('--- Form Submission Debug ---');
-          console.log('apiAvailableRooms:', apiAvailableRooms);
-          console.log('newBookingData.roomId:', newBookingData.roomId, ' (type: ', typeof newBookingData.roomId, ')');
           const selectedRoom = apiAvailableRooms.find(r => {
-            console.log('  Comparing: r.id=', r.id, ' (type: ', typeof r.id, ') with newBookingData.roomId=', newBookingData.roomId);
             return Number(r.id) === Number(newBookingData.roomId);
           });
-          console.log('selectedRoom found:', selectedRoom);
           handleSaveBooking(e, selectedRoom);
        }} className="space-y-6">
           
