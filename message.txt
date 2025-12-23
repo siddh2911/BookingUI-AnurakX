@@ -1,1 +1,0 @@
-There are uncommitted changes in your repository. Please commit your changes before pushing. Would you like me to commit these changes for you? If so, please provide a commit message.
