@@ -7,7 +7,7 @@ interface ActivityLogProps {
 
 const ActivityLog: React.FC<ActivityLogProps> = ({ logs }) => {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-full">
         <h3 className="text-lg font-bold text-slate-800 mb-4">Recent Activity</h3>
         <div className="space-y-4">
           {logs.length === 0 ? <p className="text-slate-500 text-sm">No recent activity.</p> :
