@@ -208,7 +208,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                         <input
                                            type="text"
                                            className="w-full border rounded-lg px-3 py-2 text-sm bg-slate-50 border-slate-200 cursor-not-allowed h-10"
-                                           value={rooms.find(r => r.id === newBookingData.roomId)?.roomNumber || 'N/A'}
+                                           value={rooms.find(r => r.id === newBookingData.roomId)?.number || 'N/A'}
                                            disabled
                                         />
                                      ) : (
@@ -231,11 +231,11 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                         >
                                            <option value="">{isLoadingRooms ? "Loading rooms..." : (readOnly ? "Room not selected" : "Select a Room")}</option>
                                            {apiAvailableRooms.map(r => (
-                                              <option key={r.id} value={r.id}>{r.roomNumber} - {r.type} (₹{r.pricePerNight}/night)</option>
+                                           <option key={r.id} value={r.id}>{r.number} - {r.type} (₹{r.pricePerNight}/night)</option>
                                            ))}
                                            {newBookingData.roomId && !apiAvailableRooms.find(r => r.id === newBookingData.roomId) && rooms.find(r => r.id === newBookingData.roomId) && (
                                              <option key={newBookingData.roomId} value={newBookingData.roomId}>
-                                               {rooms.find(r => r.id === newBookingData.roomId)?.roomNumber} (Currently Selected - Not Available for dates)
+                                               {rooms.find(r => r.id === newBookingData.roomId)?.number} (Currently Selected - Not Available for dates)
                                              </option>
                                            )}
                                         </select>

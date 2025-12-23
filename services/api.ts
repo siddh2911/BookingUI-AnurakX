@@ -22,8 +22,12 @@ export const getAvailableRooms = async (
     throw new Error(errorData.message);
   }
 
-  const data = await response.json();
-  return data as Room[];
+  const data: any[] = await response.json();
+  const mappedData: Room[] = data.map(room => ({
+    ...room,
+    number: room.roomNumber,
+  }));
+  return mappedData;
 };
 
 /**

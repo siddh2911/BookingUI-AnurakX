@@ -327,7 +327,7 @@ export default function App() {
       mobileNumber: guestPhone,
       checkInDate: checkIn,
       checkOutDate: checkOut,
-      roomNo: room.number, // Use room number from the found room
+      roomNo: room?.number || '', // Ensure roomNo is always a string, even if room.number is missing
       nightlyRate: roomRate,
       bookingSource: source,
       advanceAmount: advance,
@@ -335,6 +335,10 @@ export default function App() {
       internalNotes: notes,
       totalAmount: bookingTotal, // Add totalAmount here
     };
+
+    if (!room?.number) {
+        console.warn('Booking payload being sent with missing room number. Check selectedRoom object for integrity:', room);
+    }
 
     try {
       let response;
