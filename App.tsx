@@ -18,6 +18,7 @@ export default function App() {
   const [currentUser] = useState<User>(MOCK_USER);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRevenueVisible, setIsRevenueVisible] = useState(false);
   
   // Modals state
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -553,6 +554,8 @@ export default function App() {
                handleEditBooking={handleEditBooking}
                handleOpenNewBooking={handleOpenNewBooking}
                today={today}
+               isRevenueVisible={isRevenueVisible}
+               setIsRevenueVisible={setIsRevenueVisible}
              />
            )}
            {activeTab === 'bookings' && (

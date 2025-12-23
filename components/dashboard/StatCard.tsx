@@ -1,4 +1,5 @@
 import React from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -8,30 +9,42 @@ interface StatCardProps {
   icon: React.ReactNode;
   onClick?: () => void;
   details: { label: string; value: string | number }[];
+  isRevenueVisible?: boolean;
+  setIsRevenueVisible?: (visible: boolean) => void;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, total, icon, onClick, details }) => {
+export const StatCard: React.FC<StatCardProps> = ({ title, value, total, icon, onClick, details, isRevenueVisible = true, setIsRevenueVisible }) => {
   return (
     <div 
-      className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
-      onClick={onClick}
-      title={onClick ? `Click to view details` : ''}
+      className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between"
     >
       <div>
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-sm font-medium text-slate-500">{title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-slate-500">{title}</h3>
+            {setIsRevenueVisible && (
+              <button onClick={() => setIsRevenueVisible(!isRevenueVisible)} className="text-slate-400 hover:text-slate-600">
+                {isRevenueVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            )}
+          </div>
           <div className="p-2 bg-green-100 rounded-lg text-green-600">{icon}</div>
         </div>
         
-        <div className="space-y-3">
+        <div 
+          className="space-y-3"
+          onClick={onClick}
+          title={onClick ? `Click to view details` : ''}
+          style={{ cursor: onClick ? 'pointer' : 'default' }}
+        >
           <div className="flex justify-between items-end">
               <div>
                   <p className="text-xs text-slate-400">Today</p>
-                  <p className="text-2xl font-bold text-slate-900">{value}</p>
+                  <p className="text-2xl font-bold text-slate-900">{isRevenueVisible ? value : '••••••'}</p>
               </div>
                <div className="text-right">
                   <p className="text-xs text-slate-400">Total (All-time)</p>
-                  <p className="text-sm font-semibold text-slate-700">{total}</p>
+                  <p className="text-sm font-semibold text-slate-700">{isRevenueVisible ? total : '••••••'}</p>
               </div>
           </div>
           
@@ -39,7 +52,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, icon, o
                {details.map(detail => (
                  <div key={detail.label}>
                    <p className="text-[10px] text-slate-400 uppercase">{detail.label}</p>
-                   <p className="text-sm font-semibold text-slate-700">{detail.value}</p>
+                   <p className="text-sm font-semibold text-slate-700">{isRevenueVisible ? detail.value : '••••••'}</p>
                  </div>
                ))}
           </div>

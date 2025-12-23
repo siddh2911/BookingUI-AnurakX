@@ -20,6 +20,8 @@ interface DashboardProps {
   handleEditBooking: (booking: Booking) => void;
   handleOpenNewBooking: (date: Date) => void;
   today: string;
+  isRevenueVisible: boolean;
+  setIsRevenueVisible: (visible: boolean) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -35,6 +37,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   handleEditBooking,
   handleOpenNewBooking,
   today,
+  isRevenueVisible,
+  setIsRevenueVisible,
 }) => {
   return (
     <div className="space-y-6">
@@ -51,6 +55,8 @@ const Dashboard: React.FC<DashboardProps> = ({
             { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}` },
             { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}` },
           ]}
+          isRevenueVisible={isRevenueVisible}
+          setIsRevenueVisible={setIsRevenueVisible}
         />
         <StatCard
           title="Occupancy"
@@ -84,9 +90,15 @@ const Dashboard: React.FC<DashboardProps> = ({
         today={today}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <RevenueChart data={revenueChartData} />
-        <ActivityLog logs={logs} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {isRevenueVisible && (
+          <div className="lg:col-span-1">
+            <RevenueChart data={revenueChartData} />
+          </div>
+        )}
+        <div className={!isRevenueVisible ? 'lg:col-span-2' : 'lg:col-span-1'}>
+          <ActivityLog logs={logs} />
+        </div>
       </div>
 
       <AvailabilityForecast

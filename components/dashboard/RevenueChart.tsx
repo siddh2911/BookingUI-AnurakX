@@ -7,7 +7,7 @@ interface RevenueChartProps {
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   return (
-    <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
        <div className="flex justify-between items-center mb-6">
          <h3 className="text-lg font-bold text-slate-800">Revenue Trend</h3>
          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Last 7 Days</span>
