@@ -1,351 +1,284 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
-import { Room, BookingSource, PaymentMethod, RoomStatus, Booking } from '../../types';
-import { Users, CalendarDays, CreditCard } from 'lucide-react';
+import { Room, BookingSource, PaymentMethod, Booking } from '../../types';
+import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin } from 'lucide-react';
 import { getAvailableRooms } from "../../services/api";
 
 interface NewBookingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  editingBookingId: string | null;
-  newBookingData: any;
-  setNewBookingData: (data: any) => void;
-  handleSaveBooking: (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => void;
-  rooms: Room[];
-  bookings: Booking[]; // Add bookings prop
-  bookingNights: number;
-  bookingTotal: number;
-  paidAmount: number;
-  bookingPending: number;
-  readOnly?: boolean; // New prop for view-only mode
+   isOpen: boolean;
+   onClose: () => void;
+   editingBookingId: string | null;
+   newBookingData: any;
+   setNewBookingData: (data: any) => void;
+   handleSaveBooking: (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => void;
+   rooms: Room[];
+   bookings: Booking[];
+   bookingNights: number;
+   bookingTotal: number;
+   paidAmount: number;
+   bookingPending: number;
+   readOnly?: boolean;
 }
 
 const NewBookingModal: React.FC<NewBookingModalProps> = ({
-  isOpen,
-  onClose,
-  editingBookingId,
-  newBookingData,
-  setNewBookingData,
-  handleSaveBooking,
-  rooms,
-  bookings, // Destructure bookings
-  bookingNights,
-  bookingTotal,
-  paidAmount,
-  bookingPending,
-  readOnly = false, // Default to false if not provided
+   isOpen,
+   onClose,
+   editingBookingId,
+   newBookingData,
+   setNewBookingData,
+   handleSaveBooking,
+   rooms,
+   bookingNights,
+   bookingTotal,
+   paidAmount,
+   bookingPending,
+   readOnly = false,
 }) => {
-  const [apiAvailableRooms, setApiAvailableRooms] = useState<Room[]>([]);
-  const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(false);
-  const [roomFetchError, setRoomFetchError] = useState<string | null>(null);
-  const [dateError, setDateError] = useState<string | null>(null); // New state for date validation
+   const [apiAvailableRooms, setApiAvailableRooms] = useState<Room[]>([]);
+   const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(false);
+   const [roomFetchError, setRoomFetchError] = useState<string | null>(null);
+   const [dateError, setDateError] = useState<string | null>(null);
 
-  // Effect for date validation
-  useEffect(() => {
-    if (newBookingData.checkIn && newBookingData.checkOut) {
-      const checkInDate = new Date(newBookingData.checkIn);
-      const checkOutDate = new Date(newBookingData.checkOut);
-
-      if (checkOutDate <= checkInDate) {
-        setDateError('Check-out date must be after check-in date.');
-      } else {
-        setDateError(null);
+   useEffect(() => {
+      if (newBookingData.checkIn && newBookingData.checkOut) {
+         if (new Date(newBookingData.checkOut) <= new Date(newBookingData.checkIn)) {
+            setDateError('Check-out must be after check-in.');
+         } else {
+            setDateError(null);
+         }
       }
-    } else {
-      setDateError(null); // Clear error if dates are not fully selected
-    }
-  }, [newBookingData.checkIn, newBookingData.checkOut]);
+   }, [newBookingData.checkIn, newBookingData.checkOut]);
 
-
-  // Effect to fetch available rooms from API
-  useEffect(() => {
-    if (readOnly || !isOpen || !newBookingData.checkIn || !newBookingData.checkOut) {
-      setApiAvailableRooms([]);
-      return;
-    }
-
-    const fetchAvailableRooms = async () => {
-      setIsLoadingRooms(true);
-      setRoomFetchError(null);
-      try {
-        const fetchedRooms = await getAvailableRooms({
-          startDate: newBookingData.checkIn,
-          endDate: newBookingData.checkOut,
-        });
-        setApiAvailableRooms(fetchedRooms);
-
-        // If the currently selected room is no longer available, clear it
-        const currentSelectedRoomExists = fetchedRooms.some(
-          (room) => room.id === newBookingData.roomId
-        );
-        if (!currentSelectedRoomExists && newBookingData.roomId) {
-          setNewBookingData((prev: any) => ({
-            ...prev,
-            roomId: '',
-            roomRate: 0,
-          }));
-        } else if (!newBookingData.roomId && fetchedRooms.length > 0) {
-          // If no room is selected, and there are available rooms, pre-select the first one
-          setNewBookingData((prev: any) => ({
-            ...prev,
-            roomId: fetchedRooms[0].id,
-            roomRate: fetchedRooms[0].pricePerNight,
-          }));
-        }
-      } catch (error: any) {
-        console.error('Error fetching available rooms:', error);
-        setRoomFetchError(error.message || 'Failed to fetch available rooms');
-        setApiAvailableRooms([]);
-      } finally {
-        setIsLoadingRooms(false);
+   useEffect(() => {
+      if (readOnly || !isOpen || !newBookingData.checkIn || !newBookingData.checkOut) {
+         setApiAvailableRooms([]);
+         return;
       }
-    };
 
-    fetchAvailableRooms();
-  }, [isOpen, newBookingData.checkIn, newBookingData.checkOut, readOnly]);
+      const fetchAvailableRooms = async () => {
+         setIsLoadingRooms(true);
+         setRoomFetchError(null);
+         try {
+            const fetchedRooms = await getAvailableRooms({
+               startDate: newBookingData.checkIn,
+               endDate: newBookingData.checkOut,
+            });
+            setApiAvailableRooms(fetchedRooms);
 
-  const modalTitle = readOnly
-    ? "View Booking"
-    : editingBookingId
-      ? "Edit Booking"
-      : "New Booking";
+            if (!newBookingData.roomId && fetchedRooms.length > 0) {
+               setNewBookingData((prev: any) => ({
+                  ...prev,
+                  roomId: fetchedRooms[0].id,
+                  roomRate: fetchedRooms[0].pricePerNight,
+               }));
+            }
+         } catch (error: any) {
+            setRoomFetchError(error.message || 'Failed to fetch rooms');
+         } finally {
+            setIsLoadingRooms(false);
+         }
+      };
 
+      fetchAvailableRooms();
+   }, [isOpen, newBookingData.checkIn, newBookingData.checkOut, readOnly]);
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
-       <form onSubmit={(e) => {
-          e.preventDefault(); // Prevent default form submission to handle it manually
-          const selectedRoom = apiAvailableRooms.find(r => {
-            return Number(r.id) === Number(newBookingData.roomId);
-          });
-          handleSaveBooking(e, selectedRoom);
-       }} className="space-y-6">
-          
-          {/* Guest Details */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><Users size={16}/> Guest Information</h3>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                   <label className="block text-xs font-medium text-slate-500 mb-1">Full Name</label>
-                   <input 
-                      name="guestName" 
-                      required 
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
-                      placeholder="John Doe" 
-                      value={newBookingData.guestName}
-                      onChange={(e) => setNewBookingData({...newBookingData, guestName: e.target.value})}
-                      disabled={readOnly}
-                   />
-                </div>
-                <div>
-                   <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
-                   <input 
-                      name="guestEmail" 
-                      type="email" 
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
-                      placeholder="john@example.com"
-                      value={newBookingData.guestEmail}
-                      onChange={(e) => setNewBookingData({...newBookingData, guestEmail: e.target.value})}
-                      disabled={readOnly}
-                   />
-                </div>
-                 <div>
-                   <label className="block text-xs font-medium text-slate-500 mb-1">Mobile Number</label>
-                   <input 
-                      name="guestPhone" 
-                      required
-                      pattern="^(?:\+91)?[0-9]{10}$"
-                      title="Please enter a valid 10-digit Indian mobile number, optionally starting with +91"
-                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
-                      placeholder="+91 98765 43210"
-                      value={newBookingData.guestPhone}
-                      onChange={(e) => setNewBookingData({...newBookingData, guestPhone: e.target.value})}
-                      disabled={readOnly}
-                   />
-                </div>
-             </div>
-          </div>
+   const modalTitle = readOnly ? "Reservation Details" : editingBookingId ? "Modify Reservation" : "New Reservation";
 
-          {/* Stay Details */}
-           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><CalendarDays size={16}/> Stay Details</h3>
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                 <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Check In</label>
-                    <input 
-                       name="checkIn" 
-                       type="date" 
-                       required 
-                       className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
-                       value={newBookingData.checkIn}
-                       onChange={(e) => setNewBookingData({...newBookingData, checkIn: e.target.value})}
-                       disabled={readOnly}
-                    />
-                 </div>
-                                  <div>
-                                     <label className="block text-xs font-medium text-slate-500 mb-1">Check Out</label>
-                                     <input
-                                        name="checkOut"
-                                        type="date"
-                                        required
-                                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200"
-                                        value={newBookingData.checkOut}
-                                        onChange={(e) => setNewBookingData({...newBookingData, checkOut: e.target.value})}
-                                        disabled={readOnly}
-                                     />
-                                     {dateError && <p className="text-red-500 text-xs mt-1">{dateError}</p>}
-                                  </div>                                  <div>
-                                     <label className="block text-xs font-medium text-slate-500 mb-1">{readOnly ? "Room Number" : "Select Room"}</label>
-                                     {readOnly ? (
-                                        <input
-                                           type="text"
-                                           className="w-full border rounded-lg px-3 py-2 text-sm bg-slate-50 border-slate-200 cursor-not-allowed h-10"
-                                           value={rooms.find(r => r.id === newBookingData.roomId)?.number || 'N/A'}
-                                           disabled
-                                        />
-                                     ) : (
-                                        <select
-                                           name="roomId"
-                                           required={!readOnly}
-                                           className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200"
-                                           value={newBookingData.roomId}
-                                           onChange={(e) => {
-                                               const selectedId = Number(e.target.value); // Convert to number
-                                               const r = apiAvailableRooms.find(room => room.id === selectedId);
-                                               console.log('Selected room pricePerNight:', r ? r.pricePerNight : 0); // Debug log
-                                               setNewBookingData({
-                                                   ...newBookingData,
-                                                   roomId: selectedId, // Store as number
-                                                   roomRate: r ? r.pricePerNight : 0
-                                               });
-                                           }}
-                                           disabled={readOnly || isLoadingRooms}
-                                        >
-                                           <option value="">{isLoadingRooms ? "Loading rooms..." : (readOnly ? "Room not selected" : "Select a Room")}</option>
-                                           {apiAvailableRooms.map(r => (
-                                           <option key={r.id} value={r.id}>{r.number} - {r.type} (₹{r.pricePerNight}/night)</option>
-                                           ))}
-                                           {newBookingData.roomId && !apiAvailableRooms.find(r => r.id === newBookingData.roomId) && rooms.find(r => r.id === newBookingData.roomId) && (
-                                             <option key={newBookingData.roomId} value={newBookingData.roomId}>
-                                               {rooms.find(r => r.id === newBookingData.roomId)?.number} (Currently Selected - Not Available for dates)
-                                             </option>
-                                           )}
-                                        </select>
-                                     )}
-                                     {roomFetchError && <p className="text-red-500 text-xs mt-1">{roomFetchError}</p>}
-                                     {isLoadingRooms && <p className="text-blue-500 text-xs mt-1">Fetching available rooms...</p>}
-                                  </div>                 <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">{readOnly ? "Total Amount" : "Nightly Rate (₹)"}</label>
-                                       <input 
-                                          name="roomRate" 
-                                          type="number" 
-                                          required 
-                                          className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200" 
-                                          value={newBookingData.roomRate}
-                                          onChange={(e) => setNewBookingData({...newBookingData, roomRate: parseFloat(e.target.value) || 0})}
-                                          disabled={readOnly}
-                                       />
-                                    </div>
-                                </div>
-                                <div className="mt-4">
-                                   <label className="block text-xs font-medium text-slate-500 mb-1">Booking Source</label>
-                                   <select 
-                                      name="source" 
-                                      required 
-                                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none h-10 bg-slate-50 border-slate-200"
-                                      value={newBookingData.source}
-                                      onChange={(e) => setNewBookingData({...newBookingData, source: e.target.value as BookingSource})}
-                                      disabled={readOnly}
-                                   >
-                                      {Object.values(BookingSource).map(s => <option key={s} value={s}>{s}</option>)}
-                                   </select>
-                                </div>
-                             </div>
-                    
-                             {/* Payment & Summary */}
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Payment Input (Hidden in Edit Mode) */}
-                                {!editingBookingId && !readOnly && ( // Only show if not editing AND not readOnly
-                                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                       <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><CreditCard size={16}/> Initial Payment</h3>
-                                       <div className="space-y-4">
-                                          <div>
-                                             <label className="block text-xs font-medium text-slate-500 mb-1">Advance Amount (₹)</label>
-                                             <input 
-                                                name="advanceAmount" 
-                                                type="number" 
-                                                min="0"
-                                                step="0.01"
-                                                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none h-10 bg-slate-50 border-slate-200" 
-                                                placeholder="0.00"
-                                                value={newBookingData.advance}
-                                                onChange={(e) => setNewBookingData({...newBookingData, advance: parseFloat(e.target.value) || 0})}
-                                                disabled={readOnly}
-                                             />                       </div>
-                       <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Payment Method</label>
-                          <select 
-                             name="paymentMethod" 
-                             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none h-10 bg-slate-50 border-slate-200"
-                             value={newBookingData.paymentMethod}
-                             onChange={(e) => setNewBookingData({...newBookingData, paymentMethod: e.target.value as PaymentMethod})}
-                             disabled={readOnly}
-                          >
-                             {Object.values(PaymentMethod).map(m => <option key={m} value={m}>{m}</option>)}
-                          </select>
-                       </div>
-                    </div>
-                 </div>
-             )}
+   // Luxury Styles
+   const sectionHeader = "text-xl text-slate-900 mb-6 flex items-center gap-3 font-medium";
+   const elegantInput = "w-full bg-slate-50/50 border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-3 text-base transition-all outline-none placeholder:text-slate-300 hover:bg-slate-50 focus:bg-transparent";
+   const elegantLabel = "text-xs font-bold text-slate-400 uppercase tracking-widest";
+   const floatingGroup = "relative";
 
-             {/* Live Summary */}
-             <div className={`bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between ${editingBookingId || readOnly ? 'col-span-2' : ''}`}>
-                 <h3 className="text-sm font-bold text-blue-800 mb-4">Booking Summary</h3>
-                 <div className="space-y-3 text-sm">
-                     <div className="flex justify-between">
-                        <span className="text-slate-500">{editingBookingId ? 'Original Room Rate' : 'Room Rate'}</span>
-                        <span className="font-medium text-slate-800">₹{newBookingData.roomRate} x {bookingNights} nights</span>
+   return (
+      <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
+         <form onSubmit={(e) => {
+            e.preventDefault();
+            const selectedRoom = apiAvailableRooms.find(r => Number(r.id) === Number(newBookingData.roomId)) || rooms.find(r => Number(r.id) === Number(newBookingData.roomId));
+            handleSaveBooking(e, selectedRoom);
+         }} className="min-h-[500px]">
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
+
+               {/* LEFT: INPUTS (7 Cols) */}
+               <div className="lg:col-span-7 space-y-6 lg:space-y-10 py-2">
+
+                  {/* GUEST SECTION */}
+                  <div className="space-y-6">
+                     <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
+                        <User size={22} className="text-slate-300" strokeWidth={1.5} /> Guest Information
+                     </h3>
+                     <div className="grid grid-cols-1 gap-6">
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>Full Name</label>
+                           <input name="guestName" required className={elegantInput} placeholder="Enter guest name" value={newBookingData.guestName} onChange={(e) => setNewBookingData({ ...newBookingData, guestName: e.target.value })} disabled={readOnly} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                           <div className={floatingGroup}>
+                              <label className={elegantLabel}>Contact Number</label>
+                              <input name="guestPhone" required pattern="^(?:\+91)?[0-9]{10}$" className={elegantInput} placeholder="+91..." value={newBookingData.guestPhone} onChange={(e) => setNewBookingData({ ...newBookingData, guestPhone: e.target.value })} disabled={readOnly} />
+                           </div>
+                           <div className={floatingGroup}>
+                              <label className={elegantLabel}>Email Address</label>
+                              <input name="guestEmail" type="email" className={elegantInput} placeholder="email@example.com" value={newBookingData.guestEmail} onChange={(e) => setNewBookingData({ ...newBookingData, guestEmail: e.target.value })} disabled={readOnly} />
+                           </div>
+                        </div>
                      </div>
-                     <div className="flex justify-between border-t border-slate-100 pt-3">
-                        <span className="font-bold text-slate-800">Total Cost</span>
-                        <span className="font-bold text-slate-800">₹{(editingBookingId && newBookingData.totalAmount !== undefined ? newBookingData.totalAmount : bookingTotal).toLocaleString()}</span>
-                     </div>
-                     <div className="flex justify-between text-green-700">
-                        <span>{editingBookingId ? 'Previously Paid' : 'Advance Paid'}</span>
-                        <span>-₹{paidAmount.toLocaleString()}</span>
-                     </div>
-                     <div className="flex justify-between border-t border-slate-100 pt-3 mt-1">
-                        <span className="font-bold text-red-600">Pending Balance</span>
-                        <span className="font-bold text-red-600">₹{bookingPending.toLocaleString()}</span>
-                     </div>
-                 </div>
-             </div>
-          </div>
+                  </div>
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-             <label className="block text-xs font-medium text-slate-500 mb-2">Internal Notes</label>
-             <textarea 
-                 name="notes" 
-                 className="w-full border rounded-lg p-3 text-sm h-24 focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 border-slate-200" 
-                 placeholder="Special requests, housekeeping notes, etc..."
-                 value={newBookingData.notes}
-                 onChange={(e) => setNewBookingData({...newBookingData, notes: e.target.value})}
-                 disabled={readOnly}
-             ></textarea>
-          </div>
+                  {/* STAY SECTION */}
+                  <div className="space-y-6">
+                     <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
+                        <Calendar size={22} className="text-slate-300" strokeWidth={1.5} /> Stay Details
+                     </h3>
+                     <div className="grid grid-cols-2 gap-6">
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>Check-In</label>
+                           <input type="date" name="checkIn" required className={elegantInput} value={newBookingData.checkIn} onChange={(e) => setNewBookingData({ ...newBookingData, checkIn: e.target.value })} disabled={readOnly} />
+                        </div>
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>Check-Out</label>
+                           <input type="date" name="checkOut" required className={elegantInput} value={newBookingData.checkOut} onChange={(e) => setNewBookingData({ ...newBookingData, checkOut: e.target.value })} disabled={readOnly} />
+                        </div>
+                     </div>
+                     {dateError && <p className="text-red-500 text-sm mt-2">{dateError}</p>}
+                  </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-             <button type="button" onClick={onClose} className="px-6 py-2.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">Cancel</button>
-             {!readOnly && ( // Only show save button if not in read-only mode
-               <button type="submit" className="px-8 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-bold shadow-sm transition-colors"
-                       disabled={!!dateError || isLoadingRooms}>
-                   {editingBookingId ? "Update Booking" : "Confirm Booking"}
-               </button>
-             )}
-          </div>
-       </form>
-    </Modal>
-  );
+                  {/* ROOM SECTION */}
+                  <div className="space-y-6">
+                     <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
+                        <MapPin size={22} className="text-slate-300" strokeWidth={1.5} /> Room Selection
+                     </h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>{isLoadingRooms ? "Finding Rooms..." : "Select Room"}</label>
+                           {readOnly ? (
+                              <input className={elegantInput} value={`Room ${rooms.find(r => r.id === newBookingData.roomId)?.number || 'N/A'}`} disabled />
+                           ) : (
+                              <div className="relative">
+                                 <select
+                                    name="roomId"
+                                    className={`${elegantInput} appearance-none cursor-pointer`}
+                                    value={newBookingData.roomId}
+                                    onChange={(e) => {
+                                       const r = apiAvailableRooms.find(room => room.id === Number(e.target.value));
+                                       setNewBookingData({ ...newBookingData, roomId: Number(e.target.value), roomRate: r ? r.pricePerNight : 0 });
+                                    }}
+                                    disabled={isLoadingRooms}
+                                 >
+                                    <option value="">Choose available room...</option>
+                                    {apiAvailableRooms.map(r => <option key={r.id} value={r.id}>Room {r.number} — {r.type}</option>)}
+                                    {newBookingData.roomId && !apiAvailableRooms.find(r => r.id === newBookingData.roomId) && (
+                                       <option value={newBookingData.roomId}>Room {rooms.find(r => r.id === newBookingData.roomId)?.number} (Current)</option>
+                                    )}
+                                 </select>
+                                 <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                              </div>
+                           )}
+                        </div>
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>Nightly Rate (₹)</label>
+                           <input type="number" name="roomRate" required className={elegantInput} value={newBookingData.roomRate} onChange={(e) => setNewBookingData({ ...newBookingData, roomRate: parseFloat(e.target.value) })} disabled={readOnly} />
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+
+               {/* RIGHT: BILLING CARD (5 Cols) */}
+               <div className="lg:col-span-5">
+                  <div className="bg-slate-900 rounded-3xl p-8 text-white h-full flex flex-col justify-between shadow-2xl shadow-slate-900/20 relative overflow-hidden">
+                     {/* Decorative gradient blob */}
+                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                     <div className="space-y-8 relative z-10">
+                        <div>
+                           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+                              <CreditCard size={14} /> Payment Summary
+                           </h3>
+                           <p className="text-3xl font-serif mt-2">₹{(newBookingData.roomRate * bookingNights).toLocaleString()}</p>
+                           <p className="text-slate-400 text-sm mt-1">Total cost for {bookingNights} nights</p>
+                        </div>
+
+                        <div className="space-y-4 pt-6 border-t border-white/10">
+                           <div className="flex justify-between items-center text-sm">
+                              <span className="text-slate-300">Room Rate</span>
+                              <span>₹{newBookingData.roomRate} / night</span>
+                           </div>
+
+                           {!readOnly && (
+                              <div className="flex justify-between items-center text-sm">
+                                 <span className="text-slate-300">Advance Paid</span>
+                                 <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1 border border-white/10">
+                                    <span className="text-slate-400">₹</span>
+                                    <input
+                                       type="number"
+                                       className="w-20 bg-transparent text-right outline-none text-white placeholder:text-white/20"
+                                       placeholder="0"
+                                       value={newBookingData.advance}
+                                       onChange={(e) => setNewBookingData({ ...newBookingData, advance: parseFloat(e.target.value) })}
+                                    />
+                                 </div>
+                              </div>
+                           )}
+                           {readOnly && paidAmount > 0 && (
+                              <div className="flex justify-between items-center text-sm text-green-400">
+                                 <span className="flex items-center gap-2"><Sparkles size={12} /> Paid</span>
+                                 <span>- ₹{paidAmount.toLocaleString()}</span>
+                              </div>
+                           )}
+
+                           <div className="flex justify-between items-center text-lg font-medium pt-4 border-t border-white/10 text-white">
+                              <span>Balance Due</span>
+                              <span>₹{bookingPending.toLocaleString()}</span>
+                           </div>
+                        </div>
+
+                        {!readOnly && (
+                           <div className="pt-2">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Payment Method</label>
+                              <select
+                                 className="w-full bg-white/5 border border-white/10 rounded-lg text-white text-sm px-3 py-2 outline-none focus:bg-white/10 transition-colors cursor-pointer"
+                                 value={newBookingData.paymentMethod}
+                                 onChange={(e) => setNewBookingData({ ...newBookingData, paymentMethod: e.target.value })}
+                              >
+                                 {Object.values(PaymentMethod).map(m => <option key={m} value={m} className="bg-slate-800 text-white">{m}</option>)}
+                              </select>
+                           </div>
+                        )}
+                     </div>
+
+                     <div className="mt-8 pt-6 relative z-10">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Internal Notes</label>
+                        <textarea
+                           className="w-full bg-white/5 border border-white/10 rounded-lg text-white text-sm p-3 outline-none focus:bg-white/10 transition-colors h-24 resize-none placeholder:text-slate-600"
+                           placeholder="Add notes..."
+                           value={newBookingData.notes}
+                           onChange={(e) => setNewBookingData({ ...newBookingData, notes: e.target.value })}
+                           disabled={readOnly}
+                        />
+
+                        <div className="mt-6 flex gap-3">
+                           <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/10 text-white hover:bg-white/5 transition-colors text-sm font-medium">
+                              Cancel
+                           </button>
+                           {!readOnly && (
+                              <button
+                                 type="submit"
+                                 disabled={!!dateError || isLoadingRooms}
+                                 className="flex-[2] py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-slate-50 transition-colors text-sm shadow-lg disabled:opacity-50"
+                              >
+                                 {editingBookingId ? "Save Changes" : "Confirm Booking"}
+                              </button>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </form>
+      </Modal>
+   );
 };
 
 export default NewBookingModal;

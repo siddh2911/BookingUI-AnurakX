@@ -5,11 +5,11 @@ import UpcomingArrivals from './UpcomingArrivals';
 import ActivityLog from './ActivityLog';
 import AvailabilityForecast from './AvailabilityForecast';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
-import { Booking, Room, AuditLog, RoomStatus } from '../../types';
+import { Booking, Room, AuditLog, BookingStatus } from '../../types';
 
 interface DashboardProps {
   stats: any;
-  revenueChartData: any[];
+  revenueChartData: { last7Days: any[]; last30Days: any[]; last1Year: any[] };
   upcomingArrivals: Booking[];
   rooms: Room[];
   logs: AuditLog[];
@@ -17,7 +17,7 @@ interface DashboardProps {
   forecastPage: number;
   setForecastPage: (page: number | ((prev: number) => number)) => void;
   handleDashboardFilter: (filter: any) => void;
-  handleEditBooking: (booking: Booking) => void;
+  handleEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
   handleOpenNewBooking: (date: Date) => void;
   today: string;
   isRevenueVisible: boolean;
@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           title="Revenue Breakdown"
           value={`₹${stats.revenueToday.toLocaleString()}`}
           total={`₹${stats.totalRevenue.toLocaleString()}`}
-          icon={<CreditCard size={20}/>}
+          icon={<CreditCard size={20} />}
           onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
           details={[
             { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}` },
@@ -62,8 +62,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           title="Occupancy"
           value={`${stats.occupancyToday}%`}
           total={`${stats.occupancyAllTime}%`}
-          icon={<BedDouble size={20}/>}
-          onClick={() => handleDashboardFilter({ status: RoomStatus.OCCUPIED, label: 'Occupied Rooms' })}
+          icon={<BedDouble size={20} />}
+          onClick={() => handleDashboardFilter({ status: BookingStatus.CHECKED_IN, label: 'Checked-in Bookings' })}
           details={[
             { label: 'Week', value: `${stats.occupancyWeek}%` },
             { label: 'Month', value: `${stats.occupancyMonth}%` },
@@ -74,14 +74,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           title="Check-ins"
           value={stats.checkInsToday}
           total={stats.totalCheckIns}
-          icon={<Users size={20}/>}
+          icon={<Users size={20} />}
           onClick={() => handleDashboardFilter({ type: 'checkin', date: today, label: "Today's Check-ins" })}
           details={[
             { label: 'Week', value: stats.checkInsWeek },
             { label: 'Month', value: stats.checkInsMonth },
             { label: 'Year', value: stats.checkInsYear },
           ]}
-                  />      </div>
+        />      </div>
 
       <UpcomingArrivals
         arrivals={upcomingArrivals}
@@ -106,6 +106,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         forecastPage={forecastPage}
         setForecastPage={setForecastPage}
         onOpenNewBooking={handleOpenNewBooking}
+        rooms={rooms}
       />
     </div>
   );
