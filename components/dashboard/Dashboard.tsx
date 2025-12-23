@@ -4,6 +4,7 @@ import RevenueChart from './RevenueChart';
 import UpcomingArrivals from './UpcomingArrivals';
 import ActivityLog from './ActivityLog';
 import AvailabilityForecast from './AvailabilityForecast';
+import { PaymentQRCard } from './PaymentQRCard';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
 import { Booking, Room, AuditLog, BookingStatus } from '../../types';
 
@@ -77,11 +78,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           icon={<Users size={20} />}
           onClick={() => handleDashboardFilter({ type: 'checkin', date: today, label: "Today's Check-ins" })}
           details={[
-            { label: 'Week', value: stats.checkInsWeek },
-            { label: 'Month', value: stats.checkInsMonth },
             { label: 'Year', value: stats.checkInsYear },
           ]}
-        />      </div>
+        />
+        <div className="md:hidden">
+          <PaymentQRCard />
+        </div>
+      </div>
 
       <UpcomingArrivals
         arrivals={upcomingArrivals}
