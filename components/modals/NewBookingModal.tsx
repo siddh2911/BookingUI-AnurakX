@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import SecurityModal from './SecurityModal';
 import { Room, BookingSource, PaymentMethod, Booking } from '../../types';
-import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock } from 'lucide-react';
+import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock, X, Receipt, RotateCcw } from 'lucide-react';
 import { getAvailableRooms } from "../../services/api";
-
 interface NewBookingModalProps {
    isOpen: boolean;
    onClose: () => void;
@@ -208,7 +207,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                         <div className={floatingGroup}>
                            <label className={elegantLabel}>Nightly Rate (₹)</label>
                            {isFinancialsVisible ? (
-                              <input type="number" name="roomRate" required className={elegantInput} value={newBookingData.roomRate} onChange={(e) => setNewBookingData({ ...newBookingData, roomRate: parseFloat(e.target.value) })} disabled={readOnly} />
+                              <input type="number" name="roomRate" required className={elegantInput} value={newBookingData.roomRate} onChange={(e) => setNewBookingData({ ...newBookingData, roomRate: parseFloat(e.target.value), manualTotal: undefined })} disabled={readOnly} />
                            ) : (
                               <div className="w-full border-b border-slate-200 py-2 md:py-3 flex items-center justify-between text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setIsSecurityModalOpen(true)}>
                                  <span className="text-sm italic">Hidden</span>
@@ -216,6 +215,78 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               </div>
                            )}
                         </div>
+                     </div>
+                  </div>
+
+                  {/* ADDITIONAL CHARGES SECTION */}
+                  <div className="space-y-6">
+                     <div className="flex items-center justify-between">
+                        <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
+                           <Receipt size={22} className="text-slate-300" strokeWidth={1.5} /> Additional Pay
+                        </h3>
+                        {!readOnly && (
+                           <button
+                              type="button"
+                              onClick={() => setNewBookingData({
+                                 ...newBookingData,
+                                 additionalCharges: [...(newBookingData.additionalCharges || []), { category: '', amount: 0 }]
+                              })}
+                              className="text-xs font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700 transition"
+                           >
+                              + Add Charge
+                           </button>
+                        )}
+                     </div>
+
+                     <div className="space-y-3">
+                        {newBookingData.additionalCharges?.map((charge: any, index: number) => (
+                           <div key={index} className="flex gap-3 items-end">
+                              <div className={`${floatingGroup} flex-1`}>
+                                 <label className={elegantLabel}>Fee Type</label>
+                                 <input
+                                    className={elegantInput}
+                                    placeholder="e.g. Cleaning Fee, Occupancy Tax"
+                                    value={charge.category}
+                                    onChange={(e) => {
+                                       const updated = [...newBookingData.additionalCharges];
+                                       updated[index].category = e.target.value;
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
+                                    }}
+                                    disabled={readOnly}
+                                 />
+                              </div>
+                              <div className={`${floatingGroup} w-24`}>
+                                 <label className={elegantLabel}>Amount</label>
+                                 <input
+                                    type="number"
+                                    className={elegantInput}
+                                    placeholder="0"
+                                    value={charge.amount}
+                                    onChange={(e) => {
+                                       const updated = [...newBookingData.additionalCharges];
+                                       updated[index].amount = parseFloat(e.target.value) || 0;
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
+                                    }}
+                                    disabled={readOnly}
+                                 />
+                              </div>
+                              {!readOnly && (
+                                 <button
+                                    type="button"
+                                    onClick={() => {
+                                       const updated = newBookingData.additionalCharges.filter((_: any, i: number) => i !== index);
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
+                                    }}
+                                    className="mb-2 p-2 text-slate-400 hover:text-red-500 transition"
+                                 >
+                                    <X size={18} />
+                                 </button>
+                              )}
+                           </div>
+                        ))}
+                        {(!newBookingData.additionalCharges || newBookingData.additionalCharges.length === 0) && (
+                           <p className="text-sm text-slate-400 italic">No additional charges added.</p>
+                        )}
                      </div>
                   </div>
                </div>
@@ -253,15 +324,47 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
                                     <CreditCard size={14} /> Payment Summary
                                  </h3>
-                                 <p className="text-3xl font-serif mt-2">₹{(newBookingData.roomRate * bookingNights).toLocaleString()}</p>
+                                 <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-2xl font-serif text-slate-400">₹</span>
+                                    <input
+                                       type="number"
+                                       className="text-3xl font-serif bg-transparent border-b border-white/10 outline-none w-full placeholder:text-slate-600 focus:border-white/50 transition-colors text-white"
+                                       value={newBookingData.manualTotal !== undefined ? (newBookingData.manualTotal === null ? '' : newBookingData.manualTotal) : (bookingTotal || '')}
+                                       onChange={(e) => {
+                                          const val = e.target.value;
+                                          setNewBookingData({
+                                             ...newBookingData,
+                                             manualTotal: val === '' ? null : parseFloat(val)
+                                          });
+                                       }}
+                                       disabled={readOnly}
+                                       placeholder="0"
+                                    />
+                                    {newBookingData.manualTotal !== undefined && !readOnly && (
+                                       <button
+                                          type="button"
+                                          onClick={() => setNewBookingData({ ...newBookingData, manualTotal: undefined })}
+                                          className="p-2 text-slate-500 hover:text-white transition-colors hover:bg-white/10 rounded-full"
+                                          title="Reset to calculated"
+                                       >
+                                          <RotateCcw size={16} />
+                                       </button>
+                                    )}
+                                 </div>
                                  <p className="text-slate-400 text-sm mt-1">Total cost for {bookingNights} nights</p>
                               </div>
 
                               <div className="space-y-4 pt-6 border-t border-white/10">
                                  <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-300">Room Rate</span>
-                                    <span>₹{newBookingData.roomRate} / night</span>
+                                    <span>₹{newBookingData.roomRate} x {bookingNights}</span>
                                  </div>
+                                 {(newBookingData.additionalCharges || []).length > 0 && (
+                                    <div className="flex justify-between items-center text-sm">
+                                       <span className="text-slate-300">Extras</span>
+                                       <span>+ ₹{newBookingData.additionalCharges.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0).toLocaleString()}</span>
+                                    </div>
+                                 )}
 
                                  {!readOnly && (
                                     <div className="flex justify-between items-center text-sm">

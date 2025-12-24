@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
 import { User } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SidebarProps {
   currentUser: User;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
+  onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSidebarOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSidebarOpen, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useLanguage();
 
   const links = [
-    { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard', exact: true },
-    { to: '/calendar', icon: <Calendar size={20} />, label: 'Calendar' },
-    { to: '/bookings', icon: <CalendarDays size={20} />, label: 'Bookings' },
-    { to: '/rooms', icon: <BedDouble size={20} />, label: 'Rooms' },
-    { to: '/guests', icon: <Users size={20} />, label: 'Guests' },
-    { to: '/finance', icon: <CreditCard size={20} />, label: 'Finance' },
+    { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
+    { to: '/calendar', icon: <Calendar size={20} />, label: t('calendar') },
+    { to: '/bookings', icon: <CalendarDays size={20} />, label: t('bookings') },
+    { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
+    { to: '/guests', icon: <Users size={20} />, label: t('guests') },
+    { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
   ];
 
   return (
@@ -87,16 +90,26 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
 
       {/* User Profile */}
       <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-        <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : 'px-2'}`}>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold shadow-lg ring-2 ring-slate-800">
-            {currentUser.name[0]}
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold truncate">{currentUser.name}</p>
-              <p className="text-xs text-slate-400 truncate">{currentUser.role}</p>
+        <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-4' : 'justify-between px-2'}`}>
+          <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold shadow-lg ring-2 ring-slate-800 shrink-0">
+              {currentUser.name[0]}
             </div>
-          )}
+            {!collapsed && (
+              <div className="overflow-hidden">
+                <p className="text-sm font-semibold truncate">{currentUser.name}</p>
+                <p className="text-xs text-slate-400 truncate">{currentUser.role}</p>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={onLogout}
+            className={`text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors ${collapsed ? 'p-2' : 'p-2'}`}
+            title="Sign Out"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </div>

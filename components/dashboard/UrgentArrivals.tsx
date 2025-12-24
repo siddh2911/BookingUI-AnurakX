@@ -1,6 +1,7 @@
 import React from 'react';
 import { Booking, Room } from '../../types';
 import { Bell, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface UrgentArrivalsProps {
     arrivals: Booking[];
@@ -10,6 +11,7 @@ interface UrgentArrivalsProps {
 }
 
 const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today, onEditBooking }) => {
+    const { t } = useLanguage();
     // Calculate tomorrow's date string
     const todayDate = new Date(today);
     const tomorrowDate = new Date(todayDate);
@@ -32,13 +34,13 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                         <Bell className="w-4 h-4 md:w-5 md:h-5 text-blue-400" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">Priority Check-ins</h2>
-                        <p className="text-xs md:text-sm text-slate-400">Guests arriving within 24 hours</p>
+                        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">{t('priorityCheckIns')}</h2>
+                        <p className="text-xs md:text-sm text-slate-400">{t('prioritySubtitle')}</p>
                     </div>
                 </div>
                 {/* Optional: Add a small indicator of count */}
                 <span className="bg-blue-500/20 text-blue-300 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full border border-blue-500/30">
-                    {urgentBookings.length} Priority
+                    {urgentBookings.length} {t('priorityBadge')}
                 </span>
             </div>
 
@@ -59,9 +61,10 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                                         ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
                                         : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
                                         }`}>
-                                        {isToday ? 'Today' : 'Tomorrow'}
+                                        {isToday ? t('today') : t('tomorrow')}
                                     </span>
                                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity -mr-2 -mt-2">
+
                                         <ArrowRight className="w-4 h-4 text-white" />
                                     </div>
                                 </div>
@@ -77,11 +80,17 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                                     </div>
                                     <span className="text-xs opacity-70">{room?.type}</span>
                                 </div>
-                                {booking.paymentStatus === 'pending' && (
-                                    <span className="text-red-300 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
-                                        Pending
-                                    </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {(booking.pendingBalance || 0) > 0 ? (
+                                        <span className="text-red-300 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
+                                            {t('due')}: ₹{booking.pendingBalance?.toLocaleString()}
+                                        </span>
+                                    ) : (
+                                        <span className="text-green-300 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 px-2 py-1 rounded border border-green-500/20">
+                                            {t('paid')}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );

@@ -64,6 +64,7 @@ export interface Booking {
   totalAmount?: number; // Made optional as API provides balance
   payments?: Payment[]; // Made optional as API provides balance
   pendingBalance?: number; // New field for balance from /allBooking API
+  additionalCharges?: { description: string; amount: number }[];
   notes?: string;
   createdAt?: string; // Made optional as API doesn't provide
 }

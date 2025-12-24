@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { getAvailabilityForecast } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment } from './types';
+import { LanguageProvider } from './contexts/LanguageContext';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER } from './constants';
 
 import DashboardLayout from './components/DashboardLayout';
@@ -11,8 +12,10 @@ import CalendarPage from './components/pages/CalendarPage';
 import RoomsPage from './components/pages/RoomsPage';
 import GuestsPage from './components/pages/GuestsPage';
 import FinancePage from './components/pages/FinancePage';
+import LoginPage from './components/pages/LoginPage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
+import BookingDetailsModal from './components/modals/BookingDetailsModal';
 import PaymentModal from './components/modals/PaymentModal';
 import SecurityModal from './components/modals/SecurityModal';
 
@@ -36,6 +39,34 @@ export default function App() {
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currentUser] = useState<User>(MOCK_USER);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const handleLogin = useCallback(() => setIsAuthenticated(true), []);
+  const handleLogout = useCallback(() => setIsAuthenticated(false), []);
+
+  // Auto-logout (Idle Timer)
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      if (isAuthenticated) {
+        // 15 minutes = 15 * 60 * 1000
+        timeout = setTimeout(() => {
+          handleLogout();
+        }, 15 * 60 * 1000);
+      }
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove'];
+    if (isAuthenticated) {
+      events.forEach(event => window.addEventListener(event, resetTimer));
+      resetTimer();
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [isAuthenticated, handleLogout]);
 
   // Modals state
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -76,7 +107,13 @@ export default function App() {
     checkIn: today,
     checkOut: formatLocalDate(new Date(Date.now() + 86400000)),
     roomId: '', advance: 0, roomRate: 0,
-    source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: ''
+    source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: '',
+    manualTotal: undefined as number | undefined | null,
+    additionalCharges: [
+      { category: 'Cleaning Fee', amount: 0 },
+      { category: 'Guest Service Fee', amount: 0 },
+      { category: 'Occupancy Taxes', amount: 0 }
+    ]
   });
 
   // --- API Calls ---
@@ -340,7 +377,13 @@ export default function App() {
       checkIn: preSelectedDate ? formatLocalDate(preSelectedDate) : today,
       checkOut: preSelectedDate ? formatLocalDate(new Date(preSelectedDate.getTime() + 86400000)) : formatLocalDate(new Date(Date.now() + 86400000)),
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
-      source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: ''
+      source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: '',
+      manualTotal: undefined,
+      additionalCharges: [
+        { category: 'Cleaning Fee', amount: 0 },
+        { category: 'Guest Service Fee', amount: 0 },
+        { category: 'Occupancy Taxes', amount: 0 }
+      ]
     });
     setIsBookingModalOpen(true);
   }, [rooms, today, setEditingBookingId, setNewBookingData, setIsBookingModalOpen]);
@@ -365,7 +408,9 @@ export default function App() {
         advance: fetchedBookingData.advanceAmount || 0,
         source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT,
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
-        notes: fetchedBookingData.internalNotes || ''
+        notes: fetchedBookingData.internalNotes || '',
+        manualTotal: fetchedBookingData.totalAmount,
+        additionalCharges: fetchedBookingData.additionalCharges || []
       });
       setIsBookingModalOpen(true);
     } catch (error: any) {
@@ -376,18 +421,20 @@ export default function App() {
 
   const handleSaveBooking = useCallback(async (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => {
     e.preventDefault();
-    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, source, notes, guestEmail, guestPhone } = newBookingData;
+    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, source, notes, guestEmail, guestPhone, additionalCharges } = newBookingData;
     const room = selectedRoom;
     if (!room) { alert("Selected room not found."); return; }
     if (new Date(checkOut) <= new Date(checkIn)) { alert("Check-out date must be after check-in date."); return; }
 
     const bookingNights = Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)));
-    const bookingTotal = (roomRate || 0) * bookingNights;
+    const roomTotal = (roomRate || 0) * bookingNights;
+    const additionalTotal = additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
+    const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (roomTotal + additionalTotal);
 
     const bookingPayload = {
       fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, checkInDate: checkIn, checkOutDate: checkOut,
       roomNo: room?.number || '', nightlyRate: roomRate, bookingSource: source, advanceAmount: advance,
-      paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal,
+      paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges
     };
 
     try {
@@ -450,7 +497,10 @@ export default function App() {
 
   // Derived calculations for modal
   const bookingNights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
-  const bookingTotal = (newBookingData.roomRate || 0) * bookingNights;
+  const roomTotal = (newBookingData.roomRate || 0) * bookingNights;
+  const additionalTotal = newBookingData.additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
+  const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (roomTotal + additionalTotal);
+
   let paidAmount = newBookingData.advance;
   let bookingPending = bookingTotal - paidAmount;
   if (editingBookingId) {
@@ -493,52 +543,64 @@ export default function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<DashboardLayout />}>
-          <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
-          <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
-          <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
-          <Route path="rooms" element={<RoomsPage />} />
-          <Route path="guests" element={<GuestsPage />} />
-          <Route path="finance" element={<FinancePage />} />
-        </Route>
-        {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+    <LanguageProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/" replace />} />
 
-      <NewBookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => { setIsBookingModalOpen(false); setIsViewOnlyMode(false); }}
-        editingBookingId={editingBookingId}
-        newBookingData={newBookingData}
-        setNewBookingData={setNewBookingData}
-        handleSaveBooking={handleSaveBooking}
-        rooms={rooms}
-        bookings={bookings}
-        bookingNights={bookingNights}
-        bookingTotal={bookingTotal}
-        paidAmount={paidAmount}
-        bookingPending={bookingPending}
-        readOnly={isViewOnlyMode}
-      />
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
+            <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
+            <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
+            <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
+            <Route path="rooms" element={<RoomsPage />} />
+            <Route path="guests" element={<GuestsPage />} />
+            <Route path="finance" element={<FinancePage />} />
+          </Route>
+          {/* Catch all - redirect to dashboard */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
 
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        selectedBooking={selectedBooking}
-        handleAddPayment={handleAddPayment}
-        payments={currentBookingPayments}
-      />
+        <NewBookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => { setIsBookingModalOpen(false); setIsViewOnlyMode(false); }}
+          editingBookingId={editingBookingId}
+          newBookingData={newBookingData}
+          setNewBookingData={setNewBookingData}
+          handleSaveBooking={(e, r) => handleSaveBooking(e, r)}
+          rooms={rooms}
+          bookings={bookings}
+          bookingNights={bookingNights}
+          bookingTotal={bookingTotal}
+          paidAmount={paidAmount}
+          bookingPending={bookingPending}
+          readOnly={isViewOnlyMode}
+        />
 
-      <SecurityModal
-        isOpen={isSecurityModalOpen}
-        onClose={() => setIsSecurityModalOpen(false)}
-        onAuthenticated={() => {
-          setIsRevenueVisible(true);
-          setIsSecurityModalOpen(false);
-        }}
-      />
-    </Router>
+        {selectedBooking && (
+          <BookingDetailsModal
+            isOpen={!!selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+            booking={selectedBooking}
+            onAddPayment={() => { setIsPaymentModalOpen(true); }} // removed close selected booking
+          />
+        )}
+
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          booking={selectedBooking}
+          onProcessPayment={handleAddPayment}
+        />
+
+        <SecurityModal
+          isOpen={isSecurityModalOpen}
+          onClose={() => setIsSecurityModalOpen(false)}
+          onAuthenticated={() => {
+            setIsRevenueVisible(true);
+            setIsSecurityModalOpen(false);
+          }}
+        />
+      </Router>
+    </LanguageProvider>
   );
 }

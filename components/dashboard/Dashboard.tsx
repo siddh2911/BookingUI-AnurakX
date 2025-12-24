@@ -8,6 +8,7 @@ import { PaymentQRCard } from './PaymentQRCard';
 import UrgentArrivals from './UrgentArrivals';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
 import { Booking, Room, AuditLog, BookingStatus } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 
 interface DashboardProps {
@@ -43,6 +44,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   isRevenueVisible,
   setIsRevenueVisible,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-6">
       <UrgentArrivals
@@ -55,7 +58,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
-          title="Revenue Breakdown"
+          title={t('totalRevenue')}
           value={`₹${stats.revenueToday.toLocaleString()}`}
           total={`₹${stats.totalRevenue.toLocaleString()}`}
           icon={<CreditCard size={20} />}
@@ -69,7 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           setIsRevenueVisible={setIsRevenueVisible}
         />
         <StatCard
-          title="Occupancy"
+          title={t('occupancyRate')}
           value={`${stats.occupancyToday}%`}
           total={`${stats.occupancyAllTime}%`}
           icon={<BedDouble size={20} />}
@@ -81,7 +84,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           ]}
         />
         <StatCard
-          title="Check-ins"
+          title={t('totalCheckIns')}
           value={stats.checkInsToday}
           total={stats.totalCheckIns}
           icon={<Users size={20} />}

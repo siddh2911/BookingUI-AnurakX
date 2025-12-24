@@ -58,10 +58,11 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                     const availableIds = new Set(day.availableRooms.map((r: any) => r.id));
                     const unavailableRooms = safeRooms.filter(r => !availableIds.has(r.id));
                     // Combine lists: Available first, then Unavailable
+                    // Combine lists: Available first, then Unavailable
                     const displayRooms = [
                         ...day.availableRooms.map((r: any) => ({ ...r, isAvailable: true })),
                         ...unavailableRooms.map(r => ({ ...r, isAvailable: false }))
-                    ];
+                    ].sort((a, b) => String(a.number).localeCompare(String(b.number), undefined, { numeric: true }));
 
                     return (
                         <div key={`${day.date.toISOString()}-${day.availableRooms.length}`}

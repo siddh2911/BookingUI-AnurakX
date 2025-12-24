@@ -8,25 +8,24 @@
     }
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
+@layer utilities {
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #94a3b8;
-    border-radius: 3px;
-}
+    /* Hide Number Spinners */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
-}
-
-/* Glassmorphism utilities */
-.glass {
-    @apply bg-white/70 backdrop-blur-lg border border-white/20;
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
 }
