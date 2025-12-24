@@ -16,6 +16,7 @@ import LoginPage from './components/pages/LoginPage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
 import BookingDetailsModal from './components/modals/BookingDetailsModal';
+import DayDetailsModal from './components/modals/DayDetailsModal';
 import PaymentModal from './components/modals/PaymentModal';
 import SecurityModal from './components/modals/SecurityModal';
 
@@ -80,6 +81,7 @@ export default function App() {
   const [currentBookingPayments, setCurrentBookingPayments] = useState<Payment[]>([]);
   const [isRevenueVisible, setIsRevenueVisible] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
 
   const handleToggleRevenue = (visible: boolean) => {
     if (visible) {
@@ -503,15 +505,14 @@ export default function App() {
 
   let paidAmount = newBookingData.advance;
   let bookingPending = bookingTotal - paidAmount;
-  if (editingBookingId) {
-    const originalBooking = bookings.find(b => b.id === editingBookingId);
-    if (originalBooking) { bookingPending = originalBooking.pendingBalance || 0; paidAmount = bookingTotal - bookingPending; }
-  }
+  // Logic removed to allow dynamic recalculation based on new total
   paidAmount = Math.max(0, paidAmount); bookingPending = Math.max(0, bookingPending);
 
+  const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
+
   const dashboardProps = {
-    stats, revenueChartData, upcomingArrivals, rooms, logs, availabilityForecast,
-    forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking,
+    stats, revenueChartData, upcomingArrivals, rooms, logs, availabilityForecast, bookings,
+    forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
     today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
   };
 
@@ -598,6 +599,18 @@ export default function App() {
           onAuthenticated={() => {
             setIsRevenueVisible(true);
             setIsSecurityModalOpen(false);
+          }}
+        />
+        <DayDetailsModal
+          isOpen={!!dayDetailsDate}
+          onClose={() => setDayDetailsDate(null)}
+          date={dayDetailsDate}
+          rooms={rooms}
+          bookings={bookings}
+          onEditBooking={handleEditBooking}
+          onNewBooking={(date, roomId) => {
+            handleOpenNewBooking(date);
+            if (roomId) setNewBookingData((prev: any) => ({ ...prev, roomId }));
           }}
         />
       </Router>

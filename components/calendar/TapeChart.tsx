@@ -119,13 +119,17 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                 <div className="min-w-[800px] md:min-w-[1200px]">
                     {/* Header Row */}
                     <div className="flex sticky top-0 z-20 bg-white shadow-sm border-b border-slate-200">
-                        <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-4 font-bold text-slate-700 border-r border-slate-200 bg-slate-50 flex items-center justify-center md:justify-start">
+                        <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-4 font-bold text-slate-700 border-r border-slate-200 bg-slate-50 flex items-center justify-center md:justify-start sticky left-0 z-30 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
                             <span className="hidden md:inline">Room</span>
                             <span className="md:hidden">Rm</span>
                         </div>
                         <div className="flex-1 flex">
                             {dates.map(date => (
-                                <div key={date.toISOString()} className={`flex-1 min-w-[50px] md:min-w-[80px] p-2 text-center border-r border-slate-100 ${isToday(date) ? 'bg-blue-50' : ''}`}>
+                                <div
+                                    key={date.toISOString()}
+                                    className={`flex-shrink-0 p-2 text-center border-r border-slate-100 ${isToday(date) ? 'bg-blue-50' : ''}`}
+                                    style={{ width: `${100 / daysToShow}%` }}
+                                >
                                     <div className={`text-[10px] md:text-xs uppercase font-bold mb-1 ${isToday(date) ? 'text-blue-600' : 'text-slate-400'}`}>
                                         {date.toLocaleDateString(undefined, { weekday: 'short' }).charAt(0)}
                                     </div>
@@ -139,8 +143,8 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
 
                     {/* Room Rows */}
                     {rooms.map(room => (
-                        <div key={room.id} className="flex border-b border-slate-200 bg-white hover:bg-slate-50 transition-colors h-16 group">
-                            <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-3 border-r border-slate-200 flex flex-col justify-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 text-center md:text-left">
+                        <div key={room.id} className="flex border-b border-slate-200 bg-white hover:bg-slate-50 transition-colors h-20 group">
+                            <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-3 border-r border-slate-200 flex flex-col justify-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 text-center md:text-left shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
                                 <div className="flex flex-col md:flex-row items-center md:justify-between">
                                     <span className="font-bold text-slate-800 text-sm md:text-lg">{room.number}</span>
                                     <span className={`text-[8px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded font-bold uppercase hidden md:inline-block ${room.status === RoomStatus.AVAILABLE ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -154,7 +158,11 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                                 {/* Grid Lines */}
                                 <div className="absolute inset-0 flex pointer-events-none">
                                     {dates.map(date => (
-                                        <div key={date.toISOString()} className={`flex-1 border-r border-slate-100 ${isToday(date) ? 'bg-blue-50/30' : ''}`}></div>
+                                        <div
+                                            key={date.toISOString()}
+                                            className={`flex-shrink-0 border-r border-slate-100 ${isToday(date) ? 'bg-blue-50/30' : ''}`}
+                                            style={{ width: `${100 / daysToShow}%` }}
+                                        ></div>
                                     ))}
                                 </div>
 

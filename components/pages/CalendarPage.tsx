@@ -31,7 +31,7 @@ export default function CalendarPage({ calendarProps }: CalendarPageProps) {
             <TapeChart
                 rooms={rooms}
                 bookings={bookings}
-                onBookingClick={(booking) => onEditBooking(booking, false)}
+                onBookingClick={(booking) => onEditBooking(booking, true)}
             />
         </div>
     );

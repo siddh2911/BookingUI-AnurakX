@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { Room } from '../../types';
+import { Room, Booking, BookingStatus } from '../../types';
 
 interface AvailabilityForecastProps {
     forecast: { date: Date; availableRooms: any[] }[];
@@ -8,9 +8,12 @@ interface AvailabilityForecastProps {
     setForecastPage: (page: number | ((prev: number) => number)) => void;
     onOpenNewBooking: (date: Date) => void;
     rooms: Room[];
+    bookings: Booking[];
+    onEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
+    handleOpenDayDetails: (date: Date) => void;
 }
 
-const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, forecastPage, setForecastPage, onOpenNewBooking, rooms }) => {
+const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, forecastPage, setForecastPage, onOpenNewBooking, rooms, bookings = [], onEditBooking, handleOpenDayDetails }) => {
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -57,8 +60,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                     const safeRooms = rooms || [];
                     const availableIds = new Set(day.availableRooms.map((r: any) => r.id));
                     const unavailableRooms = safeRooms.filter(r => !availableIds.has(r.id));
-                    // Combine lists: Available first, then Unavailable
-                    // Combine lists: Available first, then Unavailable
+
                     const displayRooms = [
                         ...day.availableRooms.map((r: any) => ({ ...r, isAvailable: true })),
                         ...unavailableRooms.map(r => ({ ...r, isAvailable: false }))
@@ -73,7 +75,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                                     : 'bg-red-50 border-red-100 opacity-80'
                                 }
                          `}
-                            onClick={() => onOpenNewBooking(day.date)}
+                            onClick={() => handleOpenDayDetails(day.date)}
                         >
                             {/* Status Bar */}
                             <div className={`absolute top-0 left-0 w-1 h-full ${isAvailable ? 'bg-green-400' : 'bg-red-400'}`}></div>
@@ -88,20 +90,36 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                             </div>
 
                             <div className="flex flex-wrap gap-1.5 ml-2">
-                                {displayRooms.slice(0, 12).map((r) => (
-                                    <span
-                                        key={r.id}
-                                        className={`
-                                            text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors
-                                            ${r.isAvailable
-                                                ? 'bg-slate-50 border border-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'
-                                                : 'bg-red-50 border border-red-100 text-red-300 line-through decoration-red-300'
-                                            }
-                                        `}
-                                    >
-                                        {r.number}
-                                    </span>
-                                ))}
+                                {displayRooms.slice(0, 12).map((r) => {
+                                    // Find booking if unavailable
+                                    const booking = !r.isAvailable ? bookings.find(b => {
+                                        const checkIn = new Date(b.checkInDate); checkIn.setHours(0, 0, 0, 0);
+                                        const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);
+                                        const current = new Date(day.date); current.setHours(0, 0, 0, 0);
+
+                                        return String(b.roomId) === String(r.id) &&
+                                            b.status !== BookingStatus.CANCELLED &&
+                                            b.status !== BookingStatus.CHECKED_OUT &&
+                                            current >= checkIn &&
+                                            current < checkOut;
+                                    }) : null;
+
+                                    return (
+                                        <span
+                                            key={r.id}
+                                            title={booking ? `Booked by: ${booking.guestName}` : undefined}
+                                            className={`
+                                                text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors
+                                                ${r.isAvailable
+                                                    ? 'bg-slate-50 border border-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'
+                                                    : 'bg-red-50 border border-red-100 text-red-300 line-through decoration-red-300 hover:decoration-transparent hover:text-red-500'
+                                                }
+                                            `}
+                                        >
+                                            {r.number}
+                                        </span>
+                                    );
+                                })}
                                 {displayRooms.length > 12 && (
                                     <span className="text-[10px] text-slate-400 self-center">+{displayRooms.length - 12}</span>
                                 )}

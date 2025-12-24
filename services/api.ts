@@ -51,7 +51,7 @@ export const getAvailabilityForecast = async (
   };
   const DAYS_PER_PAGE = 12;
   const startOffset = forecastPage * DAYS_PER_PAGE;
-  
+
   const forecast = Array.from({ length: DAYS_PER_PAGE }, (_, i) => {
     const [year, month, day] = today.split('-').map(Number);
     const d = new Date(year, month - 1, day);
@@ -66,7 +66,7 @@ export const getAvailabilityForecast = async (
           b.status !== BookingStatus.CANCELLED &&
           b.status !== BookingStatus.CHECKED_OUT &&
           isStandardBooked;
-        
+
         return match;
       });
       return !isBooked;
@@ -78,4 +78,26 @@ export const getAvailabilityForecast = async (
   await new Promise(resolve => setTimeout(resolve, 500));
 
   return Promise.resolve(forecast);
+};
+/**
+ * Fetches details for a single room.
+ * @param id - The room ID.
+ * @returns A promise that resolves to the room data.
+ */
+export const getRoomDetails = async (id: number): Promise<Room> => {
+  const url = `https://booking-anurakx.onrender.com/rooms/${id}`;
+
+  console.log(`Fetching room details from ${url}`);
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Failed to fetch room details' }));
+    throw new Error(errorData.message);
+  }
+
+  const data: any = await response.json();
+  return {
+    ...data,
+    number: data.roomNumber,
+  };
 };

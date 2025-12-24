@@ -41,25 +41,23 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
       <td className="px-6 py-4 flex items-center gap-2">
         {balance > 0 ? (
           <button
-            onClick={(e) => { e.stopPropagation(); onAddPayment(booking); }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-md hover:bg-red-700 shadow-sm transition-colors"
-            title={`Settle pending balance of ₹${balance.toLocaleString()}`}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-md shadow-sm transition-colors cursor-default"
+            title="Payment actions disabled temporarily"
           >
             <CreditCard size={14} />
             Pay ₹{balance.toLocaleString()}
           </button>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); onAddPayment(booking); }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-md hover:bg-emerald-100 transition-colors"
-            title="View Payments / Add Charge"
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-md transition-colors cursor-default"
+            title="Payment actions disabled temporarily"
           >
-            <CheckCircle size={14}/>
+            <CheckCircle size={14} />
             Paid
           </button>
         )}
-        <button onClick={(e) => { e.stopPropagation(); onEditBooking(booking); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit Booking"><Pencil size={18}/></button>
-        <button onClick={(e) => { e.stopPropagation(); onDeleteBooking(booking.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete Booking"><Trash2 size={18}/></button>
+        <button onClick={(e) => { e.stopPropagation(); onEditBooking(booking); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Edit Booking"><Pencil size={18} /></button>
+        <button onClick={(e) => { e.stopPropagation(); onDeleteBooking(booking.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete Booking"><Trash2 size={18} /></button>
       </td>
     </tr>
   );

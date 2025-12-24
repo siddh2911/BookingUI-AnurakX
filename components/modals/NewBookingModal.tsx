@@ -3,7 +3,7 @@ import Modal from '../ui/Modal';
 import SecurityModal from './SecurityModal';
 import { Room, BookingSource, PaymentMethod, Booking } from '../../types';
 import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock, X, Receipt, RotateCcw } from 'lucide-react';
-import { getAvailableRooms } from "../../services/api";
+import { getAvailableRooms, getRoomDetails } from "../../services/api";
 interface NewBookingModalProps {
    isOpen: boolean;
    onClose: () => void;
@@ -188,17 +188,47 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     name="roomId"
                                     className={`${elegantInput} appearance-none cursor-pointer`}
                                     value={newBookingData.roomId}
-                                    onChange={(e) => {
-                                       const r = apiAvailableRooms.find(room => room.id === Number(e.target.value));
-                                       setNewBookingData({ ...newBookingData, roomId: Number(e.target.value), roomRate: r ? r.pricePerNight : 0 });
+                                    onChange={async (e) => {
+                                       const val = Number(e.target.value);
+                                       let r = apiAvailableRooms.find(room => room.id === val);
+
+                                       if (!r) {
+                                          try {
+                                             setIsLoadingRooms(true);
+                                             r = await getRoomDetails(val);
+                                          } catch (err) {
+                                             console.error("Failed to fetch room details", err);
+                                             r = rooms.find(room => room.id === val);
+                                          } finally {
+                                             setIsLoadingRooms(false);
+                                          }
+                                       }
+
+                                       setNewBookingData(prev => ({
+                                          ...prev,
+                                          roomId: val,
+                                          roomRate: r ? r.pricePerNight : 0,
+                                          manualTotal: undefined
+                                       }));
                                     }}
                                     disabled={isLoadingRooms}
                                  >
                                     <option value="">Choose available room...</option>
                                     {apiAvailableRooms.map(r => <option key={r.id} value={r.id}>Room {r.number} — {r.type}</option>)}
-                                    {editingBookingId && newBookingData.roomId && !apiAvailableRooms.find(r => r.id === newBookingData.roomId) && (
-                                       <option value={newBookingData.roomId}>Room {rooms.find(r => r.id === newBookingData.roomId)?.number} (Current)</option>
-                                    )}
+                                    {editingBookingId && (() => {
+                                       const originalBooking = bookings.find(b => b.id === editingBookingId);
+                                       if (originalBooking && !apiAvailableRooms.find(r => r.id === originalBooking.roomId)) {
+                                          const originalRoom = rooms.find(r => r.id === originalBooking.roomId);
+                                          if (originalRoom) {
+                                             return (
+                                                <option key="original" value={originalRoom.id}>
+                                                   Room {originalRoom.number} (Current)
+                                                </option>
+                                             );
+                                          }
+                                       }
+                                       return null;
+                                    })()}
                                  </select>
                                  <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
                               </div>

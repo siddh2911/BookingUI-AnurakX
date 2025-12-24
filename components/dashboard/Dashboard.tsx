@@ -15,6 +15,7 @@ interface DashboardProps {
   stats: any;
   revenueChartData: { last7Days: any[]; last30Days: any[]; last1Year: any[] };
   upcomingArrivals: Booking[];
+  bookings: Booking[];
   rooms: Room[];
   logs: AuditLog[];
   availabilityForecast: { date: Date; availableRooms: any[] }[];
@@ -23,6 +24,7 @@ interface DashboardProps {
   handleDashboardFilter: (filter: any) => void;
   handleEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
   handleOpenNewBooking: (date: Date) => void;
+  handleOpenDayDetails: (date: Date) => void;
   today: string;
   isRevenueVisible: boolean;
   setIsRevenueVisible: (visible: boolean) => void;
@@ -32,6 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   stats,
   revenueChartData,
   upcomingArrivals,
+  bookings,
   rooms,
   logs,
   availabilityForecast,
@@ -40,6 +43,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   handleDashboardFilter,
   handleEditBooking,
   handleOpenNewBooking,
+  handleOpenDayDetails,
   today,
   isRevenueVisible,
   setIsRevenueVisible,
@@ -126,6 +130,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         setForecastPage={setForecastPage}
         onOpenNewBooking={handleOpenNewBooking}
         rooms={rooms}
+        bookings={bookings}
+        onEditBooking={handleEditBooking}
+        handleOpenDayDetails={handleOpenDayDetails}
       />
     </div>
   );
