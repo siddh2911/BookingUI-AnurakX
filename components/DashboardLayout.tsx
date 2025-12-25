@@ -39,9 +39,17 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                         <span className="font-bold text-lg text-white tracking-widest leading-tight" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
                         <span className="text-[9px] text-blue-200 uppercase tracking-widest font-sans">Dashboard</span>
                     </Link>
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+                            className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors"
+                        >
+                            {language === 'en' ? 'HI' : 'EN'}
+                        </button>
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Desktop Topbar (Optional, can be added for search/notifications) */}
