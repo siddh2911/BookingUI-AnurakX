@@ -1,6 +1,6 @@
 import React from 'react';
 import { Booking, Room } from '../../types';
-import { Bell, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { Bell, Calendar, Clock, ArrowRight, Phone } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface UrgentArrivalsProps {
@@ -63,9 +63,20 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                                         }`}>
                                         {isToday ? t('today') : t('tomorrow')}
                                     </span>
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity -mr-2 -mt-2">
-
-                                        <ArrowRight className="w-4 h-4 text-white" />
+                                    <div className="flex gap-2 -mr-2 -mt-2">
+                                        {booking.guestPhone && (
+                                            <a
+                                                href={`tel:${booking.guestPhone}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 flex items-center justify-center transition-colors"
+                                                title={`Call ${booking.guestName}`}
+                                            >
+                                                <Phone className="w-3.5 h-3.5 text-emerald-300" />
+                                            </a>
+                                        )}
+                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                            <ArrowRight className="w-4 h-4 text-white" />
+                                        </div>
                                     </div>
                                 </div>
 
