@@ -365,6 +365,27 @@ export default function App() {
     fetchForecast();
   }, [bookings, rooms, forecastPage, today]);
 
+  // Smart Refresh Logic: Mandatory double refresh on login & Zero-data retry
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Mandatory double refresh
+      fetchBookings();
+      const t = setTimeout(() => fetchBookings(), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [isAuthenticated, fetchBookings]);
+
+  useEffect(() => {
+    // If authenticated but no data (totalCheckIns === 0), retry every 5s
+    if (isAuthenticated && stats.totalCheckIns === 0) {
+      const retryTimer = setTimeout(() => {
+        console.log("No check-ins found (0). Retrying fetch...");
+        fetchBookings();
+      }, 5000);
+      return () => clearTimeout(retryTimer);
+    }
+  }, [isAuthenticated, stats.totalCheckIns, fetchBookings]);
+
   // --- Handlers ---
   const addLog = useCallback((action: string, details: string) => {
     const newLog = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), action, user: currentUser.name, details };
