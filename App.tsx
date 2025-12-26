@@ -21,7 +21,7 @@ import PaymentModal from './components/modals/PaymentModal';
 import SecurityModal from './components/modals/SecurityModal';
 
 export default function App() {
-  const API_BASE_URL = 'https://booking-anurakx.onrender.com';
+  const API_BASE_URL = 'https://api.karunavillas.com';
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

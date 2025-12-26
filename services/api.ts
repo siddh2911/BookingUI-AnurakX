@@ -9,7 +9,7 @@ export const getAvailableRooms = async (
   options: { startDate: string, endDate: string }
 ): Promise<Room[]> => {
   const { startDate, endDate } = options;
-  const url = new URL('https://booking-anurakx.onrender.com/available-rooms');
+  const url = new URL('https://api.karunavillas.com/available-rooms');
   url.searchParams.append('startDate', startDate);
   url.searchParams.append('endDate', endDate);
 
@@ -85,7 +85,7 @@ export const getAvailabilityForecast = async (
  * @returns A promise that resolves to the room data.
  */
 export const getRoomDetails = async (id: number): Promise<Room> => {
-  const url = `https://booking-anurakx.onrender.com/rooms/${id}`;
+  const url = `https://api.karunavillas.com/rooms/${id}`;
 
   console.log(`Fetching room details from ${url}`);
   const response = await fetch(url);
