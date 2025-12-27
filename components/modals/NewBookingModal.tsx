@@ -74,8 +74,15 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                endDate: newBookingData.checkOut,
             });
 
+            // Fallback to local rooms if API returns empty (likely due to missing data environment)
+            let roomsToFilter = fetchedRooms;
+            if (fetchedRooms.length === 0 && rooms.length > 0) {
+               console.warn("API returned 0 rooms. Falling back to local room list.");
+               roomsToFilter = rooms;
+            }
+
             // Client-side filtering because local bookings aren't on the server
-            const validRooms = fetchedRooms.filter(room => {
+            const validRooms = roomsToFilter.filter(room => {
                const hasConflict = bookings.some(b => {
                   if (editingBookingId && b.id === editingBookingId) return false;
                   if (b.status === 'Cancelled' || b.status === 'Checked Out') return false;

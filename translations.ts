@@ -29,14 +29,16 @@ export const translations = {
         welcomeBack: "Welcome Back",
         loading: "Loading...",
         // Priority
-        priorityCheckIns: "Priority Check-ins",
+        priorityCheckIns: "Check-ins",
         prioritySubtitle: "Guests arriving within 24 hours",
-        priorityBadge: "Priority",
+        priorityBadge: "Guests",
         today: "Today",
         tomorrow: "Tomorrow",
         pending: "Pending",
         due: "Due",
         paid: "Paid",
+        priorityCheckOuts: "Check-outs",
+        priorityCheckOutSubtitle: "Guests departing within 24 hours",
     },
     hi: {
         // Sidebar
@@ -69,14 +71,16 @@ export const translations = {
         loading: "लोड हो रहा है...",
 
         // Priority
-        priorityCheckIns: "प्राथमिकता चेक-इन्स",
+        priorityCheckIns: "चेक-इन्स",
         prioritySubtitle: "24 घंटे में आने वाले अतिथि",
-        priorityBadge: "प्राथमिकता",
+        priorityBadge: "अतिथि",
         today: "आज",
         tomorrow: "कल",
         pending: "लंबित",
         due: "बकाया",
         paid: "भुगतान",
+        priorityCheckOuts: "चेक-आउट",
+        priorityCheckOutSubtitle: "24 घंटे में जाने वाले अतिथि",
     }
 };
 

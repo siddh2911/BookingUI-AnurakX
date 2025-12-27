@@ -6,6 +6,7 @@ import ActivityLog from './ActivityLog';
 import AvailabilityForecast from './AvailabilityForecast';
 import { PaymentQRCard } from './PaymentQRCard';
 import UrgentArrivals from './UrgentArrivals';
+import UrgentDepartures from './UrgentDepartures';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
 import { Booking, Room, AuditLog, BookingStatus } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -15,6 +16,7 @@ interface DashboardProps {
   stats: any;
   revenueChartData: { last7Days: any[]; last30Days: any[]; last1Year: any[] };
   upcomingArrivals: Booking[];
+  upcomingDepartures: Booking[];
   bookings: Booking[];
   rooms: Room[];
   logs: AuditLog[];
@@ -34,6 +36,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   stats,
   revenueChartData,
   upcomingArrivals,
+  upcomingDepartures,
   bookings,
   rooms,
   logs,
@@ -54,6 +57,12 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-6">
       <UrgentArrivals
         arrivals={upcomingArrivals}
+        rooms={rooms}
+        today={today}
+        onEditBooking={handleEditBooking}
+      />
+      <UrgentDepartures
+        departures={upcomingDepartures}
         rooms={rooms}
         today={today}
         onEditBooking={handleEditBooking}

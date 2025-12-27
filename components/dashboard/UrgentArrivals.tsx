@@ -20,7 +20,8 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
 
     const urgentBookings = arrivals.filter(b => b.checkInDate === today || b.checkInDate === tomorrow);
 
-    if (urgentBookings.length === 0) return null;
+    // If no bookings, we still render the container but with an empty state
+    const isEmpty = urgentBookings.length === 0;
 
     return (
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 p-5 md:p-8 text-white relative overflow-hidden group">
@@ -45,67 +46,76 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
-                {urgentBookings.map(booking => {
-                    const room = rooms.find(r => r.id === booking.roomId);
-                    const isToday = booking.checkInDate === today;
+                {isEmpty ? (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-white/5 rounded-xl border border-white/5 border-dashed">
+                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                            <Clock className="w-6 h-6 text-slate-600" />
+                        </div>
+                        <p className="text-sm font-medium">No check-ins scheduled for today or tomorrow</p>
+                    </div>
+                ) : (
+                    urgentBookings.map(booking => {
+                        const room = rooms.find(r => r.id === booking.roomId);
+                        const isToday = booking.checkInDate === today;
 
-                    return (
-                        <div
-                            key={booking.id}
-                            onClick={() => onEditBooking(booking, true)}
-                            className="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 backdrop-blur-sm rounded-xl p-5 transition-all duration-300 cursor-pointer group/card flex flex-col justify-between"
-                        >
-                            <div>
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${isToday
-                                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                                        : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                                        }`}>
-                                        {isToday ? t('today') : t('tomorrow')}
-                                    </span>
-                                    <div className="flex gap-2 -mr-2 -mt-2">
-                                        {booking.guestPhone && (
-                                            <a
-                                                href={`tel:${booking.guestPhone}`}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 flex items-center justify-center transition-colors"
-                                                title={`Call ${booking.guestName}`}
-                                            >
-                                                <Phone className="w-3.5 h-3.5 text-emerald-300" />
-                                            </a>
-                                        )}
-                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                            <ArrowRight className="w-4 h-4 text-white" />
+                        return (
+                            <div
+                                key={booking.id}
+                                onClick={() => onEditBooking(booking, true)}
+                                className="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 backdrop-blur-sm rounded-xl p-5 transition-all duration-300 cursor-pointer group/card flex flex-col justify-between"
+                            >
+                                <div>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${isToday
+                                            ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                                            : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                                            }`}>
+                                            {isToday ? t('today') : t('tomorrow')}
+                                        </span>
+                                        <div className="flex gap-2 -mr-2 -mt-2">
+                                            {booking.guestPhone && (
+                                                <a
+                                                    href={`tel:${booking.guestPhone}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="w-8 h-8 rounded-full bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 flex items-center justify-center transition-colors"
+                                                    title={`Call ${booking.guestName}`}
+                                                >
+                                                    <Phone className="w-3.5 h-3.5 text-emerald-300" />
+                                                </a>
+                                            )}
+                                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                <ArrowRight className="w-4 h-4 text-white" />
+                                            </div>
                                         </div>
                                     </div>
+
+                                    <h3 className="font-bold text-lg text-white group-hover/card:text-blue-200 transition-colors truncate mb-1">{booking.guestName}</h3>
+                                    <p className="text-xs text-slate-400 font-medium truncate">{booking.guestEmail || booking.guestPhone}</p>
                                 </div>
 
-                                <h3 className="font-bold text-lg text-white group-hover/card:text-blue-200 transition-colors truncate mb-1">{booking.guestName}</h3>
-                                <p className="text-xs text-slate-400 font-medium truncate">{booking.guestEmail || booking.guestPhone}</p>
-                            </div>
-
-                            <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm text-slate-300">
-                                    <div className="px-2 py-1 bg-white/5 rounded border border-white/5">
-                                        <span className="font-mono font-bold text-white">R{room?.number}</span>
+                                <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                                        <div className="px-2 py-1 bg-white/5 rounded border border-white/5">
+                                            <span className="font-mono font-bold text-white">R{room?.number}</span>
+                                        </div>
+                                        <span className="text-xs opacity-70">{room?.type}</span>
                                     </div>
-                                    <span className="text-xs opacity-70">{room?.type}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {(booking.pendingBalance || 0) > 0 ? (
-                                        <span className="text-red-300 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
-                                            {t('due')}: ₹{booking.pendingBalance?.toLocaleString()}
-                                        </span>
-                                    ) : (
-                                        <span className="text-green-300 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 px-2 py-1 rounded border border-green-500/20">
-                                            {t('paid')}
-                                        </span>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {(booking.pendingBalance || 0) > 0 ? (
+                                            <span className="text-red-300 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 px-2 py-1 rounded border border-red-500/20">
+                                                {t('due')}: ₹{booking.pendingBalance?.toLocaleString()}
+                                            </span>
+                                        ) : (
+                                            <span className="text-green-300 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 px-2 py-1 rounded border border-green-500/20">
+                                                {t('paid')}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
             </div>
         </div>
     );

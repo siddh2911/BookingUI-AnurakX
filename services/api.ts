@@ -5,6 +5,12 @@ import { Room, Booking, BookingStatus } from '../types';
  * @param options - An object with startDate and endDate.
  * @returns A promise that resolves to an array of available rooms.
  */
+import { z } from 'zod';
+import { RoomSchema } from './schemas';
+
+// Remove Zod imports if they were only used here, they are at the top of the file usually. 
+// But I will replace the functions.
+
 export const getAvailableRooms = async (
   options: { startDate: string, endDate: string }
 ): Promise<Room[]> => {
@@ -22,8 +28,9 @@ export const getAvailableRooms = async (
     throw new Error(errorData.message);
   }
 
-  const data: any[] = await response.json();
-  const mappedData: Room[] = data.map(room => ({
+  const data = await response.json();
+
+  const mappedData: Room[] = data.map((room: any) => ({
     ...room,
     number: room.roomNumber,
   }));
@@ -95,7 +102,8 @@ export const getRoomDetails = async (id: number): Promise<Room> => {
     throw new Error(errorData.message);
   }
 
-  const data: any = await response.json();
+  const data = await response.json();
+
   return {
     ...data,
     number: data.roomNumber,

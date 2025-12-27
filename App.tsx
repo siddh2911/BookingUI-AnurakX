@@ -357,6 +357,15 @@ export default function App() {
     }).sort((a, b) => new Date(a.checkInDate).getTime() - new Date(b.checkInDate).getTime());
   }, [bookings]);
 
+  const upcomingDepartures = useMemo(() => {
+    const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0);
+    const limitDate = new Date(todayDate); limitDate.setDate(limitDate.getDate() + 7);
+    return bookings.filter(b => {
+      const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);
+      return checkOut >= todayDate && checkOut <= limitDate && b.status !== BookingStatus.CANCELLED && b.status !== BookingStatus.CHECKED_OUT;
+    }).sort((a, b) => new Date(a.checkOutDate).getTime() - new Date(b.checkOutDate).getTime());
+  }, [bookings]);
+
   useEffect(() => {
     const fetchForecast = async () => {
       const forecast = await getAvailabilityForecast(rooms, bookings, forecastPage, today);
@@ -532,7 +541,7 @@ export default function App() {
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
   const dashboardProps = {
-    stats, revenueChartData, upcomingArrivals, rooms, logs, availabilityForecast, bookings,
+    stats, revenueChartData, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
     today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
   };
