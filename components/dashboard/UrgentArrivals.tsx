@@ -2,6 +2,7 @@ import React from 'react';
 import { Booking, Room } from '../../types';
 import { Bell, Calendar, Clock, ArrowRight, Phone } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import PlatformIcon from '../common/PlatformIcon';
 
 interface UrgentArrivalsProps {
     arrivals: Booking[];
@@ -73,6 +74,9 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                                             {isToday ? t('today') : t('tomorrow')}
                                         </span>
                                         <div className="flex gap-2 -mr-2 -mt-2">
+                                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center" title={`Source: ${booking.source}`}>
+                                                <PlatformIcon source={booking.source} className="w-4 h-4" />
+                                            </div>
                                             {booking.guestPhone && (
                                                 <a
                                                     href={`tel:${booking.guestPhone}`}

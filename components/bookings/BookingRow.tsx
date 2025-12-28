@@ -1,6 +1,7 @@
 import React from 'react';
 import { Booking, Room, BookingStatus, PaymentMethod } from '../../types';
 import { Pencil, CreditCard, CheckCircle, Trash2 } from 'lucide-react';
+import PlatformIcon from '../common/PlatformIcon';
 
 interface BookingRowProps {
   booking: Booking;
@@ -21,7 +22,10 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
       <td className="px-6 py-4 font-mono text-xs text-slate-500">{booking.id}</td>
       <td className="px-6 py-4">
         <div className="font-medium text-slate-900">{booking.guestName}</div>
-        <div className="text-xs text-slate-500">{booking.source}</div>
+        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500">
+          <PlatformIcon source={booking.source} className="w-3.5 h-3.5" />
+          <span>{booking.source}</span>
+        </div>
       </td>
       <td className="px-6 py-4 font-bold">{roomNumber}</td>
       <td className="px-6 py-4">{booking.checkInDate}</td>

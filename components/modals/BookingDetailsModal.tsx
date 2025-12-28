@@ -2,6 +2,7 @@ import React from 'react';
 import Modal from '../ui/Modal';
 import { Booking } from '../../types';
 import { CreditCard, Calendar, User, Clock, CheckCircle } from 'lucide-react';
+import PlatformIcon from '../common/PlatformIcon';
 
 interface BookingDetailsModalProps {
     isOpen: boolean;
@@ -18,9 +19,13 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
                     <div>
                         <h3 className="text-xl font-bold">{booking.guestName}</h3>
                         <p className="text-slate-500 text-sm">Room {booking.roomId}</p>
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
+                            <PlatformIcon source={booking.source} className="w-3.5 h-3.5" />
+                            <span>{booking.source}</span>
+                        </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-                            booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
+                        booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
                         }`}>
                         {booking.status}
                     </span>

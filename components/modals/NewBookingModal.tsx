@@ -4,6 +4,12 @@ import SecurityModal from './SecurityModal';
 import { Room, BookingSource, PaymentMethod, Booking } from '../../types';
 import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock, X, Receipt, RotateCcw } from 'lucide-react';
 import { getAvailableRooms, getRoomDetails } from "../../services/api";
+import CustomSelect, { SelectOption } from '../ui/CustomSelect';
+import PlatformIcon from '../common/PlatformIcon';
+
+// ... (inside component)
+
+
 interface NewBookingModalProps {
    isOpen: boolean;
    onClose: () => void;
@@ -125,6 +131,41 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const elegantLabel = "text-xs font-bold text-slate-400 uppercase tracking-widest";
    const floatingGroup = "relative";
 
+   // Prepare Room Options
+   const roomOptions: SelectOption[] = apiAvailableRooms.length > 0
+      ? apiAvailableRooms.map(r => ({
+         value: r.id,
+         label: `Room ${r.number}`,
+         subtitle: `${r.type} — ₹${r.pricePerNight}`,
+         icon: <div className={`w-2 h-2 rounded-full ${r.status === 'Available' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+      }))
+      : [];
+
+   // Add current room if editing and not in available list
+   if (editingBookingId) {
+      const originalBooking = bookings.find(b => b.id === editingBookingId);
+      if (originalBooking && !apiAvailableRooms.find(r => r.id === originalBooking.roomId)) {
+         const originalRoom = rooms.find(r => r.id === originalBooking.roomId);
+         if (originalRoom) {
+            roomOptions.push({
+               value: originalRoom.id,
+               label: `Room ${originalRoom.number} (Current)`,
+               subtitle: `${originalRoom.type} — ₹${originalRoom.pricePerNight}`,
+               icon: <div className="w-2 h-2 rounded-full bg-blue-500" />
+            });
+         }
+      }
+   }
+
+   // Prepare Source Options
+   const sourceOptions: SelectOption[] = Object.values(BookingSource).map(s => ({
+      value: s,
+      label: s,
+      icon: <PlatformIcon source={s} className="w-4 h-4" />
+   }));
+
+
+
    return (
       <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
          <form onSubmit={(e) => {
@@ -158,6 +199,16 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               <input name="guestEmail" type="email" className={elegantInput} placeholder="email@example.com" value={newBookingData.guestEmail} onChange={(e) => setNewBookingData({ ...newBookingData, guestEmail: e.target.value })} disabled={readOnly} />
                            </div>
                         </div>
+                        <div className={floatingGroup}>
+
+                           <CustomSelect
+                              label="Booking Source"
+                              options={sourceOptions}
+                              value={newBookingData.source || BookingSource.WALK_IN}
+                              onChange={(val) => setNewBookingData({ ...newBookingData, source: val })}
+                              disabled={readOnly}
+                           />
+                        </div>
                      </div>
                   </div>
 
@@ -186,59 +237,46 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      </h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className={floatingGroup}>
-                           <label className={elegantLabel}>{isLoadingRooms ? "Finding Rooms..." : "Select Room"}</label>
-                           {readOnly ? (
-                              <input className={elegantInput} value={`Room ${rooms.find(r => r.id === newBookingData.roomId)?.number || 'N/A'}`} disabled />
+
+                           {isLoadingRooms ? (
+                              <label className={elegantLabel}>Finding Rooms...</label>
                            ) : (
-                              <div className="relative">
-                                 <select
-                                    name="roomId"
-                                    className={`${elegantInput} appearance-none cursor-pointer`}
-                                    value={newBookingData.roomId}
-                                    onChange={async (e) => {
-                                       const val = Number(e.target.value);
-                                       let r = apiAvailableRooms.find(room => room.id === val);
+                              <CustomSelect
+                                 label="Select Room"
+                                 options={roomOptions}
+                                 value={newBookingData.roomId}
+                                 onChange={async (val) => {
+                                    const roomId = Number(val);
+                                    let r = apiAvailableRooms.find(room => room.id === roomId);
 
-                                       if (!r) {
-                                          try {
-                                             setIsLoadingRooms(true);
-                                             r = await getRoomDetails(val);
-                                          } catch (err) {
-                                             console.error("Failed to fetch room details", err);
-                                             r = rooms.find(room => room.id === val);
-                                          } finally {
-                                             setIsLoadingRooms(false);
-                                          }
+                                    if (!r && rooms) {
+                                       r = rooms.find(room => room.id === roomId);
+                                    }
+                                    if (!r) {
+                                       try {
+                                          setIsLoadingRooms(true);
+                                          r = await getRoomDetails(roomId);
+                                       } catch (err) {
+                                          console.error("Failed to fetch room details", err);
+                                          r = rooms.find(room => room.id === roomId);
+                                       } finally {
+                                          setIsLoadingRooms(false);
                                        }
+                                    }
 
-                                       setNewBookingData(prev => ({
-                                          ...prev,
-                                          roomId: val,
-                                          roomRate: r ? r.pricePerNight : 0,
-                                          manualTotal: undefined
-                                       }));
-                                    }}
-                                    disabled={isLoadingRooms}
-                                 >
-                                    <option value="">Choose available room...</option>
-                                    {apiAvailableRooms.map(r => <option key={r.id} value={r.id}>Room {r.number} — {r.type}</option>)}
-                                    {editingBookingId && (() => {
-                                       const originalBooking = bookings.find(b => b.id === editingBookingId);
-                                       if (originalBooking && !apiAvailableRooms.find(r => r.id === originalBooking.roomId)) {
-                                          const originalRoom = rooms.find(r => r.id === originalBooking.roomId);
-                                          if (originalRoom) {
-                                             return (
-                                                <option key="original" value={originalRoom.id}>
-                                                   Room {originalRoom.number} (Current)
-                                                </option>
-                                             );
-                                          }
-                                       }
-                                       return null;
-                                    })()}
-                                 </select>
-                                 <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                              </div>
+                                    setNewBookingData((prev: any) => ({
+                                       ...prev,
+                                       roomId: roomId,
+                                       roomRate: r ? r.pricePerNight : 0,
+                                       manualTotal: undefined
+                                    }));
+                                 }}
+                                 placeholder="Choose available room..."
+                                 disabled={readOnly || isLoadingRooms}
+                              />
+                           )}
+                           {readOnly && (
+                              <div className="absolute inset-0 bg-transparent z-10" />
                            )}
                         </div>
                         <div className={floatingGroup}>

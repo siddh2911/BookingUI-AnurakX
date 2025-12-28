@@ -1,6 +1,7 @@
 import React from 'react';
 import { Room, Booking } from '../../types';
 import { Phone, CheckCircle, Clock, CreditCard, ChevronRight } from 'lucide-react';
+import PlatformIcon from '../common/PlatformIcon';
 
 interface UpcomingArrivalsProps {
   arrivals: Booking[];
@@ -53,6 +54,10 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                   <div className="flex flex-col gap-0.5 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><Clock size={10} /> {checkIn.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     <span className="flex items-center gap-1"><Phone size={10} /> {booking.guestPhone || '...'}</span>
+                    <span className="flex items-center gap-1 mt-0.5">
+                      <PlatformIcon source={booking.source} className="w-3 h-3" />
+                      {booking.source}
+                    </span>
                   </div>
                 </div>
 
@@ -110,6 +115,10 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                       </div>
                       <div>
                         <p className="font-semibold text-slate-800">{booking.guestName}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400">
+                          <PlatformIcon source={booking.source} className="w-3 h-3" />
+                          <span>{booking.source}</span>
+                        </div>
                       </div>
                     </div>
                   </td>

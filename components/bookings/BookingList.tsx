@@ -29,23 +29,23 @@ const BookingList: React.FC<BookingListProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-         <h2 className="text-2xl font-bold text-slate-800">Bookings</h2>
-         <div className="flex gap-2">
-           {bookingFilter && (
-             <button 
-               onClick={() => setBookingFilter(null)}
-               className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-sm font-medium transition"
-             >
-               <X size={16} /> Clear: {bookingFilter.label || 'Filter'}
-             </button>
-           )}
-           <button 
-             onClick={() => onOpenNewBooking()}
-             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-           >
-             <Plus size={20} /> New Booking
-           </button>
-         </div>
+        <h2 className="text-2xl font-bold text-slate-800">Bookings</h2>
+        <div className="flex gap-2">
+          {bookingFilter && (
+            <button
+              onClick={() => setBookingFilter(null)}
+              className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-sm font-medium transition"
+            >
+              <X size={16} /> Clear: {bookingFilter.label || 'Filter'}
+            </button>
+          )}
+          <button
+            onClick={() => onOpenNewBooking()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+          >
+            <Plus size={20} /> New Booking
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -65,9 +65,9 @@ const BookingList: React.FC<BookingListProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {bookings.length === 0 ? (
-                 <tr>
-                     <td colSpan={8} className="text-center py-8 text-slate-500">No bookings found matching filters.</td>
-                 </tr>
+                <tr>
+                  <td colSpan={8} className="text-center py-8 text-slate-500">No bookings found matching filters.</td>
+                </tr>
               ) : (
                 bookings.map(booking => (
                   <BookingRow

@@ -127,15 +127,15 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {isRevenueVisible ? (
           <>
-            <div className="h-[400px]">
+            <div className="h-[450px] lg:h-[400px]">
               <RevenueChart bookings={bookings} />
             </div>
-            <div className="h-[400px]">
+            <div className="h-[450px] lg:h-[400px]">
               <OccupancyChart bookings={bookings} rooms={rooms} />
             </div>
           </>
         ) : (
-          <div className="lg:col-span-2 h-[400px]">
+          <div className="h-[450px] lg:h-[400px] lg:col-span-2">
             <OccupancyChart bookings={bookings} rooms={rooms} />
           </div>
         )}

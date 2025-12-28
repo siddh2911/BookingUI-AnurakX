@@ -18,6 +18,8 @@ export enum BookingSource {
   BOOKING_COM = 'Booking.com',
   AIRBNB = 'Airbnb',
   EXPEDIA = 'Expedia',
+  INSTAGRAM = 'Instagram',
+  MAKE_MY_TRIP = 'MakeMyTrip',
 }
 
 export enum BookingStatus {

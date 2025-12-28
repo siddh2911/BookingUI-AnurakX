@@ -69,12 +69,11 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings }) => {
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }}
+              tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
               dy={10}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-              minTickGap={0}
+              height={40}
+              minTickGap={32}
+              tickMargin={10}
             />
             <YAxis
               axisLine={false}
