@@ -26,15 +26,15 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
     const handleNext = () => setOffset(prev => prev - 1);
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-slate-900">Occupancy Trend</h3>
                     <p className="text-xs text-slate-400 font-medium mt-1">
                         {range === 'yearly' ? 'Year-over-year' : range === 'monthly' ? 'Month-over-month' : range === 'weekly' ? 'Week-over-week' : 'Daily'} occupancy percentage
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                     <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
                         <button
                             onClick={handlePrev}
@@ -62,57 +62,58 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
                     </select>
                 </div>
             </div>
-            <div className="flex-1 min-h-[300px] w-full overflow-x-auto pb-2">
-                <div style={{ minWidth: '600px', height: '100%' }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={currentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorOccupancy" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
-                                dy={10}
-                                interval={0}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                width={45}
-                                tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 500 }}
-                                tickFormatter={(value) => `${value}%`}
-                                domain={[0, 100]}
-                            />
-                            <Tooltip
-                                cursor={{ stroke: '#cbd5e1', strokeDasharray: '3 3' }}
-                                contentStyle={{
-                                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                    backdropFilter: 'blur(4px)',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05)',
-                                    padding: '12px'
-                                }}
-                                formatter={(value: number) => [`${value}%`, 'Occupancy']}
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey="occupancy"
-                                stroke="#8b5cf6"
-                                strokeWidth={3}
-                                fillOpacity={1}
-                                fill="url(#colorOccupancy)"
-                                activeDot={{ r: 6, strokeWidth: 0, fill: '#7c3aed', shadow: '0 0 10px rgba(139, 92, 246, 0.5)' }}
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+            <div className="flex-1 min-h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={currentData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="colorOccupancy" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }}
+                            dy={10}
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
+                            interval={0}
+                        />
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            width={45}
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
+                            tickFormatter={(value) => `${value}%`}
+                            domain={[0, 100]}
+                        />
+                        <Tooltip
+                            cursor={{ stroke: '#cbd5e1', strokeDasharray: '3 3' }}
+                            contentStyle={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                backdropFilter: 'blur(4px)',
+                                borderRadius: '12px',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05)',
+                                padding: '12px'
+                            }}
+                            formatter={(value: number) => [`${value}%`, 'Occupancy']}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="occupancy"
+                            stroke="#8b5cf6"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorOccupancy)"
+                            activeDot={{ r: 6, strokeWidth: 0, fill: '#7c3aed', shadow: '0 0 10px rgba(139, 92, 246, 0.5)' }}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );
