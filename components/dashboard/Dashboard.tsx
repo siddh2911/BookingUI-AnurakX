@@ -2,11 +2,11 @@ import React from 'react';
 import { StatCard } from './StatCard';
 import RevenueChart from './RevenueChart';
 import UpcomingArrivals from './UpcomingArrivals';
-import ActivityLog from './ActivityLog';
 import AvailabilityForecast from './AvailabilityForecast';
 import { PaymentQRCard } from './PaymentQRCard';
 import UrgentArrivals from './UrgentArrivals';
 import UrgentDepartures from './UrgentDepartures';
+import OccupancyChart from './OccupancyChart';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
 import { Booking, Room, AuditLog, BookingStatus } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -14,7 +14,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 interface DashboardProps {
   stats: any;
-  revenueChartData: { last7Days: any[]; last30Days: any[]; last1Year: any[] };
+
   upcomingArrivals: Booking[];
   upcomingDepartures: Booking[];
   bookings: Booking[];
@@ -34,7 +34,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({
   stats,
-  revenueChartData,
+
   upcomingArrivals,
   upcomingDepartures,
   bookings,
@@ -122,15 +122,23 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {isRevenueVisible && (
-          <div className="lg:col-span-2">
-            <RevenueChart data={revenueChartData} />
+      {/* Charts & Logs Section */}
+      {/* Charts Section - Occupancy and Revenue Equi-sized */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {isRevenueVisible ? (
+          <>
+            <div className="h-[400px]">
+              <RevenueChart bookings={bookings} />
+            </div>
+            <div className="h-[400px]">
+              <OccupancyChart bookings={bookings} rooms={rooms} />
+            </div>
+          </>
+        ) : (
+          <div className="lg:col-span-2 h-[400px]">
+            <OccupancyChart bookings={bookings} rooms={rooms} />
           </div>
         )}
-        <div className={!isRevenueVisible ? 'lg:col-span-3' : 'lg:col-span-1'}>
-          <ActivityLog logs={logs} />
-        </div>
       </div>
 
       <AvailabilityForecast

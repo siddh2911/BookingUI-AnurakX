@@ -286,66 +286,7 @@ export default function App() {
     };
   }, [bookings, rooms, today]);
 
-  // Revenue Chart Data Helper
-  const generateRevenueData = useCallback((days: number) => {
-    return Array.from({ length: days }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0, 0, 0, 0);
-      const nextD = new Date(d); nextD.setDate(nextD.getDate() + 1);
 
-      const dayRevenue = bookings.filter(b => b.status !== BookingStatus.CANCELLED).reduce((sum, b) => {
-        const checkIn = new Date(b.checkInDate); checkIn.setHours(0, 0, 0, 0);
-        const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);
-
-        if (checkIn <= d && d < checkOut) {
-          const totalNights = Math.max(1, (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-          const dailyValue = (b.totalAmount || b.totalPaid || 0) / totalNights;
-          return sum + dailyValue;
-        }
-        return sum;
-      }, 0);
-
-      const name = days > 30
-        ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) // Compact date for long ranges
-        : d.toLocaleDateString('en-US', { weekday: 'short' });
-
-      return { name, revenue: Math.round(dayRevenue), date: d }; // Store date object for grouping if needed
-    }).reverse();
-  }, [bookings]);
-
-  // Year Data Generator (Grouped by Month)
-  const generateYearlyRevenueData = useCallback(() => {
-    const months = 12;
-    return Array.from({ length: months }, (_, i) => {
-      const d = new Date(); d.setMonth(d.getMonth() - i); d.setDate(1); d.setHours(0, 0, 0, 0); // Start of month
-      const monthStart = new Date(d);
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0); monthEnd.setHours(23, 59, 59, 999);
-
-      const monthRevenue = bookings.filter(b => b.status !== BookingStatus.CANCELLED).reduce((sum, b) => {
-        const checkIn = new Date(b.checkInDate); checkIn.setHours(0, 0, 0, 0);
-        const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);
-
-        // If booking overlaps with this month
-        const overlapStart = new Date(Math.max(monthStart.getTime(), checkIn.getTime()));
-        const overlapEnd = new Date(Math.min(monthEnd.getTime(), checkOut.getTime()));
-
-        if (overlapStart < overlapEnd) {
-          const overlapNights = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
-          const totalNights = Math.max(1, (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-          const dailyRate = (b.totalAmount || b.totalPaid || 0) / totalNights;
-          return sum + (overlapNights * dailyRate);
-        }
-        return sum;
-      }, 0);
-
-      return { name: d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }), revenue: Math.round(monthRevenue) };
-    }).reverse();
-  }, [bookings]);
-
-  const revenueChartData = useMemo(() => ({
-    last7Days: generateRevenueData(7),
-    last30Days: generateRevenueData(30),
-    last1Year: generateYearlyRevenueData()
-  }), [generateRevenueData, generateYearlyRevenueData]);
 
   const [availabilityForecast, setAvailabilityForecast] = useState<{ date: Date; availableRooms: Room[] }[]>([]);
   const upcomingArrivals = useMemo(() => {
@@ -541,7 +482,7 @@ export default function App() {
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
   const dashboardProps = {
-    stats, revenueChartData, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings,
+    stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
     today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
   };
