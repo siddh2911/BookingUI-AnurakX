@@ -93,3 +93,28 @@ export interface User {
   name: string;
   role: 'Manager' | 'Receptionist' | 'Housekeeping';
 }
+
+// Food & Dining Types
+export interface MenuItem {
+  id: string;
+  name: string;
+  category: 'Starters' | 'Mains' | 'Desserts' | 'Drinks';
+  price: number;
+  description: string;
+  image: string;
+  isVegetarian: boolean;
+  isSpicy?: boolean;
+}
+
+export interface FoodOrder {
+  id: string;
+  roomId: string; // Linking to Room Number (string based on room interface)
+  items: {
+    menuItem: MenuItem;
+    quantity: number;
+    notes?: string;
+  }[];
+  status: 'Pending' | 'Cooking' | 'Delivered' | 'Cancelled';
+  totalAmount: number;
+  timestamp: string;
+}

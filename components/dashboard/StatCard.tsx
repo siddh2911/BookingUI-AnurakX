@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 interface StatCardProps {
@@ -6,22 +6,80 @@ interface StatCardProps {
   value: string | number;
   period?: string;
   total?: string | number;
+  totalTrend?: { value: number; positive: boolean };
   icon: React.ReactNode;
   onClick?: () => void;
-  details: { label: string; value: string | number }[];
+  details: { label: string; value: string | number; trend?: { value: number; positive: boolean } }[];
+  comparatorLabel?: string;
   isRevenueVisible?: boolean;
   setIsRevenueVisible?: (visible: boolean) => void;
+  hoverContent?: React.ReactNode;
+  // Deprecated: main trend was used for monthly but now moving to details
+  trend?: {
+    value: number;
+    label: string;
+    positive?: boolean;
+  };
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, total, icon, onClick, details, isRevenueVisible = true, setIsRevenueVisible }) => {
+export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTrend, icon, onClick, details, comparatorLabel, isRevenueVisible = true, setIsRevenueVisible, hoverContent, trend }) => {
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Handle Click Outside to close mobile state
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
+        setIsMobileExpanded(false);
+      }
+    };
+
+    // Only bind if currently expanded
+    if (isMobileExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMobileExpanded]);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Check if interaction is touch
+    const isTouch = (e.nativeEvent as any).pointerType === 'touch' || e.nativeEvent instanceof TouchEvent;
+
+    if (isTouch && hoverContent && isRevenueVisible) {
+      if (!isMobileExpanded) {
+        // Tap 1: Prevent nav, Open Peek
+        e.preventDefault();
+        e.stopPropagation();
+        setIsMobileExpanded(true);
+        return;
+      }
+      // Tap 2: Allow Nav (fall through to onClick below)
+    }
+
+    // Default: Navigate
+    if (onClick) onClick();
+  };
+
+  const showContent = hoverContent && isRevenueVisible;
+  // Trigger animation if: Hovered (Desktop) OR Expanded (Mobile/Touch)
+  const isExpanded = showContent ? `group-hover:-translate-y-full group-hover:opacity-0 ${isMobileExpanded ? '-translate-y-full opacity-0' : ''}` : '';
+  const overlayExpanded = showContent ? `group-hover:translate-y-0 group-hover:opacity-100 ${isMobileExpanded ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}` : '';
+
   return (
     <div
+      ref={cardRef}
       className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden"
+      onClick={handleCardClick}
     >
       {/* Decorative gradient blob */}
       <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-2xl group-hover:bg-blue-100 transition duration-500"></div>
 
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between pb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
@@ -39,37 +97,78 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, icon, o
           </div>
         </div>
 
-        <div
-          className="space-y-4"
-          onClick={onClick}
-          title={onClick ? `Click to view details` : ''}
-          style={{ cursor: onClick ? 'pointer' : 'default' }}
-        >
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-xs text-slate-400 font-medium mb-1">Today</p>
-              <p className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                {isRevenueVisible ? value : <span className="text-slate-200">••••••</span>}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400 font-medium mb-1">All-time</p>
-              <p className="text-sm font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 inline-block">
-                {isRevenueVisible ? total : '•••'}
-              </p>
+        {/* Content Container - Relative for slides */}
+        <div className="relative flex-1 overflow-hidden">
+
+          {/* Main Stats - Slide UP on Hover/Expand */}
+          <div
+            className={`transition-all duration-500 ease-out transform ${isExpanded}`}
+          >
+            <div
+              className="space-y-4"
+              title={onClick ? `Click to view details` : ''}
+              style={{ cursor: onClick ? 'pointer' : 'default' }}
+            >
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium mb-1">Today</p>
+                  <p className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    {isRevenueVisible ? value : <span className="text-slate-200">••••••</span>}
+                  </p>
+                  <div className={`flex items-center gap-1 mt-1 text-xs font-bold ${trend?.positive ? 'text-green-600' : 'text-slate-400'} ${isRevenueVisible && trend ? '' : 'invisible'}`}>
+                    <span>{trend ? (trend.value > 0 ? '+' : '') + trend.value + '%' : '0%'}</span>
+                    <span className="text-slate-400 font-medium uppercase text-[9px] tracking-wide">{trend?.label || 'Target'}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400 font-medium mb-1">All-time</p>
+                  <p className="text-sm font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 inline-block">
+                    {isRevenueVisible ? total : '•••'}
+                  </p>
+                  <p className={`text-[10px] font-bold mt-1 ${totalTrend?.positive ? 'text-green-600' : 'text-red-500'} ${isRevenueVisible && totalTrend ? '' : 'invisible'}`}>
+                    {totalTrend ? (totalTrend.value > 0 ? '+' : '') + totalTrend.value + '%' : '0%'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Divider Line */}
+              <div className="h-px bg-slate-100 my-4 w-full"></div>
+
+              {/* Bottom Grid - Responsive: 2x2 on Mobile, 4x1 on Desktop with Dividers */}
+              <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-slate-100">
+                {details.map((detail, index) => (
+                  <div key={detail.label} className="px-1 flex flex-col items-center justify-start md:first:pl-0 md:last:pr-0">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 opacity-70">{detail.label}</p>
+                    <p className="text-[11px] font-bold text-slate-700 tracking-tight leading-none mb-1">
+                      {isRevenueVisible ? detail.value : <span className="text-slate-200">•••</span>}
+                    </p>
+                    <div className={`h-3 flex items-center justify-center w-full ${isRevenueVisible && detail.trend ? '' : 'invisible'}`}>
+                      {detail.trend && (
+                        <span className={`text-[8px] font-bold ${detail.trend.positive ? 'text-green-600' : 'text-red-500'}`}>
+                          {detail.trend.value > 0 ? '+' : ''}{detail.trend.value}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className={`mt-3 flex items-center justify-center ${comparatorLabel && isRevenueVisible ? '' : 'invisible'}`}>
+                <span className="text-[9px] font-medium text-slate-400 italic">
+                  {comparatorLabel || 'Placeholder'}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-50 text-center">
-            {details.map(detail => (
-              <div key={detail.label} className="p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">{detail.label}</p>
-                <p className="text-sm font-bold text-slate-700">
-                  {isRevenueVisible ? detail.value : <span className="text-slate-200">•••</span>}
-                </p>
-              </div>
-            ))}
-          </div>
+          {/* Hover Content - Slide UP from Bottom */}
+          {showContent && (
+            <div
+              className={`absolute inset-0 transition-all duration-500 ease-out flex flex-col justify-center ${overlayExpanded}`}
+              style={{ cursor: onClick ? 'pointer' : 'default' }}
+            >
+              {hoverContent}
+            </div>
+          )}
         </div>
       </div>
     </div>

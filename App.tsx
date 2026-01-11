@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { getAvailabilityForecast } from './services/api';
+import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment } from './types';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER } from './constants';
@@ -12,6 +12,7 @@ import CalendarPage from './components/pages/CalendarPage';
 import RoomsPage from './components/pages/RoomsPage';
 import GuestsPage from './components/pages/GuestsPage';
 import FinancePage from './components/pages/FinancePage';
+import FoodPage from './components/pages/FoodPage';
 import LoginPage from './components/pages/LoginPage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
@@ -21,7 +22,7 @@ import PaymentModal from './components/modals/PaymentModal';
 import SecurityModal from './components/modals/SecurityModal';
 
 export default function App() {
-  const API_BASE_URL = 'https://api.karunavillas.com';
+
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -153,6 +154,12 @@ export default function App() {
           totalPaid: b.totalPaid, pendingBalance: b.balance,
         };
       });
+
+      // Sort by check-in date descending (latest first)
+      transformedBookings.sort((a, b) => {
+        return new Date(b.checkInDate).getTime() - new Date(a.checkInDate).getTime();
+      });
+
       setBookings(transformedBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -526,6 +533,7 @@ export default function App() {
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
             <Route path="rooms" element={<RoomsPage />} />
             <Route path="guests" element={<GuestsPage />} />
+            <Route path="dining" element={<FoodPage rooms={rooms} />} />
             <Route path="finance" element={<FinancePage />} />
           </Route>
           {/* Catch all - redirect to dashboard */}

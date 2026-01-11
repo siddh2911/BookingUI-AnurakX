@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
 import { User } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -19,6 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
     { to: '/calendar', icon: <Calendar size={20} />, label: t('calendar') },
     { to: '/bookings', icon: <CalendarDays size={20} />, label: t('bookings') },
+    { to: '/dining', icon: <Utensils size={20} />, label: t('dining') },
     { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
@@ -37,14 +38,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
       <div className="h-24 flex items-center justify-between px-4 border-b border-slate-800">
         {!collapsed && (
           <div className="flex items-center justify-center w-full px-2 py-2">
-            <Link to="/" className="flex flex-col items-center hover:opacity-80 transition-opacity">
-              <h1 className="text-2xl font-bold text-white tracking-widest leading-tight text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
+            <Link to="/" className="flex flex-col items-center hover:opacity-90 transition-opacity gap-2">
+              <h1 className="text-2xl font-bold text-white tracking-widest leading-none text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
                 KARUNA VILLA
               </h1>
-              <div className="h-0.5 w-8 bg-blue-500/50 my-1 rounded-full"></div>
-              <p className="text-[10px] text-blue-200 uppercase tracking-[0.3em] font-sans font-medium">
-                Admin Dashboard
+              <p className="text-[10px] text-blue-200/80 uppercase tracking-[0.3em] font-medium border-t border-blue-500/30 pt-1.5 px-2">
+                Dashboard
               </p>
+
             </Link>
           </div>
         )}

@@ -10,6 +10,7 @@ export default function DashboardPage({ dashboardProps }: { dashboardProps: any 
                 <h1 className="text-3xl font-bold text-slate-900">{t('dashboard')}</h1>
                 <p className="text-slate-500">{t('welcomeBack')}</p>
             </div>
+
             <Dashboard {...dashboardProps} />
         </div>
     );

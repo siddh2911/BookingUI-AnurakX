@@ -7,6 +7,7 @@ import { PaymentQRCard } from './PaymentQRCard';
 import UrgentArrivals from './UrgentArrivals';
 import UrgentDepartures from './UrgentDepartures';
 import OccupancyChart from './OccupancyChart';
+import BookingStats from '../bookings/BookingStats';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
 import { Booking, Room, AuditLog, BookingStatus } from '../../types';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -68,45 +69,145 @@ const Dashboard: React.FC<DashboardProps> = ({
         onEditBooking={handleEditBooking}
       />
 
-      {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title={t('totalRevenue')}
+          comparatorLabel="% change vs Normal Rental"
           value={`₹${stats.revenueToday.toLocaleString()}`}
           total={`₹${stats.totalRevenue.toLocaleString()}`}
           icon={<CreditCard size={20} />}
           onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
-          details={[
-            { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}` },
-            { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}` },
-            { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}` },
-          ]}
+          details={(() => {
+            const roomCount = rooms?.length || 0;
+            const dailyRate = 400; // Normal rate per day (12000/30)
+            const monthlyRate = 12000;
+
+            // Targets
+            const targetWeekly = dailyRate * 7 * roomCount;
+            const targetMonthly = monthlyRate * roomCount;
+            const targetYearly = monthlyRate * 12 * roomCount;
+
+            // Helpers
+            const calcTrend = (actual: number, target: number) => {
+              if (target === 0) return undefined;
+              return {
+                value: Math.round(((actual - target) / target) * 100),
+                positive: actual >= target
+              };
+            };
+
+            // Velocity Projection for Revenue (matching Check-ins logic)
+            // Daily Run Rate based on current month
+            const now = new Date();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const daysElapsed = now.getDate();
+
+            const predictedYearlyRevenue = Math.round((stats.revenueMonth / Math.max(1, daysElapsed)) * 365);
+
+            return [
+              { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly) },
+              { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
+              { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
+              { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
+            ];
+          })()}
           isRevenueVisible={isRevenueVisible}
           setIsRevenueVisible={setIsRevenueVisible}
+          hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
+          // All-time Trend Calculation
+          totalTrend={undefined}
+          // Deprecate main trend as it is moved to detail
+          trend={undefined}
         />
         <StatCard
           title={t('occupancyRate')}
+          comparatorLabel="vs 40% Min Monthly Occupancy"
           value={`${stats.occupancyToday}%`}
           total={`${stats.occupancyAllTime}%`}
           icon={<BedDouble size={20} />}
           onClick={() => handleDashboardFilter({ status: BookingStatus.CHECKED_IN, label: 'Checked-in Bookings' })}
-          details={[
-            { label: 'Week', value: `${stats.occupancyWeek}%` },
-            { label: 'Month', value: `${stats.occupancyMonth}%` },
-            { label: 'Year', value: `${stats.occupancyYear}%` },
-          ]}
+          details={(() => {
+            const target = 40;
+            const calcTrend = (actual: number) => ({
+              value: Math.round(actual - target),
+              positive: actual >= target
+            });
+
+            // Time calculations
+            const now = new Date();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const daysElapsed = now.getDate(); // 1-31
+
+            // Project Year based on "Sales Velocity" (matching Check-ins logic)
+            // Formula: MonthOccupancy * (DaysInMonth / DaysElapsed)
+            // This answers: "If we filled X% of the month in Y days, what is our projected rate?"
+            const multiplier = daysInMonth / Math.max(1, daysElapsed);
+            const projectedOccupancyYear = Math.min(100, Math.round(stats.occupancyMonth * multiplier));
+
+            return [
+              { label: 'Week', value: `${stats.occupancyWeek}%`, trend: undefined },
+              { label: 'Month', value: `${stats.occupancyMonth}%`, trend: calcTrend(stats.occupancyMonth) },
+              { label: 'Year', value: `${stats.occupancyYear}%`, trend: undefined },
+              { label: 'Year (Proj.)', value: `${projectedOccupancyYear}%`, trend: calcTrend(projectedOccupancyYear) },
+            ];
+          })()}
+          hoverContent={<BookingStats bookings={bookings} mode="percent" compact />}
+          totalTrend={undefined}
+          trend={undefined}
         />
         <StatCard
           title={t('totalCheckIns')}
+          comparatorLabel="vs 2 Check-ins/Week Goal"
           value={stats.checkInsToday}
           total={stats.totalCheckIns}
           icon={<Users size={20} />}
           onClick={() => handleDashboardFilter({ type: 'checkin', date: today, label: "Today's Check-ins" })}
-          details={[
-            { label: 'Week', value: stats.checkInsWeek },
-            { label: 'Month', value: stats.checkInsMonth },
-            { label: 'Year', value: stats.checkInsYear },
-          ]}
+          details={(() => {
+            // Target is 2 check-ins per week TOTAL for the property (not per room)
+            const targetWeekly = 2;
+            const targetDaily = targetWeekly / 7;
+
+            // Time calculations for Pacing (Year Only)
+            const now = new Date();
+            const daysInMonth = now.getDate();
+
+            // Project Yearly Check-ins based on Monthly Run-Rate
+            // Avoid division by zero if it's day 0 (unlikely) or early in month
+            const currentMonthRate = stats.checkInsMonth / Math.max(1, daysInMonth);
+            const projectedYearlyCheckIns = Math.round(currentMonthRate * 365);
+
+            // Full Annual Target & Paced YTD Target
+            const targetAnnual = Math.round(targetDaily * 365);
+
+            // Days elapsed in current year
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const daysInYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+            const calcTrend = (actual: number, targetDays: number) => {
+              const target = targetDaily * targetDays;
+              if (target === 0) return undefined;
+              return {
+                value: Math.round(((actual - target) / target) * 100),
+                positive: actual >= target
+              };
+            };
+
+            // For Year Projection Trend: Compare Projected vs Annual Target
+            const yearProjTrend = {
+              value: Math.round(((projectedYearlyCheckIns - targetAnnual) / targetAnnual) * 100),
+              positive: projectedYearlyCheckIns >= targetAnnual
+            };
+
+            return [
+              { label: 'Week', value: stats.checkInsWeek, trend: calcTrend(stats.checkInsWeek, 7) }, // Full Week Target
+              { label: 'Month', value: stats.checkInsMonth, trend: calcTrend(stats.checkInsMonth, 30) }, // Full Month Target
+              { label: 'Year', value: stats.checkInsYear, trend: undefined }, // Actual YTD (No Trend)
+              { label: 'Year (Proj.)', value: projectedYearlyCheckIns, trend: yearProjTrend }, // Projected Year Target
+            ];
+          })()}
+          hoverContent={<BookingStats bookings={bookings} mode="count" compact />}
+          totalTrend={undefined}
+          trend={undefined}
         />
         <div className="md:hidden">
           <PaymentQRCard />

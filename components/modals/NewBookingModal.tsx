@@ -6,6 +6,7 @@ import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock, X, Rec
 import { getAvailableRooms, getRoomDetails } from "../../services/api";
 import CustomSelect, { SelectOption } from '../ui/CustomSelect';
 import PlatformIcon from '../common/PlatformIcon';
+import DatePicker from '../ui/DatePicker';
 
 // ... (inside component)
 
@@ -172,7 +173,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
             e.preventDefault();
             const selectedRoom = apiAvailableRooms.find(r => Number(r.id) === Number(newBookingData.roomId)) || rooms.find(r => Number(r.id) === Number(newBookingData.roomId));
             handleSaveBooking(e, selectedRoom);
-         }} className="min-h-[500px]">
+         }} className="min-h-[500px] pb-24 lg:pb-0">
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
 
@@ -189,7 +190,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            <label className={elegantLabel}>Full Name</label>
                            <input name="guestName" required className={elegantInput} placeholder="Enter guest name" value={newBookingData.guestName} onChange={(e) => setNewBookingData({ ...newBookingData, guestName: e.target.value })} disabled={readOnly} />
                         </div>
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                            <div className={floatingGroup}>
                               <label className={elegantLabel}>Contact Number</label>
                               <input name="guestPhone" required pattern="^(?:\+91)?[0-9]{10}$" className={elegantInput} placeholder="+91..." value={newBookingData.guestPhone} onChange={(e) => setNewBookingData({ ...newBookingData, guestPhone: e.target.value })} disabled={readOnly} />
@@ -217,14 +218,23 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
                         <Calendar size={22} className="text-slate-300" strokeWidth={1.5} /> Stay Details
                      </h3>
-                     <div className="grid grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className={floatingGroup}>
-                           <label className={elegantLabel}>Check-In</label>
-                           <input type="date" name="checkIn" required className={elegantInput} value={newBookingData.checkIn} onChange={(e) => setNewBookingData({ ...newBookingData, checkIn: e.target.value })} disabled={readOnly} />
+                           <DatePicker
+                              label="Check-In"
+                              value={newBookingData.checkIn}
+                              onChange={(date) => setNewBookingData({ ...newBookingData, checkIn: date })}
+                              disabled={readOnly}
+                           />
                         </div>
                         <div className={floatingGroup}>
-                           <label className={elegantLabel}>Check-Out</label>
-                           <input type="date" name="checkOut" required className={elegantInput} value={newBookingData.checkOut} onChange={(e) => setNewBookingData({ ...newBookingData, checkOut: e.target.value })} disabled={readOnly} />
+                           <DatePicker
+                              label="Check-Out"
+                              value={newBookingData.checkOut}
+                              onChange={(date) => setNewBookingData({ ...newBookingData, checkOut: date })}
+                              minDate={newBookingData.checkIn}
+                              disabled={readOnly}
+                           />
                         </div>
                      </div>
                      {dateError && <p className="text-red-500 text-sm mt-2">{dateError}</p>}
@@ -407,9 +417,23 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                        value={newBookingData.manualTotal !== undefined ? (newBookingData.manualTotal === null ? '' : newBookingData.manualTotal) : (bookingTotal || '')}
                                        onChange={(e) => {
                                           const val = e.target.value;
+                                          const newTotal = val === '' ? 0 : parseFloat(val);
+
+                                          // Reverse Calculation Logic:
+                                          // NewTotal = (Rate * Nights) + Extras
+                                          // Rate = (NewTotal - Extras) / Nights
+
+                                          const currentExtras = newBookingData.additionalCharges?.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0) || 0;
+                                          const nights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
+
+                                          const calculatedRoomTotal = Math.max(0, newTotal - currentExtras);
+                                          const newRate = calculatedRoomTotal / nights;
+
+                                          // Update state: Set new rate, and clear manualTotal so the formula assumes control
                                           setNewBookingData({
                                              ...newBookingData,
-                                             manualTotal: val === '' ? null : parseFloat(val)
+                                             roomRate: parseFloat(newRate.toFixed(2)), // Keep it clean
+                                             manualTotal: undefined
                                           });
                                        }}
                                        disabled={readOnly}
@@ -495,7 +519,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  disabled={readOnly}
                               />
 
-                              <div className="mt-6 flex gap-3">
+                              <div className="mt-6 gap-3 hidden lg:flex">
                                  <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-white/10 text-white hover:bg-white/5 transition-colors text-sm font-medium">
                                     Cancel
                                  </button>
@@ -516,6 +540,33 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                </div>
             </div>
          </form>
+
+         {/* Sticky Footer (Mobile Only) */}
+         {!readOnly && (
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-50 flex items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+               <div className="flex-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Due</p>
+                  <p className="text-xl font-bold text-slate-900">
+                     ₹{newBookingData.manualTotal !== undefined
+                        ? (newBookingData.manualTotal || 0).toLocaleString()
+                        : bookingTotal.toLocaleString()}
+                  </p>
+               </div>
+               <button
+                  type="button"
+                  onClick={(e) => {
+                     // Trigger form submission manually since this button is outside the form
+                     const form = document.querySelector('form');
+                     if (form) form.requestSubmit();
+                  }}
+                  disabled={!!dateError || isLoadingRooms}
+                  className="flex-[2] py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors text-sm shadow-lg disabled:opacity-50"
+               >
+                  {editingBookingId ? "Save" : "Confirm"}
+               </button>
+            </div>
+         )}
+
          <SecurityModal
             isOpen={isSecurityModalOpen}
             onClose={() => setIsSecurityModalOpen(false)}

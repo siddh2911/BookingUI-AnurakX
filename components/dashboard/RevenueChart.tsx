@@ -78,8 +78,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings }) => {
             <YAxis
               axisLine={false}
               tickLine={false}
-              width={45}
+              width={60}
               tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
+              tickMargin={10}
               tickFormatter={(value) => {
                 if (value >= 1000000) return `₹${(value / 1000000).toFixed(1)}M`;
                 if (value >= 1000) return `₹${(value / 1000).toFixed(0)}k`;

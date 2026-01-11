@@ -85,8 +85,9 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
                         <YAxis
                             axisLine={false}
                             tickLine={false}
-                            width={45}
+                            width={60}
                             tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
+                            tickMargin={10}
                             tickFormatter={(value) => `${value}%`}
                             domain={[0, 100]}
                         />

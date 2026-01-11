@@ -1,5 +1,8 @@
 import { Room, Booking, BookingStatus } from '../types';
 
+export const API_BASE_URL = 'https://api.karunavillas.com';
+
+
 /**
  * Fetches available rooms from the API.
  * @param options - An object with startDate and endDate.
@@ -15,7 +18,7 @@ export const getAvailableRooms = async (
   options: { startDate: string, endDate: string }
 ): Promise<Room[]> => {
   const { startDate, endDate } = options;
-  const url = new URL('https://api.karunavillas.com/available-rooms');
+  const url = new URL(`${API_BASE_URL}/available-rooms`);
   url.searchParams.append('startDate', startDate);
   url.searchParams.append('endDate', endDate);
 
@@ -92,7 +95,7 @@ export const getAvailabilityForecast = async (
  * @returns A promise that resolves to the room data.
  */
 export const getRoomDetails = async (id: number): Promise<Room> => {
-  const url = `https://api.karunavillas.com/rooms/${id}`;
+  const url = `${API_BASE_URL}/rooms/${id}`;
 
   console.log(`Fetching room details from ${url}`);
   const response = await fetch(url);

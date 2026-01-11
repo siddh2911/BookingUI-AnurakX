@@ -35,9 +35,9 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
                 {/* Mobile Header */}
                 <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-20">
-                    <Link to="/" className="flex flex-col">
-                        <span className="font-bold text-lg text-white tracking-widest leading-tight" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
-                        <span className="text-[9px] text-blue-200 uppercase tracking-widest font-sans">Dashboard</span>
+                    <Link to="/" className="flex flex-col items-start">
+                        <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
+                        <span className="text-[9px] text-blue-200/80 uppercase tracking-widest font-sans mt-0.5 ml-0.5">Dashboard</span>
                     </Link>
                     <div className="flex items-center gap-4">
                         <button
