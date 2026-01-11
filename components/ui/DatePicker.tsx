@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday, parseISO } from 'date-fns';
-import { cn } from '../../lib/utils'; // Assuming this exists based on previous conversations about clsx/tailwind-merge
+import { cn } from '../../lib/utils'; 
 
 interface DatePickerProps {
     label?: string;
-    value: string; // YYYY-MM-DD
+    value: string; 
     onChange: (date: string) => void;
     minDate?: string;
     className?: string;
@@ -16,7 +16,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    // Initialize current month to selected date if valid
+    
     useEffect(() => {
         if (value && !isNaN(Date.parse(value))) {
             setCurrentMonth(parseISO(value));
@@ -101,7 +101,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
                         {daysInMonth.map((date, idx) => {
                             const isSelected = value ? isSameDay(date, parseISO(value)) : false;
                             const isCurrentMonth = isSameMonth(date, currentMonth);
-                            const isPast = minDate ? date < parseISO(minDate) : false; // Naive check, usually need startOfDay
+                            const isPast = minDate ? date < parseISO(minDate) : false; 
 
                             const isDisabled = isPast && !isSameDay(date, parseISO(minDate || ''));
 

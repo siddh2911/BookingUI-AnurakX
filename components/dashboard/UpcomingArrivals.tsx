@@ -23,7 +23,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
         </span>
       </div>
 
-      {/* Mobile View (Cards) */}
+      {}
       <div className="md:hidden space-y-3">
         {arrivals.length === 0 ? (
           <p className="text-center text-slate-400 text-sm py-4">No upcoming arrivals</p>
@@ -38,12 +38,12 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                 onClick={() => onEditBooking(booking, true)}
                 className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm active:scale-[0.98] transition-transform flex items-center gap-4 relative"
               >
-                {/* Avatar */}
+                {}
                 <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm border border-blue-100 shrink-0">
                   {booking.guestName.substring(0, 2).toUpperCase()}
                 </div>
 
-                {/* Middle: Details */}
+                {}
                 <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <h4 className="font-bold text-slate-800 text-sm truncate">{booking.guestName}</h4>
@@ -61,7 +61,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                   </div>
                 </div>
 
-                {/* Right: Payment & Action (Centered) */}
+                {}
                 <div className="shrink-0 flex flex-col items-center justify-center gap-2 pl-3 border-l border-slate-50 min-w-[70px]">
                   {displayPending > 0 ? (
                     <div className="flex flex-col items-center justify-center">
@@ -82,7 +82,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
         )}
       </div>
 
-      {/* Desktop View (Table) */}
+      {}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm text-left border-separate border-spacing-y-2">
           <thead className="text-slate-400 uppercase text-xs tracking-wider font-semibold">
@@ -99,7 +99,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
             {arrivals.map(booking => {
               const room = rooms.find(r => r.id === booking.roomId);
               const displayPending = booking.pendingBalance || 0;
-              // Handle potential date format mismatches safely
+              
               const checkIn = new Date(booking.checkInDate);
               const isToday = booking.checkInDate === today;
 

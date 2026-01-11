@@ -8,7 +8,7 @@ import CustomSelect, { SelectOption } from '../ui/CustomSelect';
 import PlatformIcon from '../common/PlatformIcon';
 import DatePicker from '../ui/DatePicker';
 
-// ... (inside component)
+
 
 
 interface NewBookingModalProps {
@@ -47,11 +47,11 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const [roomFetchError, setRoomFetchError] = useState<string | null>(null);
    const [dateError, setDateError] = useState<string | null>(null);
 
-   // Financial Security
+   
    const [isFinancialsVisible, setIsFinancialsVisible] = useState(!readOnly);
    const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
-   // Reset visibility when modal opens/closes or mode changes
+   
    useEffect(() => {
       setIsFinancialsVisible(!readOnly);
    }, [readOnly, isOpen]);
@@ -81,14 +81,14 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                endDate: newBookingData.checkOut,
             });
 
-            // Fallback to local rooms if API returns empty (likely due to missing data environment)
+            
             let roomsToFilter = fetchedRooms;
             if (fetchedRooms.length === 0 && rooms.length > 0) {
                console.warn("API returned 0 rooms. Falling back to local room list.");
                roomsToFilter = rooms;
             }
 
-            // Client-side filtering because local bookings aren't on the server
+            
             const validRooms = roomsToFilter.filter(room => {
                const hasConflict = bookings.some(b => {
                   if (editingBookingId && b.id === editingBookingId) return false;
@@ -126,13 +126,13 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
    const modalTitle = readOnly ? "Reservation Details" : editingBookingId ? "Modify Reservation" : "New Reservation";
 
-   // Luxury Styles
+   
    const sectionHeader = "text-lg md:text-xl text-slate-900 mb-4 md:mb-6 flex items-center gap-3 font-medium";
    const elegantInput = "w-full bg-slate-50/50 border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-2 md:py-3 text-sm md:text-base transition-all outline-none placeholder:text-slate-300 hover:bg-slate-50 focus:bg-transparent";
    const elegantLabel = "text-xs font-bold text-slate-400 uppercase tracking-widest";
    const floatingGroup = "relative";
 
-   // Prepare Room Options
+   
    const roomOptions: SelectOption[] = apiAvailableRooms.length > 0
       ? apiAvailableRooms.map(r => ({
          value: r.id,
@@ -142,7 +142,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
       }))
       : [];
 
-   // Add current room if editing and not in available list
+   
    if (editingBookingId) {
       const originalBooking = bookings.find(b => b.id === editingBookingId);
       if (originalBooking && !apiAvailableRooms.find(r => r.id === originalBooking.roomId)) {
@@ -158,7 +158,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
       }
    }
 
-   // Prepare Source Options
+   
    const sourceOptions: SelectOption[] = Object.values(BookingSource).map(s => ({
       value: s,
       label: s,
@@ -177,10 +177,10 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12">
 
-               {/* LEFT: INPUTS (7 Cols) */}
+               {}
                <div className="lg:col-span-7 space-y-6 lg:space-y-10 py-2">
 
-                  {/* GUEST SECTION */}
+                  {}
                   <div className="space-y-6">
                      <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
                         <User size={22} className="text-slate-300" strokeWidth={1.5} /> Guest Information
@@ -213,7 +213,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      </div>
                   </div>
 
-                  {/* STAY SECTION */}
+                  {}
                   <div className="space-y-6">
                      <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
                         <Calendar size={22} className="text-slate-300" strokeWidth={1.5} /> Stay Details
@@ -240,7 +240,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      {dateError && <p className="text-red-500 text-sm mt-2">{dateError}</p>}
                   </div>
 
-                  {/* ROOM SECTION */}
+                  {}
                   <div className="space-y-6">
                      <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
                         <MapPin size={22} className="text-slate-300" strokeWidth={1.5} /> Room Selection
@@ -303,7 +303,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      </div>
                   </div>
 
-                  {/* ADDITIONAL CHARGES SECTION */}
+                  {}
                   <div className="space-y-6">
                      <div className="flex items-center justify-between">
                         <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif' }}>
@@ -377,10 +377,10 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                </div>
 
 
-               {/* RIGHT: BILLING CARD (5 Cols) */}
+               {}
                <div className="lg:col-span-5">
                   <div className="bg-slate-900 rounded-2xl md:rounded-3xl p-5 md:p-8 text-white h-full flex flex-col justify-between shadow-2xl shadow-slate-900/20 relative overflow-y-auto">
-                     {/* Decorative gradient blob */}
+                     {}
                      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                      {!isFinancialsVisible ? (
@@ -419,9 +419,9 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                           const val = e.target.value;
                                           const newTotal = val === '' ? 0 : parseFloat(val);
 
-                                          // Reverse Calculation Logic:
-                                          // NewTotal = (Rate * Nights) + Extras
-                                          // Rate = (NewTotal - Extras) / Nights
+                                          
+                                          
+                                          
 
                                           const currentExtras = newBookingData.additionalCharges?.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0) || 0;
                                           const nights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
@@ -429,10 +429,10 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                           const calculatedRoomTotal = Math.max(0, newTotal - currentExtras);
                                           const newRate = calculatedRoomTotal / nights;
 
-                                          // Update state: Set new rate, and clear manualTotal so the formula assumes control
+                                          
                                           setNewBookingData({
                                              ...newBookingData,
-                                             roomRate: parseFloat(newRate.toFixed(2)), // Keep it clean
+                                             roomRate: parseFloat(newRate.toFixed(2)), 
                                              manualTotal: undefined
                                           });
                                        }}
@@ -541,7 +541,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
             </div>
          </form>
 
-         {/* Sticky Footer (Mobile Only) */}
+         {}
          {!readOnly && (
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-50 flex items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                <div className="flex-1">
@@ -555,7 +555,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                <button
                   type="button"
                   onClick={(e) => {
-                     // Trigger form submission manually since this button is outside the form
+                     
                      const form = document.querySelector('form');
                      if (form) form.requestSubmit();
                   }}

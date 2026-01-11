@@ -12,7 +12,7 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
     const [startDate, setStartDate] = useState(new Date());
     const [daysToShow, setDaysToShow] = useState(14);
 
-    // Normalize start date to beginning of day
+    
     useEffect(() => {
         const d = new Date(startDate);
         d.setHours(0, 0, 0, 0);
@@ -50,11 +50,11 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
         const chartStart = new Date(dates[0]);
         const chartEnd = new Date(dates[dates.length - 1]);
 
-        // If booking is outside current view
+        
         if (checkOut <= chartStart || checkIn > chartEnd) return null;
 
         const visibleStart = checkIn < chartStart ? chartStart : checkIn;
-        const visibleEnd = checkOut > chartEnd ? new Date(chartEnd.getTime() + 86400000) : checkOut; // Add 1 day to end for inclusive rendering
+        const visibleEnd = checkOut > chartEnd ? new Date(chartEnd.getTime() + 86400000) : checkOut; 
 
         const duration = (visibleEnd.getTime() - visibleStart.getTime()) / (1000 * 60 * 60 * 24);
         const offset = (visibleStart.getTime() - chartStart.getTime()) / (1000 * 60 * 60 * 24);
@@ -74,8 +74,8 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[calc(100vh-140px)]">
-            {/* Controls */}
-            {/* Controls */}
+            {}
+            {}
             <div className="p-4 border-b border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center justify-between w-full md:w-auto gap-4">
                     <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
@@ -114,10 +114,10 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                 </div>
             </div>
 
-            {/* Calendar Grid */}
+            {}
             <div className="flex-1 overflow-auto relative custom-scrollbar bg-slate-50/50">
                 <div className="min-w-[800px] md:min-w-[1200px]">
-                    {/* Header Row */}
+                    {}
                     <div className="flex sticky top-0 z-20 bg-white shadow-sm border-b border-slate-200">
                         <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-4 font-bold text-slate-700 border-r border-slate-200 bg-slate-50 flex items-center justify-center md:justify-start sticky left-0 z-30 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
                             <span className="hidden md:inline">Room</span>
@@ -141,7 +141,7 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                         </div>
                     </div>
 
-                    {/* Room Rows */}
+                    {}
                     {rooms.map(room => (
                         <div key={room.id} className="flex border-b border-slate-200 bg-white hover:bg-slate-50 transition-colors h-20 group">
                             <div className="w-20 md:w-48 flex-shrink-0 p-2 md:p-3 border-r border-slate-200 flex flex-col justify-center sticky left-0 z-10 bg-white group-hover:bg-slate-50 text-center md:text-left shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
@@ -155,7 +155,7 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                             </div>
 
                             <div className="flex-1 relative">
-                                {/* Grid Lines */}
+                                {}
                                 <div className="absolute inset-0 flex pointer-events-none">
                                     {dates.map(date => (
                                         <div
@@ -166,7 +166,7 @@ export default function TapeChart({ rooms, bookings, onBookingClick }: TapeChart
                                     ))}
                                 </div>
 
-                                {/* Bookings */}
+                                {}
                                 {bookings.filter(b => b.roomId === room.id).map(booking => {
                                     const style = getBookingStyle(booking, room.id);
                                     if (!style) return null;

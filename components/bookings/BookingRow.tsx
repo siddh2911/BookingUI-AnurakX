@@ -14,7 +14,7 @@ interface BookingRowProps {
 
 const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, onEditBooking, onAddPayment, onDeleteBooking }) => {
   const paid = (booking.payments || []).reduce((sum, p) => sum + p.amount, 0);
-  const balance = booking.pendingBalance || 0; // Use pendingBalance from API
+  const balance = booking.pendingBalance || 0; 
   const roomNumber = room?.number || 'N/A';
 
   return (

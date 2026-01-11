@@ -7,7 +7,7 @@ interface AddFoodModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAdd: (item: Omit<MenuItem, 'id'>) => void;
-    initialData?: MenuItem | null; // For Edit Mode
+    initialData?: MenuItem | null; 
 }
 
 const CATEGORIES = ['Starters', 'Mains', 'Desserts', 'Drinks'] as const;
@@ -23,7 +23,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
         isSpicy: false,
     });
 
-    // Load initial data when modal opens with data
+    
     useEffect(() => {
         if (initialData) {
             setFormData({
@@ -36,7 +36,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
                 isSpicy: initialData.isSpicy || false,
             });
         } else {
-            // Reset if adding new
+            
             setFormData({
                 name: '', price: '', category: 'Mains', description: '', image: '', isVegetarian: true, isSpicy: false
             });
@@ -50,12 +50,12 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
             price: Number(formData.price),
             category: formData.category,
             description: formData.description,
-            image: formData.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800', // Default placeholder
+            image: formData.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800', 
             isVegetarian: formData.isVegetarian,
             isSpicy: formData.isSpicy,
         });
         onClose();
-        // Reset form only if not in edit mode
+        
         if (!initialData) {
             setFormData({
                 name: '', price: '', category: 'Mains', description: '', image: '', isVegetarian: true, isSpicy: false
@@ -63,7 +63,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
         }
     };
 
-    // Luxury Styles
+    
     const elegantInput = "w-full bg-slate-50/50 border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-2.5 text-sm transition-all outline-none placeholder:text-slate-300 hover:bg-slate-50 focus:bg-transparent";
     const elegantLabel = "text-[10px] font-bold text-slate-400 uppercase tracking-widest";
     const floatingGroup = "relative";
@@ -72,7 +72,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
         <Modal isOpen={isOpen} onClose={onClose} title={initialData ? 'Edit Culinary Item' : 'New Culinary Item'} maxWidth="max-w-lg">
             <form onSubmit={handleSubmit} className="space-y-6">
 
-                {/* Basic Info Section */}
+                {}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className={floatingGroup}>
                         <label className={elegantLabel}>Dish Name</label>
@@ -98,7 +98,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
                     </div>
                 </div>
 
-                {/* Category & Attributes */}
+                {}
                 <div className="space-y-4">
                     <label className={elegantLabel}>Category & Type</label>
                     <div className="flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
                     </div>
                 </div>
 
-                {/* Description */}
+                {}
                 <div className={floatingGroup}>
                     <label className={elegantLabel}>Description</label>
                     <textarea
@@ -156,7 +156,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
                     />
                 </div>
 
-                {/* Image URL */}
+                {}
                 <div className={floatingGroup}>
                     <label className={elegantLabel}>Image URL</label>
                     <div className="relative">
@@ -172,7 +172,7 @@ const AddFoodModal: React.FC<AddFoodModalProps> = ({ isOpen, onClose, onAdd, ini
                 </div>
 
 
-                {/* Submit Action */}
+                {}
                 <div className="pt-4 flex justify-end gap-3">
                     <button
                         type="button"

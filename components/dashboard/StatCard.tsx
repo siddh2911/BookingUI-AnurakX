@@ -14,7 +14,6 @@ interface StatCardProps {
   isRevenueVisible?: boolean;
   setIsRevenueVisible?: (visible: boolean) => void;
   hoverContent?: React.ReactNode;
-  // Deprecated: main trend was used for monthly but now moving to details
   trend?: {
     value: number;
     label: string;
@@ -26,7 +25,6 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Handle Click Outside to close details state
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
@@ -51,7 +49,6 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
   };
 
   const showContent = hoverContent && isRevenueVisible;
-  // Trigger animation ONLY if isDetailsOpen is true
   const isExpanded = showContent && isDetailsOpen ? '-translate-y-full opacity-0' : '';
   const overlayExpanded = showContent && isDetailsOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0';
 
@@ -61,14 +58,12 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
       className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      {/* Decorative gradient blob */}
       <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-2xl group-hover:bg-blue-100 transition duration-500"></div>
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between pb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
-            {/* Visibility Toggle */}
             {setIsRevenueVisible && (
               <button
                 onClick={(e) => { e.stopPropagation(); setIsRevenueVisible(!isRevenueVisible); }}
@@ -78,7 +73,6 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                 {isRevenueVisible ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             )}
-            {/* Details Toggle (PieChart Icon) - Check if content exists */}
             {hoverContent && isRevenueVisible && (
               <button
                 onClick={toggleDetails}
@@ -94,10 +88,8 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
           </div>
         </div>
 
-        {/* Content Container - Relative for slides */}
         <div className="relative flex-1 overflow-hidden">
 
-          {/* Main Stats - Slide UP on Toggle */}
           <div
             className={`transition-all duration-500 ease-out transform ${isExpanded}`}
           >
@@ -128,10 +120,8 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                 </div>
               </div>
 
-              {/* Divider Line */}
               <div className="h-px bg-slate-100 my-4 w-full"></div>
 
-              {/* Bottom Grid - Responsive: 2x2 on Mobile, 4x1 on Desktop with Dividers */}
               <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-slate-100">
                 {details.map((detail, index) => (
                   <div key={detail.label} className="px-1 flex flex-col items-center justify-start md:first:pl-0 md:last:pr-0">
@@ -157,7 +147,6 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
             </div>
           </div>
 
-          {/* Hover Content - Slide UP from Bottom */}
           {showContent && (
             <div
               className={`absolute inset-0 transition-all duration-500 ease-out flex flex-col justify-center ${overlayExpanded}`}

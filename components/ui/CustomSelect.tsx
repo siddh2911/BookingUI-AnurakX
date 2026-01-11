@@ -85,7 +85,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
                 />
             </div>
 
-            {/* Dropdown Menu */}
+            {}
             {isOpen && (
                 <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in-95 duration-100">
                     <div className="p-1 space-y-0.5">

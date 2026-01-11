@@ -17,7 +17,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
-            {/* Mobile Sidebar Overlay */}
+            {}
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden transition-opacity"
@@ -33,7 +33,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
             />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                {/* Mobile Header */}
+                {}
                 <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-20">
                     <Link to="/" className="flex flex-col items-start">
                         <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
@@ -52,7 +52,7 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                     </div>
                 </div>
 
-                {/* Desktop Topbar (Optional, can be added for search/notifications) */}
+                {}
                 <header className="hidden md:flex items-center justify-between h-20 px-8 bg-white/80 backdrop-blur-sm border-b border-slate-200 z-10">
                     <div className="flex items-center gap-3 ml-12 text-slate-400 bg-white border border-slate-200 px-4 py-2.5 rounded-full w-96 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/10 focus-within:border-blue-400 transition-all duration-200">
                         <Search size={18} className="text-slate-400" />

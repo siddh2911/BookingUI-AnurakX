@@ -10,7 +10,7 @@ import {
 
 export const RoomSchema = z.object({
     id: z.number(),
-    roomNumber: z.string(), // API returns roomNumber, mapped to number in api.ts
+    roomNumber: z.string(), 
     type: z.nativeEnum(RoomType),
     pricePerNight: z.number(),
     status: z.nativeEnum(RoomStatus),

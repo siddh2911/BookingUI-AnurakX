@@ -20,7 +20,7 @@ const ActivityLog: React.FC<ActivityLogProps> = ({ logs }) => {
       </div>
 
       <div className="space-y-6 relative flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        {/* Vertical line for timeline */}
+        {}
         {logs.length > 0 && <div className="absolute left-2.5 top-2 bottom-0 w-px bg-slate-100"></div>}
 
         {logs.length === 0 ? (

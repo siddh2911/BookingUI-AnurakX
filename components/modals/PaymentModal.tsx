@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from '../ui/Modal';
-import { Booking, Payment, PaymentMethod, PaymentType } from '../../types'; // Import Payment type
+import { Booking, Payment, PaymentMethod, PaymentType } from '../../types'; 
 import { format } from 'date-fns';
 
 interface PaymentModalProps {
@@ -8,14 +8,14 @@ interface PaymentModalProps {
   onClose: () => void;
   selectedBooking: Booking | null;
   handleAddPayment: (e: React.FormEvent<HTMLFormElement>) => void;
-  payments: Payment[]; // New prop for payments history
+  payments: Payment[]; 
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBooking, handleAddPayment, payments }) => {
   if (!isOpen || !selectedBooking) return null;
 
-  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0); // Calculate total paid from payments history
-  const remainingAmount = selectedBooking.pendingBalance || 0; // Use pendingBalance from API
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0); 
+  const remainingAmount = selectedBooking.pendingBalance || 0; 
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add Payment">
@@ -24,7 +24,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBo
                <p className="text-sm text-slate-600 mb-4">Adding payment for <span className="font-bold text-slate-800">{selectedBooking?.guestName}</span>. Total due: <span className="font-bold text-red-600">₹{remainingAmount.toLocaleString()}</span></p>
            </div>
            
-           {/* Payments History Section */}
+           {}
            {payments.length > 0 && (
              <div className="bg-white p-4 rounded-md border border-slate-200">
                <h3 className="text-xs font-bold text-slate-700 mb-2">Payment History</h3>
@@ -63,7 +63,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBo
                        step="0.01" 
                        required 
                        className="w-full border rounded-lg p-2 text-sm" 
-                       defaultValue={remainingAmount > 0 ? remainingAmount : ''} // Use remainingAmount
+                       defaultValue={remainingAmount > 0 ? remainingAmount : ''} 
                    />
                </div>
                <div>

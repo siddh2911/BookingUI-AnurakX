@@ -15,7 +15,7 @@ export default function SecurityModal({ isOpen, onClose, onAuthenticated }: Secu
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Static credentials check as per user request
+        
         if (username === 'Admin' && password === 'VaranasiKarunaVilla') {
             onAuthenticated();
             onClose();

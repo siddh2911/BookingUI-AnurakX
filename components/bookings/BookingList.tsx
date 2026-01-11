@@ -47,7 +47,7 @@ const BookingList: React.FC<BookingListProps> = ({
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
 
-        // Secondary Sort: Check-In Date (Descending)
+        
         return new Date(b.checkInDate).getTime() - new Date(a.checkInDate).getTime();
       });
     }
@@ -64,7 +64,7 @@ const BookingList: React.FC<BookingListProps> = ({
   };
 
   const SortIcon = ({ column }: { column: string }) => {
-    if (sortConfig?.key !== column) return <div className="w-3 h-3" />; // Placeholder for alignment
+    if (sortConfig?.key !== column) return <div className="w-3 h-3" />; 
     return sortConfig.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
   };
 

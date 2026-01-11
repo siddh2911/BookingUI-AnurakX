@@ -18,11 +18,11 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings }) => {
 
   const handleRangeChange = (newRange: 'daily' | 'weekly' | 'monthly' | 'yearly') => {
     setRange(newRange);
-    setOffset(0); // Reset offset when changing range
+    setOffset(0); 
   };
 
-  const handlePrev = () => setOffset(prev => prev + 1); // +1 moves further back in time
-  const handleNext = () => setOffset(prev => prev - 1); // -1 moves closer to present
+  const handlePrev = () => setOffset(prev => prev + 1); 
+  const handleNext = () => setOffset(prev => prev - 1); 
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col">

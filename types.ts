@@ -46,7 +46,7 @@ export interface Payment {
   id: string;
   bookingId: string;
   amount: number;
-  date: string; // ISO Date string
+  date: string; 
   method: PaymentMethod;
   type: PaymentType;
   notes?: string;
@@ -58,17 +58,17 @@ export interface Booking {
   guestName: string;
   guestEmail?: string;
   guestPhone?: string;
-  checkInDate: string; // YYYY-MM-DD
-  checkOutDate: string; // YYYY-MM-DD
+  checkInDate: string; 
+  checkOutDate: string; 
   source: BookingSource;
   status: BookingStatus;
-  totalPaid?: number; // Replaced advanceAmount with totalPaid as per user's clarification
-  totalAmount?: number; // Made optional as API provides balance
-  payments?: Payment[]; // Made optional as API provides balance
-  pendingBalance?: number; // New field for balance from /allBooking API
+  totalPaid?: number; 
+  totalAmount?: number; 
+  payments?: Payment[]; 
+  pendingBalance?: number; 
   additionalCharges?: { description: string; amount: number }[];
   notes?: string;
-  createdAt?: string; // Made optional as API doesn't provide
+  createdAt?: string; 
 }
 
 export interface Room {
@@ -94,7 +94,7 @@ export interface User {
   role: 'Manager' | 'Receptionist' | 'Housekeeping';
 }
 
-// Food & Dining Types
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -108,7 +108,7 @@ export interface MenuItem {
 
 export interface FoodOrder {
   id: string;
-  roomId: string; // Linking to Room Number (string based on room interface)
+  roomId: string; 
   items: {
     menuItem: MenuItem;
     quantity: number;

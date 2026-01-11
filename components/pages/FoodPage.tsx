@@ -8,7 +8,7 @@ interface FoodPageProps {
     rooms: Room[];
 }
 
-// Mock Data - Initial State
+
 const INITIAL_MENU: MenuItem[] = [
     { id: '1', name: 'Butter Chicken', category: 'Mains', price: 450, isVegetarian: false, description: 'Tender chicken cooked in a rich tomato and butter gravy.', isSpicy: false, image: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?auto=format&fit=crop&q=80&w=800' },
     { id: '2', name: 'Paneer Tikka', category: 'Starters', price: 320, isVegetarian: true, description: 'Marinated cottage cheese cubes grilled to perfection.', isSpicy: true, image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&q=80&w=800' },
@@ -30,19 +30,19 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
     const [cart, setCart] = useState<{ item: MenuItem; quantity: number }[]>([]);
     const [activeTab, setActiveTab] = useState<'menu' | 'inbox'>('menu');
 
-    // Admin Features State
+    
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [incomingOrders, setIncomingOrders] = useState<FoodOrder[]>([]);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
-    // Filter Logic
+    
     const filteredItems = menu.filter(item => {
         const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
     });
 
-    // Cart Logic
+    
     const addToCart = (item: MenuItem) => {
         setCart(prev => {
             const existing = prev.find(i => i.item.id === item.id);
@@ -66,18 +66,18 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
         }));
     };
 
-    // CRUD Hnadlers
+    
     const handleAddItem = (itemData: Omit<MenuItem, 'id'>) => {
         if (editingItem) {
-            // Update Existing
+            
             setMenu(prev => prev.map(item => item.id === editingItem.id ? { ...itemData, id: item.id } : item));
             setEditingItem(null);
         } else {
-            // Add New
+            
             const newItem: MenuItem = { ...itemData, id: Date.now().toString() };
             setMenu(prev => [newItem, ...prev]);
         }
-        setIsAddModalOpen(false); // Ensure modal closes
+        setIsAddModalOpen(false); 
     };
 
     const handleEditItem = (item: MenuItem) => {
@@ -104,12 +104,12 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
 
     const handlePlaceOrder = () => {
         if (!selectedRoomId) return alert('Please select a room');
-        // For manual orders, simply add to the 'incoming' list as delivered or cooking
+        
         const newOrder: FoodOrder = {
             id: Date.now().toString(),
             roomId: selectedRoomId,
             items: cart.map(c => ({ menuItem: c.item, quantity: c.quantity })),
-            status: 'Pending', // Start as Pending even if manual
+            status: 'Pending', 
             totalAmount: cartTotal,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -120,7 +120,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
 
     const [isCartOpen, setIsCartOpen] = useState(false);
 
-    // ... (rest of render)
+    
 
     return (
         <div className="flex h-[calc(100vh-2rem)] gap-6 relative">
@@ -132,16 +132,16 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                 initialData={editingItem}
             />
 
-            {/* LEFT: Menu / Content Area */}
+            {}
             <div className="flex-1 flex flex-col min-w-0 bg-white/50 backdrop-blur-sm rounded-[2rem] border border-white/40 shadow-sm overflow-hidden relative">
-                {/* Header */}
+                {}
                 <div className="p-5 md:p-8 border-b border-slate-100/50 flex flex-col gap-4 md:gap-6 bg-white/50 backdrop-blur-xl sticky top-0 z-10 transition-all">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight font-serif">Dining Menu</h1>
                             <p className="text-slate-500 text-sm font-medium mt-0.5 md:mt-1">Culinary delights for your guests</p>
                         </div>
-                        {/* Tab Switcher */}
+                        {}
                         <div className="flex bg-slate-100/80 p-1.5 rounded-2xl backdrop-blur-md self-start md:self-auto">
                             <button
                                 onClick={() => setActiveTab('menu')}
@@ -166,7 +166,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
 
                     {activeTab === 'menu' && (
                         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
-                            {/* Search */}
+                            {}
                             <div className="relative flex-1 group">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
                                 <input
@@ -179,7 +179,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                             </div>
 
                             <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide -mx-1 px-1">
-                                {/* Category Pills */}
+                                {}
                                 <div className="flex gap-2 p-1 bg-white/50 rounded-2xl border border-slate-100">
                                     {CATEGORIES.map(cat => (
                                         <button
@@ -202,7 +202,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                             >
                                 <Plus size={18} /> Add Item
                             </button>
-                            {/* Mobile Add Button (Small) */}
+                            {}
                             <button
                                 onClick={openAddModal}
                                 className="md:hidden py-2.5 px-4 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm shrink-0 text-sm"
@@ -213,7 +213,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                     )}
                 </div>
 
-                {/* Content Body */}
+                {}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/30">
                     {activeTab === 'menu' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pb-24 md:pb-0">
@@ -290,7 +290,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                 </div>
             </div>
 
-            {/* Manual Order FAB (Floating Action Button) */}
+            {}
             <button
                 onClick={() => setIsCartOpen(true)}
                 className="fixed bottom-6 right-6 z-[100] p-4 bg-slate-900 text-white rounded-full shadow-2xl hover:bg-blue-600 transition-all hover:scale-110 active:scale-95 flex items-center justify-center group border-[3px] border-white/20 backdrop-blur-sm"
@@ -304,12 +304,12 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                 )}
             </button>
 
-            {/* Manual Order Modal (Pop-up) */}
+            {}
             {isCartOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden relative animate-in zoom-in-95 duration-300 border border-slate-100">
 
-                        {/* Modal Header */}
+                        {}
                         <div className="px-6 py-5 border-b border-transparent flex justify-between items-center bg-white sticky top-0 z-20">
                             <div>
                                 <h2 className="text-2xl md:text-3xl font-bold text-slate-900" style={{ fontFamily: '"Playfair Display", serif' }}>
@@ -324,14 +324,14 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                             </button>
                         </div>
 
-                        {/* Content Body matches Modal.tsx padding */}
+                        {}
                         <div className="p-6 md:p-8 bg-slate-50/30 flex-1 overflow-y-auto custom-scrollbar">
 
-                            {/* Room Selector Section */}
+                            {}
                             <div className="mb-8">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Guest Room</label>
                                 <div className="relative group">
-                                    {/* Elegant Input Style */}
+                                    {}
                                     <select
                                         value={selectedRoomId}
                                         onChange={(e) => setSelectedRoomId(e.target.value)}
@@ -348,7 +348,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                                 </div>
                             </div>
 
-                            {/* Cart Items List */}
+                            {}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                                     <h3 className="text-lg md:text-xl text-slate-900 font-medium" style={{ fontFamily: '"Playfair Display", serif' }}>
@@ -378,7 +378,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                                                 <div className="flex justify-between items-center">
                                                     <p className="text-xs text-slate-400">₹{item.price} each</p>
 
-                                                    {/* Quantity Control - Minimalist */}
+                                                    {}
                                                     <div className="flex items-center gap-3">
                                                         <button
                                                             onClick={() => updateQuantity(item.id, -1)}
@@ -407,7 +407,7 @@ const FoodPage: React.FC<FoodPageProps> = ({ rooms }) => {
                                 )}
                             </div>
 
-                            {/* Footer / Checkout inside the scrollable area or separated? Modal.tsx puts it in content usually, but here sticky footer is nice. match styling. */}
+                            {}
                             <div className="mt-8 pt-6 border-t border-slate-200 space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-slate-500 font-medium text-sm">Total Amount</span>

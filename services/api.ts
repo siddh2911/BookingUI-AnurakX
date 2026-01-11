@@ -3,16 +3,12 @@ import { Room, Booking, BookingStatus } from '../types';
 export const API_BASE_URL = 'https://api.karunavillas.com';
 
 
-/**
- * Fetches available rooms from the API.
- * @param options - An object with startDate and endDate.
- * @returns A promise that resolves to an array of available rooms.
- */
+
 import { z } from 'zod';
 import { RoomSchema } from './schemas';
 
-// Remove Zod imports if they were only used here, they are at the top of the file usually. 
-// But I will replace the functions.
+
+
 
 export const getAvailableRooms = async (
   options: { startDate: string, endDate: string }
@@ -40,13 +36,7 @@ export const getAvailableRooms = async (
   return mappedData;
 };
 
-/**
- * Simulates an API call to get the availability forecast.
- * @param rooms - All rooms in the hotel.
- * @param bookings - All bookings in the hotel.
- * @param forecastPage - The page number for the forecast.
- * @returns A promise that resolves to the forecast data.
- */
+
 export const getAvailabilityForecast = async (
   rooms: Room[],
   bookings: Booking[],
@@ -84,16 +74,12 @@ export const getAvailabilityForecast = async (
     return { date: d, availableRooms: available };
   });
 
-  // Simulate network delay
+  
   await new Promise(resolve => setTimeout(resolve, 500));
 
   return Promise.resolve(forecast);
 };
-/**
- * Fetches details for a single room.
- * @param id - The room ID.
- * @returns A promise that resolves to the room data.
- */
+
 export const getRoomDetails = async (id: number): Promise<Room> => {
   const url = `${API_BASE_URL}/rooms/${id}`;
 

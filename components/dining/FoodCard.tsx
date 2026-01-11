@@ -13,7 +13,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onAdd, onEdit, onDelet
     return (
         <div className="group bg-white rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.08)] border border-slate-100/50 overflow-hidden transition-all duration-500 hover:-translate-y-1 flex flex-col h-full">
 
-            {/* Image Area */}
+            {}
             <div className="relative h-60 overflow-hidden">
                 <img
                     src={item.image}
@@ -23,15 +23,15 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onAdd, onEdit, onDelet
                 <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-300" />
             </div>
 
-            {/* Content Area */}
+            {}
             <div className="p-5 flex flex-col flex-1">
-                {/* Header & Badges */}
+                {}
                 <div className="flex justify-between items-start gap-4 mb-3">
                     <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-blue-600 transition-colors">
                         {item.name}
                     </h3>
 
-                    {/* Compact Badges */}
+                    {}
                     <div className="flex gap-1 shrink-0">
                         {item.isVegetarian ? (
                             <div className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center" title="Vegetarian">
@@ -54,7 +54,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onAdd, onEdit, onDelet
                     {item.description}
                 </p>
 
-                {/* Actions - Clean & Functional */}
+                {}
                 <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
                     <div className="flex gap-2">
                         {(onEdit || onDelete) && (

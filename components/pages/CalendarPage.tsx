@@ -21,7 +21,7 @@ export default function CalendarPage({ calendarProps }: CalendarPageProps) {
                     <p className="text-slate-500 mt-1">Manage bookings timeline.</p>
                 </div>
                 <button
-                    onClick={() => { /* Handle new booking if needed, or rely on Dashboard global button */ }}
+                    onClick={() => {  }}
                     className="bg-slate-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition shadow-lg shadow-slate-900/20"
                 >
                     + New Booking

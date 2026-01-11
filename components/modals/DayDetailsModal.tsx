@@ -33,15 +33,15 @@ const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
         checkDate.setHours(0, 0, 0, 0);
 
         return bookings.find(b => {
-            // Exclude cancelled/checked-out if necessary, or show them differently? 
-            // Usually "who is available" means active bookings.
+            
+            
             if (b.status === BookingStatus.CANCELLED || b.status === BookingStatus.CHECKED_OUT) return false;
 
             const start = new Date(b.checkInDate); start.setHours(0, 0, 0, 0);
             const end = new Date(b.checkOutDate); end.setHours(0, 0, 0, 0);
 
-            // Booking covers this date: start <= date < end
-            // Note: Standard hotel logic usually means they stay the NIGHT of 'date'.
+            
+            
             return String(b.roomId) === String(roomId) && checkDate >= start && checkDate < end;
         });
     };

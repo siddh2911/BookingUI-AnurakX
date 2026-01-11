@@ -13,20 +13,20 @@ interface UrgentDeparturesProps {
 
 const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, today, onEditBooking }) => {
     const { t } = useLanguage();
-    // Calculate tomorrow's date string
+    
     const todayDate = new Date(today);
     const tomorrowDate = new Date(todayDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrow = tomorrowDate.toISOString().split('T')[0];
 
-    // Filter for check-outs today or tomorrow
+    
     const urgentBookings = departures.filter(b => b.checkOutDate === today || b.checkOutDate === tomorrow);
 
     if (urgentBookings.length === 0) return null;
 
     return (
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-xl border border-white/5 p-5 md:p-8 text-white relative overflow-hidden group mb-6">
-            {/* Elegant Background Glow - Subtle Sunset Tones */}
+            {}
             <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-rose-500/5 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
@@ -40,7 +40,7 @@ const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, 
                         <p className="text-xs md:text-sm text-slate-400">{t('priorityCheckOutSubtitle')}</p>
                     </div>
                 </div>
-                {/* Count Indicator */}
+                {}
                 <span className="bg-amber-500/10 text-amber-200 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full border border-amber-500/20 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]">
                     {urgentBookings.length} {t('priorityBadge')}
                 </span>
@@ -57,7 +57,7 @@ const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, 
                             onClick={() => onEditBooking(booking, true)}
                             className="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-amber-500/20 backdrop-blur-sm rounded-xl p-5 transition-all duration-300 cursor-pointer group/card flex flex-col justify-between hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 relative overflow-hidden"
                         >
-                            {/* Card Hover Glow */}
+                            {}
                             <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/5 to-amber-500/0 translate-x-[-100%] group-hover/card:translate-x-[100%] transition-transform duration-1000"></div>
 
                             <div>

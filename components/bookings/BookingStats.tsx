@@ -5,9 +5,9 @@ import { PieChart } from 'lucide-react';
 
 interface BookingStatsProps {
     bookings: Booking[];
-    className?: string; // Allow external sizing/positioning
-    compact?: boolean;  // Toggle for ultra-compact mode
-    mode?: 'count' | 'revenue' | 'percent'; // New mode prop
+    className?: string; 
+    compact?: boolean;  
+    mode?: 'count' | 'revenue' | 'percent'; 
 }
 
 const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compact = false, mode = 'count' }) => {
@@ -16,21 +16,21 @@ const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compac
         let total = 0;
 
         bookings.forEach(b => {
-            // Exclude cancelled bookings for revenue
+            
             if (mode === 'revenue' && b.status === 'Cancelled') return;
 
-            // normalize source
+            
             let source = b.source || 'Direct';
 
-            // Calculate based on mode, with fallback for revenue
-            // 'percent' mode uses count logic for calculation
+            
+            
             const value = mode === 'revenue' ? (b.totalAmount || b.totalPaid || 0) : 1;
 
             counts[source] = (counts[source] || 0) + value;
             total += value;
         });
 
-        // Convert to array and sort
+        
         const sorted = Object.entries(counts)
             .map(([source, value]) => ({
                 source,
@@ -45,7 +45,7 @@ const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compac
             const othersValue = others.reduce((sum, item) => sum + item.value, 0);
             const othersPercentage = others.reduce((sum, item) => sum + item.percentage, 0);
 
-            // Format for tooltip
+            
             const othersTooltip = others.map(o => {
                 let displayVal = o.value.toString();
                 if (mode === 'revenue' && o.value >= 1000) displayVal = `₹${(o.value / 1000).toFixed(1)}k`;
@@ -106,7 +106,7 @@ const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compac
                                 <span className={`${compact ? 'text-xs' : 'text-sm'} font-bold text-slate-900 w-auto text-right`}>{formatValue(value, percentage)}</span>
                             </div>
                         </div>
-                        {/* Progress Bar */}
+                        {}
                         <div className={`${compact ? 'h-1.5' : 'h-2'} w-full bg-slate-100 rounded-full overflow-hidden`}>
                             <div
                                 className={`h-full bg-slate-900 rounded-full group-hover:bg-indigo-600 transition-colors duration-300 ease-out`}

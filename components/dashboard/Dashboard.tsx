@@ -79,15 +79,15 @@ const Dashboard: React.FC<DashboardProps> = ({
           onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
           details={(() => {
             const roomCount = rooms?.length || 0;
-            const dailyRate = 400; // Normal rate per day (12000/30)
+            const dailyRate = 400;
             const monthlyRate = 12000;
 
-            // Targets
+
             const targetWeekly = dailyRate * 7 * roomCount;
             const targetMonthly = monthlyRate * roomCount;
             const targetYearly = monthlyRate * 12 * roomCount;
 
-            // Helpers
+
             const calcTrend = (actual: number, target: number) => {
               if (target === 0) return undefined;
               return {
@@ -96,8 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               };
             };
 
-            // Velocity Projection for Revenue (matching Check-ins logic)
-            // Daily Run Rate based on current month
+
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             const daysElapsed = now.getDate();
@@ -114,9 +113,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           isRevenueVisible={isRevenueVisible}
           setIsRevenueVisible={setIsRevenueVisible}
           hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
-          // All-time Trend Calculation
-          totalTrend={undefined}
-          // Deprecate main trend as it is moved to detail
           trend={undefined}
         />
         <StatCard
@@ -133,14 +129,10 @@ const Dashboard: React.FC<DashboardProps> = ({
               positive: actual >= target
             });
 
-            // Time calculations
+            
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const daysElapsed = now.getDate(); // 1-31
-
-            // Project Year based on "Sales Velocity" (matching Check-ins logic)
-            // Formula: MonthOccupancy * (DaysInMonth / DaysElapsed)
-            // This answers: "If we filled X% of the month in Y days, what is our projected rate?"
+            const daysElapsed = now.getDate();
             const multiplier = daysInMonth / Math.max(1, daysElapsed);
             const projectedOccupancyYear = Math.min(100, Math.round(stats.occupancyMonth * multiplier));
 
@@ -163,23 +155,22 @@ const Dashboard: React.FC<DashboardProps> = ({
           icon={<Users size={20} />}
           onClick={() => handleDashboardFilter({ type: 'checkin', date: today, label: "Today's Check-ins" })}
           details={(() => {
-            // Target is 2 check-ins per week TOTAL for the property (not per room)
+
             const targetWeekly = 2;
             const targetDaily = targetWeekly / 7;
 
-            // Time calculations for Pacing (Year Only)
+
             const now = new Date();
             const daysInMonth = now.getDate();
 
-            // Project Yearly Check-ins based on Monthly Run-Rate
-            // Avoid division by zero if it's day 0 (unlikely) or early in month
+
             const currentMonthRate = stats.checkInsMonth / Math.max(1, daysInMonth);
             const projectedYearlyCheckIns = Math.round(currentMonthRate * 365);
 
-            // Full Annual Target & Paced YTD Target
+
             const targetAnnual = Math.round(targetDaily * 365);
 
-            // Days elapsed in current year
+
             const startOfYear = new Date(now.getFullYear(), 0, 1);
             const daysInYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
@@ -192,17 +183,17 @@ const Dashboard: React.FC<DashboardProps> = ({
               };
             };
 
-            // For Year Projection Trend: Compare Projected vs Annual Target
+
             const yearProjTrend = {
               value: Math.round(((projectedYearlyCheckIns - targetAnnual) / targetAnnual) * 100),
               positive: projectedYearlyCheckIns >= targetAnnual
             };
 
             return [
-              { label: 'Week', value: stats.checkInsWeek, trend: calcTrend(stats.checkInsWeek, 7) }, // Full Week Target
-              { label: 'Month', value: stats.checkInsMonth, trend: calcTrend(stats.checkInsMonth, 30) }, // Full Month Target
-              { label: 'Year', value: stats.checkInsYear, trend: undefined }, // Actual YTD (No Trend)
-              { label: 'Year (Proj.)', value: projectedYearlyCheckIns, trend: yearProjTrend }, // Projected Year Target
+              { label: 'Week', value: stats.checkInsWeek, trend: calcTrend(stats.checkInsWeek, 7) },
+              { label: 'Month', value: stats.checkInsMonth, trend: calcTrend(stats.checkInsMonth, 30) },
+              { label: 'Year', value: stats.checkInsYear, trend: undefined },
+              { label: 'Year (Proj.)', value: projectedYearlyCheckIns, trend: yearProjTrend },
             ];
           })()}
           hoverContent={<BookingStats bookings={bookings} mode="count" compact />}
@@ -223,8 +214,6 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
 
-      {/* Charts & Logs Section */}
-      {/* Charts Section - Occupancy and Revenue Equi-sized */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {isRevenueVisible ? (
           <>

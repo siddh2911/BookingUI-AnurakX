@@ -56,7 +56,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                 {forecast.map((day) => {
                     const isAvailable = day.availableRooms.length > 0;
 
-                    // Logic to find unavailable rooms
+                    
                     const safeRooms = rooms || [];
                     const availableIds = new Set(day.availableRooms.map((r: any) => r.id));
                     const unavailableRooms = safeRooms.filter(r => !availableIds.has(r.id));
@@ -77,7 +77,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                          `}
                             onClick={() => handleOpenDayDetails(day.date)}
                         >
-                            {/* Status Bar */}
+                            {}
                             <div className={`absolute top-0 left-0 w-1 h-full ${isAvailable ? 'bg-green-400' : 'bg-red-400'}`}></div>
 
                             <div className="flex justify-between items-start mb-3 ml-2">
@@ -91,7 +91,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
 
                             <div className="flex flex-wrap gap-1.5 ml-2">
                                 {displayRooms.slice(0, 12).map((r) => {
-                                    // Find booking if unavailable
+                                    
                                     const booking = !r.isAvailable ? bookings.find(b => {
                                         const checkIn = new Date(b.checkInDate); checkIn.setHours(0, 0, 0, 0);
                                         const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);

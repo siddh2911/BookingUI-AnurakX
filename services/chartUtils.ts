@@ -9,15 +9,15 @@ export const generateChartData = (
 ) => {
     const today = new Date();
 
-    // Adjust 'today' based on offset
-    // daily: 7 days per offset
-    // weekly: 8 weeks per offset
-    // monthly: 6 months per offset
-    // yearly: 4 years per offset
+    
+    
+    
+    
+    
 
-    // Actually, we want to "shift" the window.
-    // The generators below generate N items ending at 'referenceDate'.
-    // So we just need to calculate the correct referenceDate.
+    
+    
+    
 
     let referenceDate = new Date(today);
 
@@ -29,7 +29,7 @@ export const generateChartData = (
     }
 
     if (range === 'weekly') {
-        // 8 weeks per view
+        
         referenceDate.setDate(today.getDate() - (offset * 7 * 8));
         return type === 'revenue'
             ? generateWeeklyRevenueData(8, bookings, referenceDate)
@@ -37,7 +37,7 @@ export const generateChartData = (
     }
 
     if (range === 'monthly') {
-        // 6 months per view
+        
         referenceDate.setMonth(today.getMonth() - (offset * 6));
         return type === 'revenue'
             ? generateMonthlyRevenueData(6, bookings, referenceDate)
@@ -45,7 +45,7 @@ export const generateChartData = (
     }
 
     if (range === 'yearly') {
-        // 4 years per view
+        
         referenceDate.setFullYear(today.getFullYear() - (offset * 4));
         return type === 'revenue'
             ? generateAnnualRevenueData(4, bookings, referenceDate)
@@ -55,7 +55,7 @@ export const generateChartData = (
     return [];
 };
 
-// --- Generators ---
+
 
 const generateRevenueData = (days: number, bookings: Booking[], endDate: Date) => {
     return Array.from({ length: days }, (_, i) => {
@@ -82,7 +82,7 @@ const generateRevenueData = (days: number, bookings: Booking[], endDate: Date) =
 const generateWeeklyRevenueData = (weeks: number, bookings: Booking[], refDate: Date) => {
     return Array.from({ length: weeks }, (_, i) => {
         const currentRef = new Date(refDate);
-        // Find Monday of the reference week
+        
         const day = currentRef.getDay();
         const diff = currentRef.getDate() - day + (day === 0 ? -6 : 1);
         const currentWeekMonday = new Date(currentRef.setDate(diff));
@@ -152,23 +152,23 @@ const generateMonthlyRevenueData = (months: number, bookings: Booking[], refDate
 
 const generateAnnualRevenueData = (years: number, bookings: Booking[], refDate: Date) => {
     const currentYear = refDate.getFullYear();
-    // We want the 'years' window ending at currentYear + 1 usually? 
-    // Original code: startYear = currentYear - 2, num = 4 => [current-2, current-1, current, current+1]
-    // With offset, we shift this block.
-    // Let's stick to simple "Last N Years" ending at currentYear for consistency if offset=0?
-    // User liked "2024, 2025, 2026". That's [Current-1, Current, Current+1] basically.
-    // Let's make it a 4-year sliding window ending at (Current + 1)
+    
+    
+    
+    
+    
+    
 
     const endYear = currentYear + 1;
 
     return Array.from({ length: years }, (_, i) => {
-        const year = endYear - (years - 1) + i; // i=0 -> endYear-3, i=3 -> endYear
-        // wait, Array.from length 4. i=0,1,2,3.
-        // i=3 should be endYear.
-        // year = endYear - 3 + i.
+        const year = endYear - (years - 1) + i; 
+        
+        
+        
 
-        // Example: 2026. years=4. 
-        // i=0: 2023. i=1: 2024. i=2: 2025. i=3: 2026.
+        
+        
 
         const yearStart = new Date(year, 0, 1);
         const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -190,11 +190,11 @@ const generateAnnualRevenueData = (years: number, bookings: Booking[], refDate: 
         }, 0);
 
         return { name: year.toString(), revenue: Math.round(yearRevenue) };
-    }); // No reverse needed if we construct in order
+    }); 
 };
 
 
-// --- Occupancy Generators ---
+
 
 const generateOccupancyData = (days: number, bookings: Booking[], rooms: Room[], endDate: Date) => {
     return Array.from({ length: days }, (_, i) => {
@@ -275,7 +275,7 @@ const generateMonthlyOccupancyData = (months: number, bookings: Booking[], rooms
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0); monthEnd.setHours(23, 59, 59, 999);
 
         const daysInMonth = monthEnd.getDate();
-        const totalRoomNights = rooms.length * daysInMonth; // Approx capacity
+        const totalRoomNights = rooms.length * daysInMonth; 
         if (totalRoomNights === 0) return { name: '', occupancy: 0 };
 
         let occupiedCount = 0;
@@ -300,7 +300,7 @@ const generateMonthlyOccupancyData = (months: number, bookings: Booking[], rooms
 
 const generateAnnualOccupancyData = (years: number, bookings: Booking[], rooms: Room[], refDate: Date) => {
     const currentYear = refDate.getFullYear();
-    const endYear = currentYear + 1; // consistent window
+    const endYear = currentYear + 1; 
 
     return Array.from({ length: years }, (_, i) => {
         const year = endYear - (years - 1) + i;

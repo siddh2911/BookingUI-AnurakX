@@ -13,7 +13,7 @@ interface UrgentArrivalsProps {
 
 const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today, onEditBooking }) => {
     const { t } = useLanguage();
-    // Calculate tomorrow's date string
+    
     const todayDate = new Date(today);
     const tomorrowDate = new Date(todayDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
@@ -21,12 +21,12 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
 
     const urgentBookings = arrivals.filter(b => b.checkInDate === today || b.checkInDate === tomorrow);
 
-    // If no bookings, we still render the container but with an empty state
+    
     const isEmpty = urgentBookings.length === 0;
 
     return (
         <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 p-5 md:p-8 text-white relative overflow-hidden group">
-            {/* Elegant Background Glow */}
+            {}
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
@@ -40,7 +40,7 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                         <p className="text-xs md:text-sm text-slate-400">{t('prioritySubtitle')}</p>
                     </div>
                 </div>
-                {/* Optional: Add a small indicator of count */}
+                {}
                 <span className="bg-blue-500/20 text-blue-300 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full border border-blue-500/30">
                     {urgentBookings.length} {t('priorityBadge')}
                 </span>
