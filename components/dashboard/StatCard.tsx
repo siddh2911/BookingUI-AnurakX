@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, PieChart, X } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
@@ -23,19 +23,18 @@ interface StatCardProps {
 }
 
 export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTrend, icon, onClick, details, comparatorLabel, isRevenueVisible = true, setIsRevenueVisible, hoverContent, trend }) => {
-  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Handle Click Outside to close mobile state
+  // Handle Click Outside to close details state
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
-        setIsMobileExpanded(false);
+        setIsDetailsOpen(false);
       }
     };
 
-    // Only bind if currently expanded
-    if (isMobileExpanded) {
+    if (isDetailsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
     }
@@ -44,37 +43,23 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isMobileExpanded]);
+  }, [isDetailsOpen]);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Check if interaction is touch
-    const isTouch = (e.nativeEvent as any).pointerType === 'touch' || e.nativeEvent instanceof TouchEvent;
-
-    if (isTouch && hoverContent && isRevenueVisible) {
-      if (!isMobileExpanded) {
-        // Tap 1: Prevent nav, Open Peek
-        e.preventDefault();
-        e.stopPropagation();
-        setIsMobileExpanded(true);
-        return;
-      }
-      // Tap 2: Allow Nav (fall through to onClick below)
-    }
-
-    // Default: Navigate
-    if (onClick) onClick();
+  const toggleDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDetailsOpen(!isDetailsOpen);
   };
 
   const showContent = hoverContent && isRevenueVisible;
-  // Trigger animation if: Hovered (Desktop) OR Expanded (Mobile/Touch)
-  const isExpanded = showContent ? `group-hover:-translate-y-full group-hover:opacity-0 ${isMobileExpanded ? '-translate-y-full opacity-0' : ''}` : '';
-  const overlayExpanded = showContent ? `group-hover:translate-y-0 group-hover:opacity-100 ${isMobileExpanded ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}` : '';
+  // Trigger animation ONLY if isDetailsOpen is true
+  const isExpanded = showContent && isDetailsOpen ? '-translate-y-full opacity-0' : '';
+  const overlayExpanded = showContent && isDetailsOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0';
 
   return (
     <div
       ref={cardRef}
-      className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden"
-      onClick={handleCardClick}
+      className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
     >
       {/* Decorative gradient blob */}
       <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-2xl group-hover:bg-blue-100 transition duration-500"></div>
@@ -83,12 +68,24 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
         <div className="flex items-center justify-between pb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
+            {/* Visibility Toggle */}
             {setIsRevenueVisible && (
               <button
                 onClick={(e) => { e.stopPropagation(); setIsRevenueVisible(!isRevenueVisible); }}
                 className="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded-full hover:bg-slate-50"
+                title={isRevenueVisible ? "Hide Value" : "Show Value"}
               >
                 {isRevenueVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            )}
+            {/* Details Toggle (PieChart Icon) - Check if content exists */}
+            {hoverContent && isRevenueVisible && (
+              <button
+                onClick={toggleDetails}
+                className={`transition-colors p-1 rounded-full hover:bg-slate-50 ${isDetailsOpen ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-500'}`}
+                title="View Details"
+              >
+                {isDetailsOpen ? <X size={14} /> : <PieChart size={14} />}
               </button>
             )}
           </div>
@@ -100,7 +97,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
         {/* Content Container - Relative for slides */}
         <div className="relative flex-1 overflow-hidden">
 
-          {/* Main Stats - Slide UP on Hover/Expand */}
+          {/* Main Stats - Slide UP on Toggle */}
           <div
             className={`transition-all duration-500 ease-out transform ${isExpanded}`}
           >
@@ -138,13 +135,13 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
               <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-slate-100">
                 {details.map((detail, index) => (
                   <div key={detail.label} className="px-1 flex flex-col items-center justify-start md:first:pl-0 md:last:pr-0">
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 opacity-70">{detail.label}</p>
-                    <p className="text-[11px] font-bold text-slate-700 tracking-tight leading-none mb-1">
+                    <p className="text-xs md:text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 opacity-70">{detail.label}</p>
+                    <p className="text-sm md:text-[11px] font-bold text-slate-700 tracking-tight leading-none mb-1">
                       {isRevenueVisible ? detail.value : <span className="text-slate-200">•••</span>}
                     </p>
                     <div className={`h-3 flex items-center justify-center w-full ${isRevenueVisible && detail.trend ? '' : 'invisible'}`}>
                       {detail.trend && (
-                        <span className={`text-[8px] font-bold ${detail.trend.positive ? 'text-green-600' : 'text-red-500'}`}>
+                        <span className={`text-[10px] md:text-[8px] font-bold ${detail.trend.positive ? 'text-green-600' : 'text-red-500'}`}>
                           {detail.trend.value > 0 ? '+' : ''}{detail.trend.value}%
                         </span>
                       )}
@@ -165,6 +162,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
             <div
               className={`absolute inset-0 transition-all duration-500 ease-out flex flex-col justify-center ${overlayExpanded}`}
               style={{ cursor: onClick ? 'pointer' : 'default' }}
+              onClick={(e) => e.stopPropagation()}
             >
               {hoverContent}
             </div>
