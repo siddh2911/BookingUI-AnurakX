@@ -13,6 +13,7 @@ import RoomsPage from './components/pages/RoomsPage';
 import GuestsPage from './components/pages/GuestsPage';
 import FinancePage from './components/pages/FinancePage';
 import FoodPage from './components/pages/FoodPage';
+import ChannelManagerPage from './components/pages/ChannelManagerPage';
 import LoginPage from './components/pages/LoginPage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
@@ -36,7 +37,7 @@ export default function App() {
     return formatLocalDate(new Date(dateInput));
   };
 
-  
+
   const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -45,13 +46,13 @@ export default function App() {
   const handleLogin = useCallback(() => setIsAuthenticated(true), []);
   const handleLogout = useCallback(() => setIsAuthenticated(false), []);
 
-  
+
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const resetTimer = () => {
       clearTimeout(timeout);
       if (isAuthenticated) {
-        
+
         timeout = setTimeout(() => {
           handleLogout();
         }, 15 * 60 * 1000);
@@ -70,12 +71,12 @@ export default function App() {
     };
   }, [isAuthenticated, handleLogout]);
 
-  
+
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  
+
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
 
   const [forecastPage, setForecastPage] = useState(0);
@@ -86,15 +87,15 @@ export default function App() {
 
   const handleToggleRevenue = (visible: boolean) => {
     if (visible) {
-      
+
       setIsSecurityModalOpen(true);
     } else {
-      
+
       setIsRevenueVisible(false);
     }
   };
 
-  
+
   const [bookingFilter, setBookingFilter] = useState<{
     status?: BookingStatus;
     date?: string;
@@ -102,7 +103,7 @@ export default function App() {
     label?: string;
   } | null>(null);
 
-  
+
   const today = formatLocalDate(new Date());
 
   const [newBookingData, setNewBookingData] = useState({
@@ -119,7 +120,7 @@ export default function App() {
     ]
   });
 
-  
+
   const fetchBookingPayments = useCallback(async (bookingId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payments`);
@@ -139,11 +140,11 @@ export default function App() {
       const data: any[] = await response.json();
 
       const transformedBookings: Booking[] = data.map(b => {
-        
+
         const room = rooms.find(r => String(r.number) === String(b.room));
         const roomId = room ? room.id : -1;
 
-        
+
         if (roomId === -1) console.warn(`Could not map API room '${b.room}' to local rooms.`);
 
         return {
@@ -155,7 +156,7 @@ export default function App() {
         };
       });
 
-      
+
       transformedBookings.sort((a, b) => {
         return new Date(b.checkInDate).getTime() - new Date(a.checkInDate).getTime();
       });
@@ -168,7 +169,7 @@ export default function App() {
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
-  
+
   const stats = useMemo(() => {
     const parseDate = (dateStr: string) => {
       const [y, m, d] = dateStr.split('-').map(Number);
@@ -180,7 +181,7 @@ export default function App() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    
+
     const calculateOccupancy = (startDate: Date, endDate: Date) => {
       if (rooms.length === 0) return 0;
       const totalRoomNights = rooms.length * Math.max(1, (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -191,7 +192,7 @@ export default function App() {
         const bCheckIn = parseDate(booking.checkInDate);
         const bCheckOut = parseDate(booking.checkOutDate);
 
-        
+
         const overlapStart = new Date(Math.max(startDate.getTime(), bCheckIn.getTime()));
         const overlapEnd = new Date(Math.min(endDate.getTime(), bCheckOut.getTime()));
 
@@ -206,8 +207,8 @@ export default function App() {
 
     const endOfDay = new Date(startOfDay); endOfDay.setDate(endOfDay.getDate() + 1);
 
-    
-    
+
+
     const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 7);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const endOfYear = new Date(now.getFullYear(), 11, 31);
@@ -217,20 +218,20 @@ export default function App() {
     const occupancyMonth = calculateOccupancy(startOfMonth, endOfMonth);
     const occupancyYear = calculateOccupancy(startOfYear, endOfYear);
 
-    
+
     let occupancyAllTime = 0;
     const validBookings = bookings.filter(b => b.status !== BookingStatus.CANCELLED);
     if (validBookings.length > 0) {
-      
+
       const dates = validBookings.flatMap(b => [parseDate(b.checkInDate).getTime(), parseDate(b.checkOutDate).getTime()]);
       const minDate = new Date(Math.min(...dates));
       const maxDate = new Date(Math.max(...dates));
 
-      
+
       occupancyAllTime = calculateOccupancy(minDate, maxDate);
     }
 
-    
+
     const calculateRevenue = (startDate: Date, endDate: Date) => {
       let revenue = 0;
       const validBookings = bookings.filter(b => b.status !== BookingStatus.CANCELLED);
@@ -239,21 +240,21 @@ export default function App() {
         const bCheckIn = parseDate(booking.checkInDate);
         const bCheckOut = parseDate(booking.checkOutDate);
 
-        
-        
-        
+
+
+
         let dailyRate = 0;
         const totalNights = Math.max(1, (bCheckOut.getTime() - bCheckIn.getTime()) / (1000 * 60 * 60 * 24));
 
         if (booking.totalAmount || booking.totalPaid) {
           dailyRate = (booking.totalAmount || booking.totalPaid || 0) / totalNights;
         } else {
-          
+
           const room = rooms.find(r => r.id === booking.roomId);
           dailyRate = room ? room.pricePerNight : 0;
         }
 
-        
+
         const overlapStart = new Date(Math.max(startDate.getTime(), bCheckIn.getTime()));
         const overlapEnd = new Date(Math.min(endDate.getTime(), bCheckOut.getTime()));
 
@@ -271,12 +272,12 @@ export default function App() {
     const revenueMonth = calculateRevenue(startOfMonth, endOfMonth);
     const revenueYear = calculateRevenue(startOfYear, endOfYear);
 
-    
+
     const countCheckIns = (startDate: Date, endDate: Date) => {
       return bookings.filter(b => {
         if (b.status === BookingStatus.CANCELLED) return false;
         const checkIn = parseDate(b.checkInDate);
-        return checkIn >= startDate && checkIn < endDate; 
+        return checkIn >= startDate && checkIn < endDate;
       }).length;
     };
 
@@ -322,10 +323,10 @@ export default function App() {
     fetchForecast();
   }, [bookings, rooms, forecastPage, today]);
 
-  
+
   useEffect(() => {
     if (isAuthenticated) {
-      
+
       fetchBookings();
       const t = setTimeout(() => fetchBookings(), 2000);
       return () => clearTimeout(t);
@@ -333,7 +334,7 @@ export default function App() {
   }, [isAuthenticated, fetchBookings]);
 
   useEffect(() => {
-    
+
     if (isAuthenticated && stats.totalCheckIns === 0) {
       const retryTimer = setTimeout(() => {
         console.log("No check-ins found (0). Retrying fetch...");
@@ -343,7 +344,7 @@ export default function App() {
     }
   }, [isAuthenticated, stats.totalCheckIns, fetchBookings]);
 
-  
+
   const addLog = useCallback((action: string, details: string) => {
     const newLog = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), action, user: currentUser.name, details };
     setLogs(prev => [newLog, ...prev]);
@@ -475,7 +476,7 @@ export default function App() {
 
   const handleDashboardFilter = useCallback((filter: any) => { setBookingFilter(filter); }, [setBookingFilter]);
 
-  
+
   const bookingNights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
   const roomTotal = (newBookingData.roomRate || 0) * bookingNights;
   const additionalTotal = newBookingData.additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
@@ -483,7 +484,7 @@ export default function App() {
 
   let paidAmount = newBookingData.advance;
   let bookingPending = bookingTotal - paidAmount;
-  
+
   paidAmount = Math.max(0, paidAmount); bookingPending = Math.max(0, bookingPending);
 
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
@@ -535,8 +536,44 @@ export default function App() {
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
             <Route path="finance" element={<FinancePage />} />
+            <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
+              setBookings(prev => {
+                // 1. Filter out duplicates by ID
+                const existingIds = new Set(prev.map(b => b.id));
+                const uniqueNew = newBookings.filter(b => !existingIds.has(b.id));
+
+                if (uniqueNew.length === 0) {
+                  alert("No new bookings found or all bookings already exist.");
+                  return prev;
+                }
+
+                // 2. Conflict Detection (Basic)
+                const nonConflicting = uniqueNew.filter(newB => {
+                  const conflict = prev.find(existingB =>
+                    existingB.roomId === newB.roomId &&
+                    existingB.status !== BookingStatus.CANCELLED &&
+                    (
+                      (newB.checkInDate < existingB.checkOutDate && newB.checkOutDate > existingB.checkInDate)
+                    )
+                  );
+                  if (conflict) {
+                    console.warn(`Skipping conflicting booking from ${newB.source} for room ${newB.roomId} on ${newB.checkInDate}`);
+                    return false;
+                  }
+                  return true;
+                });
+
+                if (nonConflicting.length > 0) {
+                  alert(`Successfully synced ${nonConflicting.length} new bookings from external channels!`);
+                  return [...prev, ...nonConflicting];
+                } else {
+                  alert("Sync complete, but all imported bookings overlapped with existing reservations.");
+                  return prev;
+                }
+              });
+            }} />} />
           </Route>
-          {}
+          { }
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
@@ -561,7 +598,7 @@ export default function App() {
             isOpen={!!selectedBooking}
             onClose={() => setSelectedBooking(null)}
             booking={selectedBooking}
-            onAddPayment={() => { setIsPaymentModalOpen(true); }} 
+            onAddPayment={() => { setIsPaymentModalOpen(true); }}
           />
         )}
 

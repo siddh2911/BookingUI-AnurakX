@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, isToday, parseISO } from 'date-fns';
-import { cn } from '../../lib/utils'; 
+import { cn } from '../../lib/utils';
 
 interface DatePickerProps {
     label?: string;
-    value: string; 
+    value: string;
     onChange: (date: string) => void;
     minDate?: string;
     className?: string;
@@ -16,7 +16,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
     const [isOpen, setIsOpen] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    
+
     useEffect(() => {
         if (value && !isNaN(Date.parse(value))) {
             setCurrentMonth(parseISO(value));
@@ -76,7 +76,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
             </div>
 
             {isOpen && (
-                <div className="absolute top-full left-0 z-50 mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 p-3 md:p-4 w-[280px] md:w-[300px] animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full left-0 z-50 mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 p-3 md:p-4 w-[280px] md:w-[300px] max-w-[85vw] animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex items-center justify-between mb-4">
                         <button onClick={handlePrevMonth} className="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
                             <ChevronLeft size={20} />
@@ -101,7 +101,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
                         {daysInMonth.map((date, idx) => {
                             const isSelected = value ? isSameDay(date, parseISO(value)) : false;
                             const isCurrentMonth = isSameMonth(date, currentMonth);
-                            const isPast = minDate ? date < parseISO(minDate) : false; 
+                            const isPast = minDate ? date < parseISO(minDate) : false;
 
                             const isDisabled = isPast && !isSameDay(date, parseISO(minDate || ''));
 

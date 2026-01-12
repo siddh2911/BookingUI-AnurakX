@@ -1,6 +1,7 @@
 import React from 'react';
 import { Booking, Room, BookingStatus } from '../../types';
 import BookingRow from './BookingRow';
+import BookingMobileCard from './BookingMobileCard';
 import { Plus, X, Search, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface BookingListProps {
@@ -138,6 +139,31 @@ const BookingList: React.FC<BookingListProps> = ({
         </div>
       </div>
 
+      {/* Mobile Sort Control */}
+      <div className="md:hidden flex items-center gap-2 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">Sort by:</span>
+        {[
+          { key: 'checkInDate', label: 'Date' },
+          { key: 'guestName', label: 'Guest' },
+          { key: 'status', label: 'Status' },
+          { key: 'balance', label: 'Balance' }
+        ].map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => requestSort(opt.key)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${sortConfig?.key === opt.key
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+          >
+            {opt.label}
+            {sortConfig?.key === opt.key && (
+              sortConfig.direction === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+            )}
+          </button>
+        ))}
+      </div>
+
       {bookingFilter && (
         <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg flex items-center justify-between text-sm">
           <span>Showing results for: <strong>{bookingFilter.label}</strong></span>
@@ -145,34 +171,34 @@ const BookingList: React.FC<BookingListProps> = ({
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 text-slate-500 uppercase border-b">
-              <tr>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('id')}>
-                  <div className="flex items-center gap-1">ID <SortIcon column="id" /></div>
-                </th>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('guestName')}>
-                  <div className="flex items-center gap-1">Guest <SortIcon column="guestName" /></div>
-                </th>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('roomNumber')}>
-                  <div className="flex items-center gap-1">Room <SortIcon column="roomNumber" /></div>
-                </th>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('checkInDate')}>
-                  <div className="flex items-center gap-1">Check In <SortIcon column="checkInDate" /></div>
-                </th>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('checkOutDate')}>
-                  <div className="flex items-center gap-1">Check Out <SortIcon column="checkOutDate" /></div>
-                </th>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('status')}>
-                  <div className="flex items-center gap-1">Status <SortIcon column="status" /></div>
-                </th>
-                <th className="px-6 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('balance')}>
-                  <div className="flex items-center gap-1">Balance <SortIcon column="balance" /></div>
-                </th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('id')}>
+                <div className="flex items-center gap-1">ID <SortIcon column="id" /></div>
+              </th>
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('guestName')}>
+                <div className="flex items-center gap-1">Guest <SortIcon column="guestName" /></div>
+              </th>
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('roomNumber')}>
+                <div className="flex items-center gap-1">Room <SortIcon column="roomNumber" /></div>
+              </th>
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('checkInDate')}>
+                <div className="flex items-center gap-1">Check In <SortIcon column="checkInDate" /></div>
+              </th>
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('checkOutDate')}>
+                <div className="flex items-center gap-1">Check Out <SortIcon column="checkOutDate" /></div>
+              </th>
+
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('status')}>
+                <div className="flex items-center gap-1">Status <SortIcon column="status" /></div>
+              </th>
+              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('balance')}>
+                <div className="flex items-center gap-1">Balance <SortIcon column="balance" /></div>
+              </th>
+              <th className="px-2 pr-16 py-3 text-center">Actions</th>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredAndSortedBookings.length === 0 ? (
@@ -200,6 +226,30 @@ const BookingList: React.FC<BookingListProps> = ({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-4">
+        {filteredAndSortedBookings.length === 0 ? (
+          <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center gap-2">
+              <Search size={32} className="text-slate-300" />
+              <p>No {activeTab} bookings found.</p>
+            </div>
+          </div>
+        ) : (
+          filteredAndSortedBookings.map(booking => (
+            <BookingMobileCard
+              key={booking.id}
+              booking={booking}
+              room={rooms.find(r => r.id === booking.roomId)}
+              onUpdateStatus={onUpdateStatus}
+              onEditBooking={onEditBooking}
+              onAddPayment={onAddPayment}
+              onDeleteBooking={onDeleteBooking}
+            />
+          ))
+        )}
       </div>
       <div className="text-xs text-slate-400 text-right px-2">
         Showing {filteredAndSortedBookings.length} {activeTab} bookings

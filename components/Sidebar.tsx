@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils, Globe } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
 import { User } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -23,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
+    { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
   ];
 
   return (
@@ -34,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
         ${collapsed ? "md:w-20" : "md:w-64"}
       `}
     >
-      {}
+      { }
       <div className="h-24 flex items-center justify-between px-4 border-b border-slate-800">
         {!collapsed && (
           <div className="flex items-center justify-center w-full px-2 py-2">
@@ -63,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
         </button>
       </div>
 
-      {}
+      { }
       <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
         {links.map((link) => (
           <NavLink
@@ -79,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
             <div className="relative z-10">{link.icon}</div>
             {!collapsed && <span className="font-medium whitespace-nowrap">{link.label}</span>}
 
-            {}
+            { }
             {collapsed && (
               <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 pointer-events-none">
                 {link.label}
@@ -89,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
         ))}
       </nav>
 
-      {}
+      { }
       <div className="p-4 border-t border-slate-800 bg-slate-900/50">
         <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-4' : 'justify-between px-2'}`}>
           <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
