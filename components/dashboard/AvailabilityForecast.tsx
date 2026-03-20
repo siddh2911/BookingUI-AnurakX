@@ -84,7 +84,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                                 <span className="font-bold text-slate-700 text-sm">
                                     {day.date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
                                 </span>
-                                <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${isAvailable ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${isAvailable ? 'text-emerald-600' : 'text-rose-600'}`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                                     {day.availableRooms.length} Left
                                 </span>

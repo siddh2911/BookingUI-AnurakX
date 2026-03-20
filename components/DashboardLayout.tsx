@@ -21,9 +21,9 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 relative overflow-hidden transition-colors duration-1000">
             {/* Environmental Background */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className={`absolute -top-[10%] -right-[10%] w-[80vw] h-[80vw] rounded-full blur-[120px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-orange-100/30 opacity-100 shadow-[0_0_100px_rgba(251,146,60,0.1)]' : 'bg-blue-900/20 opacity-40 translate-y-20'}`} />
-                <div className={`absolute top-[30%] -left-[10%] w-[60vw] h-[60vw] rounded-full blur-[100px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-blue-100/20 opacity-100 shadow-[0_0_100px_rgba(59,130,246,0.05)]' : 'bg-indigo-900/20 opacity-50 -translate-y-10'}`} />
-                <div className={`absolute -bottom-[10%] right-[20%] w-[40vw] h-[40vw] rounded-full blur-[90px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-purple-50/30 opacity-80' : 'bg-purple-900/10 opacity-30'}`} />
+                <div className={`absolute -top-[10%] -right-[10%] w-[80vw] h-[80vw] rounded-full blur-[120px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-orange-100/30 opacity-100 shadow-[0_0_100px_rgba(251,146,60,0.1)]' : 'bg-violet-500/8 opacity-60 translate-y-20'}`} />
+                <div className={`absolute top-[30%] -left-[10%] w-[60vw] h-[60vw] rounded-full blur-[100px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-blue-100/20 opacity-100 shadow-[0_0_100px_rgba(59,130,246,0.05)]' : 'bg-blue-500/6 opacity-50 -translate-y-10'}`} />
+                <div className={`absolute -bottom-[10%] right-[20%] w-[40vw] h-[40vw] rounded-full blur-[90px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-purple-50/30 opacity-80' : 'bg-emerald-500/5 opacity-40'}`} />
             </div>
 
             { }

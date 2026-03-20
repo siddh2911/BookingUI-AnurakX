@@ -84,12 +84,9 @@
     document.body.innerHTML += '<div style="position:fixed;top:0;left:0;background:red;color:white;z-index:9999;padding:20px;">' + event.reason + '</div>';
   });
 
-  // Calculate day/night theme immediately to prevent flash
+  // Default to daylight theme; user can toggle manually
   function applyTheme() {
-    const hour = new Date().getHours();
-    // 6 AM to 6 PM is day
-    const isDay = hour >= 6 && hour < 18;
-    document.documentElement.setAttribute('data-theme', isDay ? 'day' : 'night');
+    document.documentElement.setAttribute('data-theme', 'day');
   }
   applyTheme();
   // React's useTheme hook will take over from here
@@ -114,19 +111,19 @@
   }
 
   :root[data-theme="night"] {
-    /* Night mode inverts the slate scale carefully */
+    /* Night mode: true black premium palette */
     --color-slate-900: 248, 250, 252;
-    --color-slate-800: 241, 245, 249;
-    --color-slate-700: 226, 232, 240;
-    --color-slate-600: 203, 213, 225;
-    --color-slate-500: 148, 163, 184;
-    --color-slate-400: 100, 116, 139;
-    --color-slate-300: 71, 85, 105;
-    --color-slate-200: 51, 65, 85;
-    --color-slate-100: 30, 41, 59;
-    --color-slate-50: 15, 23, 42;
-    /* Deep dark blue overrides white */
-    --color-white: 10, 15, 30;
+    --color-slate-800: 226, 232, 240;
+    --color-slate-700: 203, 213, 225;
+    --color-slate-600: 160, 170, 185;
+    --color-slate-500: 120, 130, 150;
+    --color-slate-400: 80, 90, 110;
+    --color-slate-300: 45, 50, 65;
+    --color-slate-200: 30, 34, 45;
+    --color-slate-100: 18, 20, 28;
+    --color-slate-50: 8, 8, 12;
+    /* True black for backgrounds */
+    --color-white: 12, 12, 16;
     --color-black: 255, 255, 255;
   }
 

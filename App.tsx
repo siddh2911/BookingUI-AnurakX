@@ -151,7 +151,7 @@ export default function App() {
           id: b.id, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
           guestPhone: b.contactNumber, checkInDate: normalizeDateString(b.checkInDate),
           checkOutDate: normalizeDateString(b.checkOutDate),
-          sources: [{ source: b.bookingSource as BookingSource, amount: b.totalAmount || b.totalPaid || 0 }], status: b.status as BookingStatus,
+          sources: b.bookingSources || [{ source: b.bookingSource as BookingSource, amount: b.totalAmount || b.totalPaid || 0 }], status: b.status as BookingStatus,
           totalPaid: b.totalPaid, pendingBalance: b.balance,
         };
       });
@@ -388,7 +388,7 @@ export default function App() {
         roomRate: fetchedBookingData.nightlyRate || 0,
         advance: fetchedBookingData.advanceAmount || 0,
         source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT,
-        sources: fetchedBookingData.sources || [{ source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, amount: fetchedBookingData.totalAmount || 0 }],
+        sources: fetchedBookingData.bookingSources || booking.sources || [{ source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, amount: fetchedBookingData.totalAmount || 0 }],
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
         manualTotal: fetchedBookingData.totalAmount,
@@ -416,7 +416,7 @@ export default function App() {
 
     const bookingPayload = {
       fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, checkInDate: checkIn, checkOutDate: checkOut,
-      roomNo: room?.number || '', nightlyRate: roomRate, sources: sources, advanceAmount: advance,
+      roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: sources, advanceAmount: advance,
       paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges
     };
 

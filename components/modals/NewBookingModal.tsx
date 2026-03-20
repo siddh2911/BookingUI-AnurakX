@@ -52,6 +52,11 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const [isFinancialsVisible, setIsFinancialsVisible] = useState(!readOnly);
    const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
+   const localNights = newBookingData.checkIn && newBookingData.checkOut
+      ? Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)))
+      : bookingNights;
+   const localExtras = newBookingData.additionalCharges?.reduce((sum: number, c: any) => sum + (Number(c.amount) || 0), 0) || 0;
+   const localCalculatedTotal = (newBookingData.roomRate || 0) * localNights + localExtras;
 
    useEffect(() => {
       setIsFinancialsVisible(!readOnly);
@@ -610,7 +615,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     <input
                                        type="number"
                                        className="text-3xl font-serif bg-transparent border-b border-white/10 outline-none w-full placeholder:text-slate-600 focus:border-white/50 transition-colors text-white"
-                                       value={newBookingData.manualTotal !== undefined ? (newBookingData.manualTotal === null ? '' : newBookingData.manualTotal) : (bookingTotal || '')}
+                                       value={newBookingData.manualTotal !== undefined ? (newBookingData.manualTotal === null ? '' : newBookingData.manualTotal) : (localCalculatedTotal || '')}
                                        onChange={(e) => {
                                           const val = e.target.value;
                                           const newTotal = val === '' ? 0 : parseFloat(val);
@@ -657,13 +662,13 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                        </button>
                                     )}
                                  </div>
-                                 <p className="text-slate-400 text-sm mt-1">Total cost for {bookingNights} nights</p>
+                                 <p className="text-slate-400 text-sm mt-1">Total cost for {localNights} nights</p>
                               </div>
 
                               <div className="space-y-4 pt-6 border-t border-white/10">
                                  <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-300">Room Rate</span>
-                                    <span>₹{newBookingData.roomRate} x {bookingNights}</span>
+                                    <span>₹{newBookingData.roomRate} x {localNights}</span>
                                  </div>
                                  {(newBookingData.additionalCharges || []).length > 0 && (
                                     <div className="flex justify-between items-center text-sm">
@@ -760,7 +765,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
          { }
          {!readOnly && (
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-50 flex items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+            <div className="lg:hidden sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-50 flex items-center gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                <div className="flex-1">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Due</p>
                   <p className="text-xl font-bold text-slate-900">

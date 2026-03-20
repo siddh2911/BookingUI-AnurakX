@@ -8,8 +8,8 @@ interface PlatformIconProps {
 }
 
 export const PlatformIcon: React.FC<PlatformIconProps> = ({ source, className = "w-4 h-4" }) => {
-    
-    const normalizedSource = source?.toString().toLowerCase();
+
+    const normalizedSource = source ? source.toString().toLowerCase() : '';
 
     if (normalizedSource.includes('airbnb')) {
         return (
@@ -30,7 +30,7 @@ export const PlatformIcon: React.FC<PlatformIconProps> = ({ source, className = 
     if (normalizedSource.includes('expedia')) {
         return (
             <svg className={className} viewBox="0 0 24 24" fill="currentColor" style={{ color: '#FFD700' }}>
-                <path d="M2.5 12l8.5-9 8.5 9-3 6h-11z" /> {}
+                <path d="M2.5 12l8.5-9 8.5 9-3 6h-11z" /> { }
             </svg>
         );
     }
@@ -50,8 +50,8 @@ export const PlatformIcon: React.FC<PlatformIconProps> = ({ source, className = 
     if (normalizedSource.includes('trip') || normalizedSource.includes('mmt')) {
         return (
             <svg className={className} viewBox="0 0 24 24" fill="currentColor" style={{ color: '#E31E24' }}>
-                <path d="M3.5 5h17a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 17.5v-11A1.5 1.5 0 0 1 3.5 5zm5 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm7 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" /> {}
-                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6z" style={{ display: 'none' }} /> {}
+                <path d="M3.5 5h17a1.5 1.5 0 0 1 1.5 1.5v11a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 17.5v-11A1.5 1.5 0 0 1 3.5 5zm5 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm7 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" /> { }
+                <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6z" style={{ display: 'none' }} /> { }
                 <text x="12" y="16" fontSize="10" textAnchor="middle" fill="white" fontWeight="bold">MY</text>
             </svg>
         );
@@ -61,7 +61,7 @@ export const PlatformIcon: React.FC<PlatformIconProps> = ({ source, className = 
         return <Globe className={`${className} text-blue-600`} />;
     }
 
-    
+
     return <Phone className={`${className} text-slate-400`} />;
 };
 

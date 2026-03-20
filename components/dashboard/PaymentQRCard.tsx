@@ -3,7 +3,7 @@ import { Scan } from 'lucide-react';
 
 export const PaymentQRCard: React.FC = () => {
     return (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group h-full">
+        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group h-full">
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <p className="text-slate-500 text-sm font-medium">Quick Payment</p>

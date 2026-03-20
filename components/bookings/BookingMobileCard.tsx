@@ -33,7 +33,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {booking.sources?.map((s, idx) => (
                             <div key={idx} className="flex items-center gap-1">
-                                {idx === 0 && <PlatformIcon source={s.source} className="w-3.5 h-3.5 text-slate-400" />}
+                                <PlatformIcon source={s.source} className="w-3.5 h-3.5 text-slate-400" />
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'AIRBNB' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
                                     s.source === 'BOOKING_COM' ? 'bg-[#003580]/10 text-[#003580]' :
                                         'bg-slate-100 text-slate-500'
@@ -48,7 +48,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                 <select
                     value={booking.status}
                     onChange={(e) => onUpdateStatus(booking.id, e.target.value as BookingStatus)}
-                    className="text-xs font-medium border-white/20 rounded-md py-1 py-1 pr-7 pl-2 bg-white/10 text-slate-800 focus:ring-0 focus:border-blue-500"
+                    className="text-xs font-medium border-white/20 rounded-md py-1 pr-7 pl-2 bg-white/10 text-slate-800 focus:ring-0 focus:border-blue-500"
                 >
                     {Object.values(BookingStatus).map(s => <option key={s} value={s} className="text-slate-800 bg-white">{s}</option>)}
                 </select>
@@ -75,9 +75,9 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                 <div>
                     {balance > 0 ? (
                         <div className="flex items-center gap-2.5">
-                            <span className="text-red-600 dark:text-red-400 font-bold text-sm">₹{balance.toLocaleString()}</span>
+                            <span className="text-red-600 font-bold text-sm">₹{balance.toLocaleString()}</span>
                             <button
-                                className="text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                                className="text-red-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
                                 onClick={(e) => { e.stopPropagation(); onAddPayment(booking); }}
                             >
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -85,7 +85,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                             </button>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wide">
+                        <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs uppercase tracking-wide">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                             <span>Paid</span>
                         </div>

@@ -55,7 +55,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
   return (
     <div
       ref={cardRef}
-      className={`bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/20 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
+      className={`bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/50 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
       <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition duration-500"></div>
@@ -122,7 +122,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
 
               <div className="h-px bg-slate-100 my-4 w-full"></div>
 
-              <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-slate-100">
+              <div className="grid grid-cols-2 gap-y-6 md:grid-cols-4 md:gap-y-0 md:divide-x md:divide-slate-200">
                 {details.map((detail, index) => (
                   <div key={detail.label} className="px-1 flex flex-col items-center justify-start md:first:pl-0 md:last:pr-0">
                     <p className="text-xs md:text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 opacity-70">{detail.label}</p>

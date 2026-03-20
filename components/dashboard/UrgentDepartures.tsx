@@ -70,8 +70,12 @@ const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, 
                                     </span>
 
                                     <div className="flex gap-2 -mr-2 -mt-2 relative z-10">
-                                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500" title={`Source: ${booking.sources?.[0]?.source}`}>
-                                            <PlatformIcon source={booking.sources?.[0]?.source || 'Direct'} className="w-4 h-4" />
+                                        <div className="flex -space-x-2">
+                                            {booking.sources?.map((s: any, idx: number) => (
+                                                <div key={idx} className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 relative" style={{ zIndex: 10 - idx }} title={`Source: ${s.source || 'Unknown'}`}>
+                                                    <PlatformIcon source={s.source || 'Direct'} className="w-4 h-4" />
+                                                </div>
+                                            ))}
                                         </div>
                                         {booking.guestPhone && (
                                             <a
@@ -102,12 +106,12 @@ const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, 
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {(booking.pendingBalance || 0) > 0 ? (
-                                        <span className="text-rose-600 dark:text-rose-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                        <span className="text-rose-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
                                             {t('due')}: ₹{booking.pendingBalance?.toLocaleString()}
                                         </span>
                                     ) : (
-                                        <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                        <span className="text-emerald-600 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                             {t('paid')}
                                         </span>

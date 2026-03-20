@@ -8,7 +8,7 @@ interface ActivityLogProps {
 
 const ActivityLog: React.FC<ActivityLogProps> = ({ logs }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 h-full flex flex-col">
+    <div className="bg-white/70 backdrop-blur-xl transition-colors duration-1000 rounded-2xl shadow-sm border border-white/20 p-6 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-6">
         <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
           <Activity size={18} />
@@ -20,7 +20,7 @@ const ActivityLog: React.FC<ActivityLogProps> = ({ logs }) => {
       </div>
 
       <div className="space-y-6 relative flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        {}
+        { }
         {logs.length > 0 && <div className="absolute left-2.5 top-2 bottom-0 w-px bg-slate-100"></div>}
 
         {logs.length === 0 ? (

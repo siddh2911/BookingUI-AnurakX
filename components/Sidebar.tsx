@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
               <h1 className="text-2xl font-bold text-slate-900 tracking-widest leading-none text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
                 KARUNA VILLA
               </h1>
-              <p className="text-[10px] text-blue-200/80 uppercase tracking-[0.3em] font-medium border-t border-blue-500/30 pt-1.5 px-2">
+              <p className="text-[10px] text-blue-600 uppercase tracking-[0.3em] font-medium border-t border-blue-500/30 pt-1.5 px-2">
                 Dashboard
               </p>
 

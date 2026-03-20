@@ -54,9 +54,13 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                   <div className="flex flex-col gap-0.5 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><Clock size={10} /> {checkIn.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                     <span className="flex items-center gap-1"><Phone size={10} /> {booking.guestPhone || '...'}</span>
-                    <span className="flex items-center gap-1 mt-0.5">
-                      <PlatformIcon source={booking.sources?.[0]?.source || 'Direct'} className="w-3 h-3" />
-                      {booking.sources?.[0]?.source || 'Unknown'}
+                    <span className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      {booking.sources?.map((s: any, idx: number) => (
+                        <span key={idx} className="flex items-center gap-1 text-[10px] bg-slate-100 px-1.5 py-0.5 rounded">
+                          <PlatformIcon source={s.source || 'Direct'} className="w-3 h-3" />
+                          {s.source || 'Unknown'}
+                        </span>
+                      ))}
                     </span>
                   </div>
                 </div>
@@ -115,9 +119,13 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                       </div>
                       <div>
                         <p className="font-semibold text-slate-800">{booking.guestName}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-400">
-                          <PlatformIcon source={booking.sources?.[0]?.source || 'Direct'} className="w-3 h-3" />
-                          <span>{booking.sources?.[0]?.source || 'Unknown'}</span>
+                        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                          {booking.sources?.map((s: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-100/50 px-1.5 py-0.5 rounded">
+                              <PlatformIcon source={s.source || 'Direct'} className="w-3 h-3" />
+                              <span>{s.source || 'Unknown'}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
