@@ -46,10 +46,18 @@ export interface Payment {
   id: string;
   bookingId: string;
   amount: number;
-  date: string; 
+  date: string;
   method: PaymentMethod;
   type: PaymentType;
+  bookingSource?: BookingSource;
   notes?: string;
+}
+
+export interface BookingSourceDetail {
+  source: BookingSource;
+  startDate?: string;
+  endDate?: string;
+  amount: number;
 }
 
 export interface Booking {
@@ -58,17 +66,17 @@ export interface Booking {
   guestName: string;
   guestEmail?: string;
   guestPhone?: string;
-  checkInDate: string; 
-  checkOutDate: string; 
-  source: BookingSource;
+  checkInDate: string;
+  checkOutDate: string;
+  sources: BookingSourceDetail[];
   status: BookingStatus;
-  totalPaid?: number; 
-  totalAmount?: number; 
-  payments?: Payment[]; 
-  pendingBalance?: number; 
+  totalPaid?: number;
+  totalAmount?: number;
+  payments?: Payment[];
+  pendingBalance?: number;
   additionalCharges?: { description: string; amount: number }[];
   notes?: string;
-  createdAt?: string; 
+  createdAt?: string;
 }
 
 export interface Room {
@@ -108,7 +116,7 @@ export interface MenuItem {
 
 export interface FoodOrder {
   id: string;
-  roomId: string; 
+  roomId: string;
   items: {
     menuItem: MenuItem;
     quantity: number;

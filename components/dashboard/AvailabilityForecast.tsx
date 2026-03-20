@@ -15,7 +15,7 @@ interface AvailabilityForecastProps {
 
 const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, forecastPage, setForecastPage, onOpenNewBooking, rooms, bookings = [], onEditBooking, handleOpenDayDetails }) => {
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <div className="bg-white/70 backdrop-blur-xl transition-colors duration-1000 rounded-2xl shadow-sm border border-white/20 p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
@@ -56,7 +56,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                 {forecast.map((day) => {
                     const isAvailable = day.availableRooms.length > 0;
 
-                    
+
                     const safeRooms = rooms || [];
                     const availableIds = new Set(day.availableRooms.map((r: any) => r.id));
                     const unavailableRooms = safeRooms.filter(r => !availableIds.has(r.id));
@@ -77,21 +77,22 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                          `}
                             onClick={() => handleOpenDayDetails(day.date)}
                         >
-                            {}
+                            { }
                             <div className={`absolute top-0 left-0 w-1 h-full ${isAvailable ? 'bg-green-400' : 'bg-red-400'}`}></div>
 
                             <div className="flex justify-between items-start mb-3 ml-2">
                                 <span className="font-bold text-slate-700 text-sm">
                                     {day.date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
                                 </span>
-                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${isAvailable ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                                     {day.availableRooms.length} Left
                                 </span>
                             </div>
 
                             <div className="flex flex-wrap gap-1.5 ml-2">
                                 {displayRooms.slice(0, 12).map((r) => {
-                                    
+
                                     const booking = !r.isAvailable ? bookings.find(b => {
                                         const checkIn = new Date(b.checkInDate); checkIn.setHours(0, 0, 0, 0);
                                         const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);

@@ -111,7 +111,7 @@ export default function App() {
     checkIn: today,
     checkOut: formatLocalDate(new Date(Date.now() + 86400000)),
     roomId: '', advance: 0, roomRate: 0,
-    source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: '',
+    source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, amount: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
     manualTotal: undefined as number | undefined | null,
     additionalCharges: [
       { category: 'Cleaning Fee', amount: 0 },
@@ -151,7 +151,7 @@ export default function App() {
           id: b.id, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
           guestPhone: b.contactNumber, checkInDate: normalizeDateString(b.checkInDate),
           checkOutDate: normalizeDateString(b.checkOutDate),
-          source: b.bookingSource as BookingSource, status: b.status as BookingStatus,
+          sources: [{ source: b.bookingSource as BookingSource, amount: b.totalAmount || b.totalPaid || 0 }], status: b.status as BookingStatus,
           totalPaid: b.totalPaid, pendingBalance: b.balance,
         };
       });
@@ -358,7 +358,7 @@ export default function App() {
       checkIn: preSelectedDate ? formatLocalDate(preSelectedDate) : today,
       checkOut: preSelectedDate ? formatLocalDate(new Date(preSelectedDate.getTime() + 86400000)) : formatLocalDate(new Date(Date.now() + 86400000)),
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
-      source: BookingSource.DIRECT, paymentMethod: PaymentMethod.CASH, notes: '',
+      source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, amount: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
       manualTotal: undefined,
       additionalCharges: [
         { category: 'Cleaning Fee', amount: 0 },
@@ -388,6 +388,7 @@ export default function App() {
         roomRate: fetchedBookingData.nightlyRate || 0,
         advance: fetchedBookingData.advanceAmount || 0,
         source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT,
+        sources: fetchedBookingData.sources || [{ source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, amount: fetchedBookingData.totalAmount || 0 }],
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
         manualTotal: fetchedBookingData.totalAmount,
@@ -402,7 +403,7 @@ export default function App() {
 
   const handleSaveBooking = useCallback(async (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => {
     e.preventDefault();
-    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, source, notes, guestEmail, guestPhone, additionalCharges } = newBookingData;
+    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, sources, notes, guestEmail, guestPhone, additionalCharges } = newBookingData;
     const room = selectedRoom;
     if (!room) { alert("Selected room not found."); return; }
     if (new Date(checkOut) <= new Date(checkIn)) { alert("Check-out date must be after check-in date."); return; }
@@ -410,11 +411,12 @@ export default function App() {
     const bookingNights = Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)));
     const roomTotal = (roomRate || 0) * bookingNights;
     const additionalTotal = additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
-    const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (roomTotal + additionalTotal);
+    const sourcesSum = sources?.length ? sources.reduce((sum, src) => sum + (Number(src.amount) || 0), 0) : roomTotal;
+    const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
     const bookingPayload = {
       fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, checkInDate: checkIn, checkOutDate: checkOut,
-      roomNo: room?.number || '', nightlyRate: roomRate, bookingSource: source, advanceAmount: advance,
+      roomNo: room?.number || '', nightlyRate: roomRate, sources: sources, advanceAmount: advance,
       paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges
     };
 
@@ -451,11 +453,12 @@ export default function App() {
     const amount = parseFloat(formData.get('amount') as string);
     const method = formData.get('method') as PaymentMethod;
     const type = formData.get('type') as PaymentType;
+    const bookingSource = formData.get('bookingSource') as BookingSource || undefined;
 
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${selectedBooking.id}/payments`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: selectedBooking.id, amount, method, type, date: new Date().toISOString() }),
+        body: JSON.stringify({ bookingId: selectedBooking.id, amount, method, type, bookingSource, date: new Date().toISOString() }),
       });
       if (!response.ok) throw new Error('Failed to add payment');
 
@@ -480,7 +483,8 @@ export default function App() {
   const bookingNights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
   const roomTotal = (newBookingData.roomRate || 0) * bookingNights;
   const additionalTotal = newBookingData.additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
-  const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (roomTotal + additionalTotal);
+  const sourcesSum = newBookingData.sources?.length ? newBookingData.sources.reduce((sum: number, src: any) => sum + (Number(src.amount) || 0), 0) : roomTotal;
+  const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
   let paidAmount = newBookingData.advance;
   let bookingPending = bookingTotal - paidAmount;
@@ -557,7 +561,7 @@ export default function App() {
                     )
                   );
                   if (conflict) {
-                    console.warn(`Skipping conflicting booking from ${newB.source} for room ${newB.roomId} on ${newB.checkInDate}`);
+                    console.warn(`Skipping conflicting booking from external source for room ${newB.roomId} on ${newB.checkInDate}`);
                     return false;
                   }
                   return true;

@@ -22,8 +22,8 @@ UID:${booking.id}@karunavilla.com
 DTSTAMP:${now}
 DTSTART;VALUE=DATE:${start}
 DTEND;VALUE=DATE:${end}
-SUMMARY:${booking.guestName} (${booking.source})
-DESCRIPTION:Booking ID: ${booking.id}\\nSource: ${booking.source}\\nStatus: ${booking.status}
+SUMMARY:${booking.guestName} (${booking.sources?.[0]?.source || 'Unknown'})
+DESCRIPTION:Booking ID: ${booking.id}\\nSource: ${booking.sources?.[0]?.source || 'Unknown'}\\nStatus: ${booking.status}
 STATUS:CONFIRMED
 END:VEVENT
 `;
@@ -55,7 +55,7 @@ export const parseICal = (icalContent: string, source: BookingSource): Partial<B
 
             bookings.push({
                 id: uidMatch ? uidMatch[1].trim() : Math.random().toString(36).substr(2, 9),
-                source: source,
+                sources: [{ source: source, amount: 0 }],
                 status: BookingStatus.CONFIRMED,
                 guestName: summaryMatch ? summaryMatch[1].trim() : 'External Guest',
                 checkInDate: formattedStart,

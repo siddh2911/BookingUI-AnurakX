@@ -26,7 +26,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
     const handleNext = () => setOffset(prev => prev - 1);
 
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100 h-full flex flex-col">
+        <div className="bg-white/70 backdrop-blur-xl p-4 sm:p-6 rounded-2xl shadow-sm border border-white/20 h-full flex flex-col transition-colors duration-1000">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
                 <div>
                     <h3 className="text-lg font-bold text-slate-900">Occupancy Trend</h3>
@@ -71,12 +71,12 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
                                 <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(var(--color-slate-200), 0.5)" />
                         <XAxis
                             dataKey="name"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
+                            tick={{ fill: 'rgba(var(--color-slate-400), 1)', fontSize: 11, fontWeight: 500 }}
                             dy={10}
                             height={40}
                             minTickGap={32}
@@ -86,19 +86,20 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
                             axisLine={false}
                             tickLine={false}
                             width={60}
-                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 500 }}
+                            tick={{ fill: 'rgba(var(--color-slate-400), 1)', fontSize: 11, fontWeight: 500 }}
                             tickMargin={10}
                             tickFormatter={(value) => `${value}%`}
                             domain={[0, 100]}
                         />
                         <Tooltip
-                            cursor={{ stroke: '#cbd5e1', strokeDasharray: '3 3' }}
+                            cursor={{ stroke: 'rgba(var(--color-slate-300), 1)', strokeDasharray: '3 3' }}
                             contentStyle={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                backdropFilter: 'blur(4px)',
+                                backgroundColor: 'rgba(var(--color-white), 0.8)',
+                                backdropFilter: 'blur(8px)',
                                 borderRadius: '12px',
-                                border: '1px solid #e2e8f0',
-                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05)',
+                                border: '1px solid rgba(var(--color-slate-200), 1)',
+                                color: 'rgba(var(--color-slate-900), 1)',
+                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                                 padding: '12px'
                             }}
                             formatter={(value: number) => [`${value}%`, 'Occupancy']}

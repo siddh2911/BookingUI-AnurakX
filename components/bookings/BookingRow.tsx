@@ -16,25 +16,28 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
   const paid = (booking.payments || []).reduce((sum, p) => sum + p.amount, 0);
   const balance = booking.pendingBalance || 0;
   const roomNumber = room?.number || 'N/A';
-
   return (
-    <tr className="hover:bg-slate-50">
+    <tr className="hover:bg-slate-50/50 transition-colors duration-300">
       <td className="px-2 py-3 font-mono text-xs text-slate-500">{booking.id}</td>
       <td className="px-2 py-3">
         <div className="font-medium text-slate-900">{booking.guestName}</div>
-        <div className="flex items-center gap-1.5 mt-1">
-          <PlatformIcon source={booking.source} className="w-3.5 h-3.5 text-slate-400" />
-          <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${booking.source === 'AIRBNB' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
-            booking.source === 'BOOKING_COM' ? 'bg-[#003580]/10 text-[#003580]' :
-              'bg-slate-100 text-slate-500'
-            }`}>
-            {booking.source}
-          </span>
+        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+          {booking.sources?.map((s, idx) => (
+            <div key={idx} className="flex items-center gap-1">
+              {idx === 0 && <PlatformIcon source={s.source} className="w-3.5 h-3.5 text-slate-400" />}
+              <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'AIRBNB' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
+                s.source === 'BOOKING_COM' ? 'bg-[#003580]/10 text-[#003580]' :
+                  'bg-slate-100 text-slate-500'
+                }`} title={`₹${s.amount || 0}${s.startDate && s.endDate ? ` (${new Date(s.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${new Date(s.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})` : ''}`}>
+                {s.source}
+              </span>
+            </div>
+          ))}
         </div>
       </td>
-      <td className="px-2 py-3 font-bold">{roomNumber}</td>
-      <td className="px-2 py-3">{booking.checkInDate}</td>
-      <td className="px-2 py-3">{booking.checkOutDate}</td>
+      <td className="px-2 py-3 font-semibold text-slate-800">{roomNumber}</td>
+      <td className="px-2 py-3 font-medium text-slate-700">{booking.checkInDate}</td>
+      <td className="px-2 py-3 font-medium text-slate-700">{booking.checkOutDate}</td>
 
       <td className="px-2 py-2">
         <select
@@ -48,18 +51,19 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
       <td className="px-2 py-2">
         {balance > 0 ? (
           <div className="flex flex-col items-start gap-1">
-            <span className="text-red-600 font-bold text-xs">₹{balance.toLocaleString()}</span>
+            <span className="text-red-600 dark:text-red-400 font-bold text-xs">₹{balance.toLocaleString()}</span>
             <button
-              className="flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded border border-red-100 uppercase tracking-wide hover:bg-red-100 transition-colors"
+              className="flex items-center gap-1.5 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-wider hover:text-red-700 transition-colors"
               onClick={(e) => { e.stopPropagation(); onAddPayment(booking); }}
               title="Add Payment"
             >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
               Pay
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-1 text-emerald-600 font-bold text-xs">
-            <CheckCircle size={14} />
+          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-wide">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
             <span>Paid</span>
           </div>
         )}

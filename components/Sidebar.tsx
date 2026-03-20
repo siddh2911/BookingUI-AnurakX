@@ -29,18 +29,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
   return (
     <div
       className={`
-        fixed inset-y-0 left-0 z-30 flex flex-col bg-slate-900 text-white transition-all duration-300 ease-in-out shadow-xl
+        fixed inset-y-0 left-0 z-30 flex flex-col bg-white/70 backdrop-blur-3xl border-r border-slate-200 text-slate-800 transition-all duration-300 ease-in-out shadow-2xl
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} 
         md:relative md:translate-x-0 
         ${collapsed ? "md:w-20" : "md:w-64"}
       `}
     >
       { }
-      <div className="h-24 flex items-center justify-between px-4 border-b border-slate-800">
+      <div className="h-24 flex flex-col justify-center px-4 border-b border-slate-200 relative">
         {!collapsed && (
           <div className="flex items-center justify-center w-full px-2 py-2">
             <Link to="/" className="flex flex-col items-center hover:opacity-90 transition-opacity gap-2">
-              <h1 className="text-2xl font-bold text-white tracking-widest leading-none text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-widest leading-none text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
                 KARUNA VILLA
               </h1>
               <p className="text-[10px] text-blue-200/80 uppercase tracking-[0.3em] font-medium border-t border-blue-500/30 pt-1.5 px-2">
@@ -52,13 +52,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
         )}
         {collapsed && (
           <div className="flex items-center justify-center w-full h-full">
-            <Link to="/" className="text-xl font-bold text-white hover:text-blue-400 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>KV</Link>
+            <Link to="/" className="text-xl font-bold text-slate-900 hover:text-blue-500 transition-colors" style={{ fontFamily: '"Playfair Display", serif' }}>KV</Link>
           </div>
         )}
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition transform translate-x-10 absolute right-0 border border-slate-700 shadow-lg z-50"
+          className="hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition transform translate-x-10 absolute right-0 border border-slate-200 shadow-lg z-50"
         >
           {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
@@ -71,19 +71,34 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
             key={link.to}
             to={link.to}
             end={link.exact}
-            className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative
-              ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
-              ${collapsed ? 'justify-center' : ''}
-            `}
+            className="block mb-1 focus:outline-none"
           >
-            <div className="relative z-10">{link.icon}</div>
-            {!collapsed && <span className="font-medium whitespace-nowrap">{link.label}</span>}
+            {({ isActive }) => (
+              <div className={`
+                flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative
+                ${isActive
+                  ? 'bg-blue-600/10 text-blue-600 shadow-sm border border-blue-200'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
+                }
+                ${collapsed ? 'justify-center mx-1' : 'mx-2'}
+              `}>
+                <div className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'scale-110 text-blue-600' : ''}`}>
+                  {link.icon}
+                </div>
+                {!collapsed && (
+                  <span className={`font-semibold whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-blue-700' : ''}`}>
+                    {link.label}
+                  </span>
+                )}
 
-            { }
-            {collapsed && (
-              <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 pointer-events-none">
-                {link.label}
+                {/* Active Indicator Line */}
+                <div className={`absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'} ${collapsed ? 'hidden' : ''}`} />
+
+                {collapsed && (
+                  <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-2xl border border-slate-700 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap z-50 pointer-events-none">
+                    {link.label}
+                  </div>
+                )}
               </div>
             )}
           </NavLink>
@@ -91,23 +106,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
       </nav>
 
       { }
-      <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-        <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-4' : 'justify-between px-2'}`}>
-          <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold shadow-lg ring-2 ring-slate-800 shrink-0">
+      <div className="p-6 border-t border-slate-200 bg-slate-50/50">
+        <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-5' : 'justify-between px-1'}`}>
+          <div className={`flex items-center gap-3.5 ${collapsed ? 'justify-center' : ''}`}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold shadow-lg ring-2 ring-slate-200 shrink-0">
               {currentUser.name[0]}
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
-                <p className="text-sm font-semibold truncate">{currentUser.name}</p>
-                <p className="text-xs text-slate-400 truncate">{currentUser.role}</p>
+                <p className="text-sm font-bold truncate text-slate-900">{currentUser.name}</p>
+                <p className="text-[11px] font-medium text-slate-500 truncate">{currentUser.role}</p>
               </div>
             )}
           </div>
 
           <button
             onClick={onLogout}
-            className={`text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors ${collapsed ? 'p-2' : 'p-2'}`}
+            className={`text-slate-500 hover:text-red-500 hover:bg-slate-200 rounded-lg transition-colors ${collapsed ? 'p-2' : 'p-2'}`}
             title="Sign Out"
           >
             <LogOut size={18} />

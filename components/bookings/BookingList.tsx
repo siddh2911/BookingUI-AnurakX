@@ -152,8 +152,8 @@ const BookingList: React.FC<BookingListProps> = ({
             key={opt.key}
             onClick={() => requestSort(opt.key)}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${sortConfig?.key === opt.key
-                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              ? 'bg-blue-50 border-blue-200 text-blue-700'
+              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
           >
             {opt.label}
@@ -172,35 +172,37 @@ const BookingList: React.FC<BookingListProps> = ({
       )}
 
       {/* Desktop Table View */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="hidden md:block bg-white/70 backdrop-blur-xl rounded-xl shadow-sm border border-white/20 overflow-hidden transition-colors duration-1000">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 uppercase border-b">
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('id')}>
-                <div className="flex items-center gap-1">ID <SortIcon column="id" /></div>
-              </th>
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('guestName')}>
-                <div className="flex items-center gap-1">Guest <SortIcon column="guestName" /></div>
-              </th>
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('roomNumber')}>
-                <div className="flex items-center gap-1">Room <SortIcon column="roomNumber" /></div>
-              </th>
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('checkInDate')}>
-                <div className="flex items-center gap-1">Check In <SortIcon column="checkInDate" /></div>
-              </th>
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('checkOutDate')}>
-                <div className="flex items-center gap-1">Check Out <SortIcon column="checkOutDate" /></div>
-              </th>
+            <thead className="bg-white/5 border-b border-white/10 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10 transition-colors duration-1000">
+              <tr>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('id')}>
+                  <div className="flex items-center gap-1">ID <SortIcon column="id" /></div>
+                </th>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('guestName')}>
+                  <div className="flex items-center gap-1">Guest <SortIcon column="guestName" /></div>
+                </th>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('roomNumber')}>
+                  <div className="flex items-center gap-1">Room <SortIcon column="roomNumber" /></div>
+                </th>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('checkInDate')}>
+                  <div className="flex items-center gap-1">Check In <SortIcon column="checkInDate" /></div>
+                </th>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('checkOutDate')}>
+                  <div className="flex items-center gap-1">Check Out <SortIcon column="checkOutDate" /></div>
+                </th>
 
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('status')}>
-                <div className="flex items-center gap-1">Status <SortIcon column="status" /></div>
-              </th>
-              <th className="px-2 py-3 cursor-pointer hover:bg-slate-100" onClick={() => requestSort('balance')}>
-                <div className="flex items-center gap-1">Balance <SortIcon column="balance" /></div>
-              </th>
-              <th className="px-2 pr-16 py-3 text-center">Actions</th>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('status')}>
+                  <div className="flex items-center gap-1">Status <SortIcon column="status" /></div>
+                </th>
+                <th className="px-2 py-3 cursor-pointer hover:bg-white/10" onClick={() => requestSort('balance')}>
+                  <div className="flex items-center gap-1">Balance <SortIcon column="balance" /></div>
+                </th>
+                <th className="px-2 pr-16 py-3 text-center">Actions</th>
+              </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/5">
               {filteredAndSortedBookings.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-12 text-slate-500">

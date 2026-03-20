@@ -55,10 +55,10 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
   return (
     <div
       ref={cardRef}
-      className={`bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
+      className={`bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/20 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-2xl group-hover:bg-blue-100 transition duration-500"></div>
+      <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition duration-500"></div>
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between pb-4">
@@ -76,14 +76,14 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
             {hoverContent && isRevenueVisible && (
               <button
                 onClick={toggleDetails}
-                className={`transition-colors p-1 rounded-full hover:bg-slate-50 ${isDetailsOpen ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-500'}`}
+                className={`transition-colors p-1 rounded-full hover:bg-slate-100 ${isDetailsOpen ? 'text-blue-500 bg-blue-500/10' : 'text-slate-400 hover:text-blue-500'}`}
                 title="View Details"
               >
                 {isDetailsOpen ? <X size={14} /> : <PieChart size={14} />}
               </button>
             )}
           </div>
-          <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 rounded-xl shadow-inner group-hover:scale-110 transition-transform duration-300">
+          <div className="p-3 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 text-blue-500 rounded-xl shadow-inner group-hover:scale-110 transition-transform duration-300">
             {icon}
           </div>
         </div>
@@ -102,19 +102,19 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                 <div>
                   <p className="text-xs text-slate-400 font-medium mb-1">Today</p>
                   <p className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    {isRevenueVisible ? value : <span className="text-slate-200">••••••</span>}
+                    {isRevenueVisible ? value : <span className="text-slate-300">••••••</span>}
                   </p>
-                  <div className={`flex items-center gap-1 mt-1 text-xs font-bold ${trend?.positive ? 'text-green-600' : 'text-slate-400'} ${isRevenueVisible && trend ? '' : 'invisible'}`}>
+                  <div className={`flex items-center gap-1 mt-1 text-xs font-bold ${trend?.positive ? 'text-emerald-500' : 'text-slate-400'} ${isRevenueVisible && trend ? '' : 'invisible'}`}>
                     <span>{trend ? (trend.value > 0 ? '+' : '') + trend.value + '%' : '0%'}</span>
                     <span className="text-slate-400 font-medium uppercase text-[9px] tracking-wide">{trend?.label || 'Target'}</span>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-400 font-medium mb-1">All-time</p>
-                  <p className="text-sm font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 inline-block">
+                  <p className="text-sm font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 inline-block">
                     {isRevenueVisible ? total : '•••'}
                   </p>
-                  <p className={`text-[10px] font-bold mt-1 ${totalTrend?.positive ? 'text-green-600' : 'text-red-500'} ${isRevenueVisible && totalTrend ? '' : 'invisible'}`}>
+                  <p className={`text-[10px] font-bold mt-1 ${totalTrend?.positive ? 'text-emerald-500' : 'text-rose-500'} ${isRevenueVisible && totalTrend ? '' : 'invisible'}`}>
                     {totalTrend ? (totalTrend.value > 0 ? '+' : '') + totalTrend.value + '%' : '0%'}
                   </p>
                 </div>
@@ -131,7 +131,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                     </p>
                     <div className={`h-3 flex items-center justify-center w-full ${isRevenueVisible && detail.trend ? '' : 'invisible'}`}>
                       {detail.trend && (
-                        <span className={`text-[10px] md:text-[8px] font-bold ${detail.trend.positive ? 'text-green-600' : 'text-red-500'}`}>
+                        <span className={`text-[10px] md:text-[8px] font-bold ${detail.trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}>
                           {detail.trend.value > 0 ? '+' : ''}{detail.trend.value}%
                         </span>
                       )}

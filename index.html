@@ -51,26 +51,106 @@
   </script>
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: ['selector', '[data-theme="night"]'],
+    theme: {
+      extend: {
+        colors: {
+          slate: {
+            50: 'rgba(var(--color-slate-50), <alpha-value>)',
+            100: 'rgba(var(--color-slate-100), <alpha-value>)',
+            200: 'rgba(var(--color-slate-200), <alpha-value>)',
+            300: 'rgba(var(--color-slate-300), <alpha-value>)',
+            400: 'rgba(var(--color-slate-400), <alpha-value>)',
+            500: 'rgba(var(--color-slate-500), <alpha-value>)',
+            600: 'rgba(var(--color-slate-600), <alpha-value>)',
+            700: 'rgba(var(--color-slate-700), <alpha-value>)',
+            800: 'rgba(var(--color-slate-800), <alpha-value>)',
+            900: 'rgba(var(--color-slate-900), <alpha-value>)',
+          },
+          white: 'rgba(var(--color-white), <alpha-value>)',
+          black: 'rgba(var(--color-black), <alpha-value>)',
+        }
+      }
+    }
+  }
+</script>
+<script>
+  window.addEventListener('error', function (event) {
+    document.body.innerHTML += '<div style="position:fixed;top:0;left:0;background:red;color:white;z-index:9999;padding:20px;">' + event.message + '<br>' + event.filename + ':' + event.lineno + '<br><pre>' + event.error.stack + '</pre></div>';
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    document.body.innerHTML += '<div style="position:fixed;top:0;left:0;background:red;color:white;z-index:9999;padding:20px;">' + event.reason + '</div>';
+  });
+
+  // Calculate day/night theme immediately to prevent flash
+  function applyTheme() {
+    const hour = new Date().getHours();
+    // 6 AM to 6 PM is day
+    const isDay = hour >= 6 && hour < 18;
+    document.documentElement.setAttribute('data-theme', isDay ? 'day' : 'night');
+  }
+  applyTheme();
+  // React's useTheme hook will take over from here
+</script>
 <link
   href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap"
   rel="stylesheet">
 <style>
+  :root[data-theme="day"] {
+    --color-slate-50: 250, 250, 249;
+    --color-slate-100: 245, 245, 244;
+    --color-slate-200: 231, 231, 228;
+    --color-slate-300: 214, 211, 209;
+    --color-slate-400: 168, 162, 158;
+    --color-slate-500: 120, 113, 108;
+    --color-slate-600: 87, 83, 78;
+    --color-slate-700: 68, 64, 60;
+    --color-slate-800: 41, 37, 36;
+    --color-slate-900: 28, 25, 23;
+    --color-white: 255, 255, 255;
+    --color-black: 0, 0, 0;
+  }
+
+  :root[data-theme="night"] {
+    /* Night mode inverts the slate scale carefully */
+    --color-slate-900: 248, 250, 252;
+    --color-slate-800: 241, 245, 249;
+    --color-slate-700: 226, 232, 240;
+    --color-slate-600: 203, 213, 225;
+    --color-slate-500: 148, 163, 184;
+    --color-slate-400: 100, 116, 139;
+    --color-slate-300: 71, 85, 105;
+    --color-slate-200: 51, 65, 85;
+    --color-slate-100: 30, 41, 59;
+    --color-slate-50: 15, 23, 42;
+    /* Deep dark blue overrides white */
+    --color-white: 10, 15, 30;
+    --color-black: 255, 255, 255;
+  }
+
+  /* Make sure transitions apply to everything that changes color */
+  * {
+    transition: background-color 1.5s ease, color 1.5s ease, border-color 1.5s ease;
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: rgba(var(--color-slate-100), 1);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #94a3b8;
+    background: rgba(var(--color-slate-400), 1);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+    background: rgba(var(--color-slate-500), 1);
   }
 </style>
 

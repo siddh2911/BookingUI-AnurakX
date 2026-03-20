@@ -17,11 +17,11 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
             <div className="space-y-6">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h3 className="text-xl font-bold">{booking.guestName}</h3>
-                        <p className="text-slate-500 text-sm">Room {booking.roomId}</p>
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
-                            <PlatformIcon source={booking.source} className="w-3.5 h-3.5" />
-                            <span>{booking.source}</span>
+                        <h3 className="text-xl font-bold text-slate-900">{booking.guestName}</h3>
+                        <p className="text-slate-600 text-sm font-semibold">Room {booking.roomId}</p>
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-medium">
+                            <PlatformIcon source={booking.sources?.[0]?.source || 'Direct'} className="w-3.5 h-3.5" />
+                            <span>{booking.sources?.[0]?.source || 'Unknown'}</span>
                         </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
@@ -32,31 +32,31 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                    <div className="p-4 bg-white/10 rounded-xl">
+                        <div className="flex items-center gap-2 text-slate-500 mb-1">
                             <Calendar size={14} /> <span className="text-xs uppercase font-bold">Check In</span>
                         </div>
-                        <p className="font-semibold">{booking.checkInDate}</p>
+                        <p className="font-semibold text-slate-800">{booking.checkInDate}</p>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl">
-                        <div className="flex items-center gap-2 text-slate-400 mb-1">
+                    <div className="p-4 bg-white/10 rounded-xl">
+                        <div className="flex items-center gap-2 text-slate-500 mb-1">
                             <Calendar size={14} /> <span className="text-xs uppercase font-bold">Check Out</span>
                         </div>
-                        <p className="font-semibold">{booking.checkOutDate}</p>
+                        <p className="font-semibold text-slate-800">{booking.checkOutDate}</p>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl">
+                <div className="flex items-center justify-between p-4 border border-white/10 bg-white/5 rounded-xl">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <div className="p-2 bg-blue-500/10 text-blue-600 rounded-lg">
                             <CreditCard size={20} />
                         </div>
                         <div>
-                            <p className="text-sm font-semibold">Total Amount</p>
-                            <p className="text-xs text-slate-400">Includes taxes</p>
+                            <p className="text-sm font-semibold text-slate-800">Total Amount</p>
+                            <p className="text-xs text-slate-500">Includes taxes</p>
                         </div>
                     </div>
-                    <span className="text-lg font-bold">₹{booking.totalAmount.toLocaleString()}</span>
+                    <span className="text-lg font-bold text-slate-900">₹{booking.totalAmount.toLocaleString()}</span>
                 </div>
 
                 <button

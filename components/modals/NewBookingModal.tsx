@@ -46,6 +46,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(false);
    const [roomFetchError, setRoomFetchError] = useState<string | null>(null);
    const [dateError, setDateError] = useState<string | null>(null);
+   const [sourceDateError, setSourceDateError] = useState<string | null>(null);
 
 
    const [isFinancialsVisible, setIsFinancialsVisible] = useState(!readOnly);
@@ -55,6 +56,68 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    useEffect(() => {
       setIsFinancialsVisible(!readOnly);
    }, [readOnly, isOpen]);
+
+   useEffect(() => {
+      if (!newBookingData.sources || newBookingData.sources.length < 2) {
+         setSourceDateError(null);
+         return;
+      }
+
+      let hasOverlap = false;
+      const sources = newBookingData.sources;
+      for (let i = 0; i < sources.length; i++) {
+         for (let j = i + 1; j < sources.length; j++) {
+            const start1 = new Date(sources[i].startDate || newBookingData.checkIn).getTime();
+            const end1 = new Date(sources[i].endDate || newBookingData.checkOut).getTime();
+            const start2 = new Date(sources[j].startDate || newBookingData.checkIn).getTime();
+            const end2 = new Date(sources[j].endDate || newBookingData.checkOut).getTime();
+
+            if (start1 < end2 && start2 < end1) {
+               hasOverlap = true;
+               break;
+            }
+         }
+         if (hasOverlap) break;
+      }
+
+      if (hasOverlap) {
+         setSourceDateError("Overlapping dates detected. Please adjust source dates or add remaining balance as an Extra Charge.");
+      } else {
+         setSourceDateError(null);
+      }
+   }, [newBookingData.sources, newBookingData.checkIn, newBookingData.checkOut]);
+
+   const updateFromSources = (updatedSources: any[]) => {
+      if (!updatedSources || updatedSources.length === 0) return;
+
+      const sanitizedSources = updatedSources.map(s => ({
+         ...s,
+         startDate: s.startDate || newBookingData.checkIn,
+         endDate: s.endDate || newBookingData.checkOut
+      }));
+
+      let minDate = sanitizedSources[0].startDate;
+      let maxDate = sanitizedSources[0].endDate;
+      let totalAmt = 0;
+
+      sanitizedSources.forEach(s => {
+         if (new Date(s.startDate) < new Date(minDate)) minDate = s.startDate;
+         if (new Date(s.endDate) > new Date(maxDate)) maxDate = s.endDate;
+         totalAmt += Number(s.amount) || 0;
+      });
+
+      const nights = Math.max(1, Math.ceil((new Date(maxDate).getTime() - new Date(minDate).getTime()) / (1000 * 60 * 60 * 24)));
+      const newRate = totalAmt / nights;
+
+      setNewBookingData({
+         ...newBookingData,
+         sources: sanitizedSources,
+         checkIn: minDate,
+         checkOut: maxDate,
+         roomRate: parseFloat(newRate.toFixed(2)),
+         manualTotal: undefined
+      });
+   };
 
    useEffect(() => {
       if (newBookingData.checkIn && newBookingData.checkOut) {
@@ -128,8 +191,8 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
 
    const sectionHeader = "text-lg md:text-xl text-slate-900 mb-4 md:mb-6 flex items-center gap-3 font-medium";
-   const elegantInput = "w-full bg-slate-50/50 border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-2 md:py-3 text-base transition-all outline-none placeholder:text-slate-300 hover:bg-slate-50 focus:bg-transparent";
-   const elegantLabel = "text-xs font-bold text-slate-400 uppercase tracking-widest";
+   const elegantInput = "w-full bg-white/5 backdrop-blur-sm border-b border-slate-200 focus:border-slate-800 text-slate-800 px-0 py-2 md:py-3 text-base transition-all outline-none placeholder:text-slate-500 hover:bg-white/10 focus:bg-transparent";
+   const elegantLabel = "text-xs font-bold text-slate-500 uppercase tracking-widest";
    const floatingGroup = "relative";
 
 
@@ -200,15 +263,117 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               <input name="guestEmail" type="email" className={elegantInput} placeholder="email@example.com" value={newBookingData.guestEmail} onChange={(e) => setNewBookingData({ ...newBookingData, guestEmail: e.target.value })} disabled={readOnly} />
                            </div>
                         </div>
-                        <div className={floatingGroup}>
+                        { }
+                        <div className="space-y-6">
+                           <div className="flex items-center justify-between">
+                              <h3 className={sectionHeader} style={{ fontFamily: '"Playfair Display", serif', marginBottom: 0 }}>
+                                 <div className="w-1 h-5 bg-blue-500 rounded-full mr-1"></div> Booking Sources
+                              </h3>
+                              {!readOnly && (
+                                 <button
+                                    type="button"
+                                    onClick={() => {
+                                       const currentSources = newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }];
+                                       const lastSource = currentSources[currentSources.length - 1];
+                                       const newStart = lastSource.endDate || newBookingData.checkOut;
+                                       setNewBookingData({
+                                          ...newBookingData,
+                                          sources: [...currentSources, { source: BookingSource.WALK_IN, amount: 0, startDate: newStart, endDate: newStart }]
+                                       });
+                                    }}
+                                    className="text-xs font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700 transition"
+                                 >
+                                    + Add Source
+                                 </button>
+                              )}
+                           </div>
+                           <div className="space-y-4">
+                              {(newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: newBookingData.manualTotal || bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }]).map((srcDetail: any, index: number) => (
+                                 <div key={index} className="flex flex-col gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50 relative group">
+                                    <div className="flex gap-4 items-end">
+                                       <div className={`${floatingGroup} flex-1`}>
+                                          <CustomSelect
+                                             label="Source"
+                                             options={sourceOptions}
+                                             value={srcDetail.source}
+                                             onChange={(val) => {
+                                                const updated = [...(newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: newBookingData.manualTotal || bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }])];
+                                                updated[index].source = val as BookingSource;
+                                                updateFromSources(updated);
+                                             }}
+                                             disabled={readOnly}
+                                          />
+                                       </div>
+                                       <div className={`${floatingGroup} w-1/3`}>
+                                          <label className={elegantLabel}>Amount (₹)</label>
+                                          <input
+                                             type="number"
+                                             className={elegantInput}
+                                             placeholder="0"
+                                             value={srcDetail.amount}
+                                             onChange={(e) => {
+                                                const updated = [...(newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: newBookingData.manualTotal || bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }])];
+                                                updated[index].amount = parseFloat(e.target.value) || 0;
+                                                updateFromSources(updated);
+                                             }}
+                                             disabled={readOnly}
+                                          />
+                                       </div>
+                                    </div>
+                                    <div className="flex gap-4 items-end">
+                                       <div className={`${floatingGroup} flex-1`}>
+                                          <DatePicker
+                                             label="Start Date"
+                                             value={srcDetail.startDate || newBookingData.checkIn}
+                                             onChange={(date) => {
+                                                const updated = [...(newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: newBookingData.manualTotal || bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }])];
+                                                updated[index].startDate = date;
+                                                const end = updated[index].endDate || newBookingData.checkOut;
+                                                if (end && new Date(end) > new Date(date)) {
+                                                   const nights = Math.ceil((new Date(end).getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+                                                   updated[index].amount = (newBookingData.roomRate || 0) * nights;
+                                                }
+                                                updateFromSources(updated);
+                                             }}
+                                             disabled={readOnly}
+                                          />
+                                       </div>
+                                       <div className={`${floatingGroup} flex-1`}>
+                                          <DatePicker
+                                             label="End Date"
+                                             value={srcDetail.endDate || newBookingData.checkOut}
+                                             onChange={(date) => {
+                                                const updated = [...(newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: newBookingData.manualTotal || bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }])];
+                                                updated[index].endDate = date;
+                                                const start = updated[index].startDate || newBookingData.checkIn;
+                                                if (start && new Date(date) > new Date(start)) {
+                                                   const nights = Math.ceil((new Date(date).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
+                                                   updated[index].amount = (newBookingData.roomRate || 0) * nights;
+                                                }
+                                                updateFromSources(updated);
+                                             }}
+                                             disabled={readOnly}
+                                          />
+                                       </div>
+                                    </div>
 
-                           <CustomSelect
-                              label="Booking Source"
-                              options={sourceOptions}
-                              value={newBookingData.source || BookingSource.WALK_IN}
-                              onChange={(val) => setNewBookingData({ ...newBookingData, source: val })}
-                              disabled={readOnly}
-                           />
+                                    {!readOnly && (newBookingData.sources?.length > 1) && (
+                                       <button
+                                          type="button"
+                                          onClick={() => {
+                                             const updated = newBookingData.sources.filter((_: any, i: number) => i !== index);
+                                             if (updated.length > 0) updateFromSources(updated);
+                                             else setNewBookingData({ ...newBookingData, sources: updated });
+                                          }}
+                                          className="absolute -top-2 -right-2 p-1.5 bg-white border border-slate-200 rounded-full text-slate-400 hover:text-red-500 hover:border-red-200 shadow-sm transition opacity-0 group-hover:opacity-100"
+                                       >
+                                          <X size={14} />
+                                       </button>
+                                    )}
+                                 </div>
+                              ))}
+                           </div>
+                           {sourceDateError && <p className="text-red-500 text-sm mt-2">{sourceDateError}</p>}
                         </div>
                      </div>
                   </div>
@@ -223,7 +388,14 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            <DatePicker
                               label="Check-In"
                               value={newBookingData.checkIn}
-                              onChange={(date) => setNewBookingData({ ...newBookingData, checkIn: date })}
+                              onChange={(date) => {
+                                 const updatedSources = newBookingData.sources ? [...newBookingData.sources] : undefined;
+                                 if (updatedSources && updatedSources.length === 1 && newBookingData.checkOut && new Date(newBookingData.checkOut) > new Date(date)) {
+                                    const nights = Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
+                                    updatedSources[0] = { ...updatedSources[0], startDate: date, amount: (newBookingData.roomRate || 0) * nights };
+                                 }
+                                 setNewBookingData({ ...newBookingData, checkIn: date, sources: updatedSources || newBookingData.sources, manualTotal: undefined });
+                              }}
                               disabled={readOnly}
                            />
                         </div>
@@ -231,7 +403,14 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            <DatePicker
                               label="Check-Out"
                               value={newBookingData.checkOut}
-                              onChange={(date) => setNewBookingData({ ...newBookingData, checkOut: date })}
+                              onChange={(date) => {
+                                 const updatedSources = newBookingData.sources ? [...newBookingData.sources] : undefined;
+                                 if (updatedSources && updatedSources.length === 1 && newBookingData.checkIn && new Date(date) > new Date(newBookingData.checkIn)) {
+                                    const nights = Math.ceil((new Date(date).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24));
+                                    updatedSources[0] = { ...updatedSources[0], endDate: date, amount: (newBookingData.roomRate || 0) * nights };
+                                 }
+                                 setNewBookingData({ ...newBookingData, checkOut: date, sources: updatedSources || newBookingData.sources, manualTotal: undefined });
+                              }}
                               minDate={newBookingData.checkIn}
                               disabled={readOnly}
                            />
@@ -292,7 +471,23 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                         <div className={floatingGroup}>
                            <label className={elegantLabel}>Nightly Rate (₹)</label>
                            {isFinancialsVisible ? (
-                              <input type="number" name="roomRate" required className={elegantInput} value={newBookingData.roomRate} onChange={(e) => setNewBookingData({ ...newBookingData, roomRate: parseFloat(e.target.value), manualTotal: undefined })} disabled={readOnly} />
+                              <input
+                                 type="number"
+                                 name="roomRate"
+                                 required
+                                 className={elegantInput}
+                                 value={newBookingData.roomRate}
+                                 onChange={(e) => {
+                                    const newRate = parseFloat(e.target.value) || 0;
+                                    const updatedSources = newBookingData.sources ? [...newBookingData.sources] : undefined;
+                                    if (updatedSources && updatedSources.length === 1 && updatedSources[0].startDate && updatedSources[0].endDate) {
+                                       const nights = Math.max(1, Math.ceil((new Date(updatedSources[0].endDate).getTime() - new Date(updatedSources[0].startDate).getTime()) / (1000 * 60 * 60 * 24)));
+                                       updatedSources[0].amount = newRate * nights;
+                                    }
+                                    setNewBookingData({ ...newBookingData, roomRate: newRate, sources: updatedSources || newBookingData.sources, manualTotal: undefined });
+                                 }}
+                                 disabled={readOnly}
+                              />
                            ) : (
                               <div className="w-full border-b border-slate-200 py-2 md:py-3 flex items-center justify-between text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setIsSecurityModalOpen(true)}>
                                  <span className="text-sm italic">Hidden</span>
@@ -314,7 +509,8 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               type="button"
                               onClick={() => setNewBookingData({
                                  ...newBookingData,
-                                 additionalCharges: [...(newBookingData.additionalCharges || []), { category: '', amount: 0 }]
+                                 additionalCharges: [...(newBookingData.additionalCharges || []), { category: '', amount: 0 }],
+                                 manualTotal: undefined
                               })}
                               className="text-xs font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700 transition"
                            >
@@ -335,7 +531,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     onChange={(e) => {
                                        const updated = [...newBookingData.additionalCharges];
                                        updated[index].category = e.target.value;
-                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated, manualTotal: undefined });
                                     }}
                                     disabled={readOnly}
                                  />
@@ -350,7 +546,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     onChange={(e) => {
                                        const updated = [...newBookingData.additionalCharges];
                                        updated[index].amount = parseFloat(e.target.value) || 0;
-                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated, manualTotal: undefined });
                                     }}
                                     disabled={readOnly}
                                  />
@@ -360,7 +556,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     type="button"
                                     onClick={() => {
                                        const updated = newBookingData.additionalCharges.filter((_: any, i: number) => i !== index);
-                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated, manualTotal: undefined });
                                     }}
                                     className="mb-2 p-2 text-slate-400 hover:text-red-500 transition"
                                  >
@@ -429,12 +625,23 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                           const calculatedRoomTotal = Math.max(0, newTotal - currentExtras);
                                           const newRate = calculatedRoomTotal / nights;
 
+                                          let newSources = [...(newBookingData.sources || [{ source: BookingSource.WALK_IN, amount: bookingTotal, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }])];
 
-                                          setNewBookingData({
-                                             ...newBookingData,
-                                             roomRate: parseFloat(newRate.toFixed(2)),
-                                             manualTotal: undefined
-                                          });
+                                          if (newSources.length === 1) {
+                                             newSources[0].amount = calculatedRoomTotal;
+                                             setNewBookingData({
+                                                ...newBookingData,
+                                                roomRate: parseFloat(newRate.toFixed(2)),
+                                                manualTotal: undefined,
+                                                sources: newSources
+                                             });
+                                          } else {
+                                             setNewBookingData({
+                                                ...newBookingData,
+                                                roomRate: parseFloat(newRate.toFixed(2)),
+                                                manualTotal: val === '' ? null : newTotal
+                                             });
+                                          }
                                        }}
                                        disabled={readOnly}
                                        placeholder="0"
@@ -464,6 +671,16 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                        <span>+ ₹{newBookingData.additionalCharges.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0).toLocaleString()}</span>
                                     </div>
                                  )}
+
+                                 <div className="pt-2 pb-2 mt-2 border-y border-white/10 space-y-2">
+                                    <div className="text-xs text-slate-400 font-bold uppercase">Funding Sources</div>
+                                    {(newBookingData.sources || []).map((s: any, idx: number) => (
+                                       <div key={idx} className="flex justify-between items-center text-sm">
+                                          <span className="text-slate-300 flex items-center gap-2"><PlatformIcon source={s.source} className="w-3.5 h-3.5" />{s.source}</span>
+                                          <span>₹{(s.amount || 0).toLocaleString()}</span>
+                                       </div>
+                                    ))}
+                                 </div>
 
                                  {!readOnly && (
                                     <div className="flex justify-between items-center text-sm">
@@ -526,7 +743,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  {!readOnly && (
                                     <button
                                        type="submit"
-                                       disabled={!!dateError || isLoadingRooms}
+                                       disabled={!!dateError || !!sourceDateError || isLoadingRooms}
                                        className="flex-[2] py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-slate-50 transition-colors text-sm shadow-lg disabled:opacity-50"
                                     >
                                        {editingBookingId ? "Save Changes" : "Confirm Booking"}
@@ -559,7 +776,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      const form = document.querySelector('form');
                      if (form) form.requestSubmit();
                   }}
-                  disabled={!!dateError || isLoadingRooms}
+                  disabled={!!dateError || !!sourceDateError || isLoadingRooms}
                   className="flex-[2] py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors text-sm shadow-lg disabled:opacity-50"
                >
                   {editingBookingId ? "Save" : "Confirm"}
