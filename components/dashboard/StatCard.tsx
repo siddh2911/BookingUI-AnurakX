@@ -55,10 +55,12 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
   return (
     <div
       ref={cardRef}
-      className={`bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-sm border border-white/50 flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
+      className={`bg-white/60 backdrop-blur-2xl p-6 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-white/80 flex flex-col justify-between transition-all duration-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:border-blue-200/40 group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <div className="absolute -top-10 -right-10 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition duration-500"></div>
+      {/* Soft ambient glow */}
+      <div className="absolute -top-10 -right-10 w-28 h-28 bg-gradient-to-br from-blue-400/5 to-violet-400/5 rounded-full blur-3xl group-hover:from-blue-400/15 group-hover:to-violet-400/15 transition-all duration-700"></div>
+      <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-gradient-to-tr from-emerald-400/5 to-blue-400/5 rounded-full blur-2xl group-hover:from-emerald-400/10 group-hover:to-blue-400/10 transition-all duration-700"></div>
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-center justify-between pb-4">

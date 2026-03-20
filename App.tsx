@@ -111,7 +111,7 @@ export default function App() {
     checkIn: today,
     checkOut: formatLocalDate(new Date(Date.now() + 86400000)),
     roomId: '', advance: 0, roomRate: 0,
-    source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, amount: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
+    source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, nightlyRate: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
     manualTotal: undefined as number | undefined | null,
     additionalCharges: [
       { category: 'Cleaning Fee', amount: 0 },
@@ -151,7 +151,13 @@ export default function App() {
           id: b.id, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
           guestPhone: b.contactNumber, checkInDate: normalizeDateString(b.checkInDate),
           checkOutDate: normalizeDateString(b.checkOutDate),
-          sources: b.bookingSources || [{ source: b.bookingSource as BookingSource, amount: b.totalAmount || b.totalPaid || 0 }], status: b.status as BookingStatus,
+          sources: (b.bookingSources || [{ source: b.bookingSource as BookingSource, amount: b.totalAmount || b.totalPaid || 0, startDate: b.checkInDate, endDate: b.checkOutDate }]).map((s: any) => {
+            const sStart = s.startDate || b.checkInDate;
+            const sEnd = s.endDate || b.checkOutDate;
+            const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
+            return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
+          }),
+          status: b.status as BookingStatus,
           totalPaid: b.totalPaid, pendingBalance: b.balance,
         };
       });
@@ -358,7 +364,7 @@ export default function App() {
       checkIn: preSelectedDate ? formatLocalDate(preSelectedDate) : today,
       checkOut: preSelectedDate ? formatLocalDate(new Date(preSelectedDate.getTime() + 86400000)) : formatLocalDate(new Date(Date.now() + 86400000)),
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
-      source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, amount: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
+      source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, nightlyRate: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
       manualTotal: undefined,
       additionalCharges: [
         { category: 'Cleaning Fee', amount: 0 },
@@ -388,7 +394,12 @@ export default function App() {
         roomRate: fetchedBookingData.nightlyRate || 0,
         advance: fetchedBookingData.advanceAmount || 0,
         source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT,
-        sources: fetchedBookingData.bookingSources || booking.sources || [{ source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, amount: fetchedBookingData.totalAmount || 0 }],
+        sources: ((fetchedBookingData.bookingSources || booking.sources || [{ source: fetchedBookingData.bookingSource as BookingSource || BookingSource.DIRECT, amount: fetchedBookingData.totalAmount || 0, startDate: fetchedBookingData.checkInDate, endDate: fetchedBookingData.checkOutDate }]) as any[]).map((s: any) => {
+          const sStart = s.startDate || fetchedBookingData.checkInDate;
+          const sEnd = s.endDate || fetchedBookingData.checkOutDate;
+          const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
+          return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
+        }),
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
         manualTotal: fetchedBookingData.totalAmount,

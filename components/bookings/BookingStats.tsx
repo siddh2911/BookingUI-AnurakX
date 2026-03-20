@@ -5,9 +5,9 @@ import { PieChart } from 'lucide-react';
 
 interface BookingStatsProps {
     bookings: Booking[];
-    className?: string; 
-    compact?: boolean;  
-    mode?: 'count' | 'revenue' | 'percent'; 
+    className?: string;
+    compact?: boolean;
+    mode?: 'count' | 'revenue' | 'percent';
 }
 
 const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compact = false, mode = 'count' }) => {
@@ -16,21 +16,26 @@ const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compac
         let total = 0;
 
         bookings.forEach(b => {
-            
+
             if (mode === 'revenue' && b.status === 'Cancelled') return;
 
-            
-            let source = b.source || 'Direct';
+            const bookingSources = (b as any).sources || [{ source: b.source || 'Direct', nightlyRate: 0, amount: 0, startDate: b.checkInDate, endDate: b.checkOutDate }];
 
-            
-            
-            const value = mode === 'revenue' ? (b.totalAmount || b.totalPaid || 0) : 1;
-
-            counts[source] = (counts[source] || 0) + value;
-            total += value;
+            bookingSources.forEach((s: any) => {
+                const sourceName = s.source || 'Direct';
+                let value = 1;
+                if (mode === 'revenue') {
+                    const sStart = s.startDate || b.checkInDate;
+                    const sEnd = s.endDate || b.checkOutDate;
+                    const nights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
+                    value = (Number(s.nightlyRate) || Number(s.amount) || 0) * (s.nightlyRate != null ? nights : 1);
+                }
+                counts[sourceName] = (counts[sourceName] || 0) + value;
+                total += value;
+            });
         });
 
-        
+
         const sorted = Object.entries(counts)
             .map(([source, value]) => ({
                 source,
@@ -45,7 +50,7 @@ const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compac
             const othersValue = others.reduce((sum, item) => sum + item.value, 0);
             const othersPercentage = others.reduce((sum, item) => sum + item.percentage, 0);
 
-            
+
             const othersTooltip = others.map(o => {
                 let displayVal = o.value.toString();
                 if (mode === 'revenue' && o.value >= 1000) displayVal = `₹${(o.value / 1000).toFixed(1)}k`;
@@ -106,7 +111,7 @@ const BookingStats: React.FC<BookingStatsProps> = ({ bookings, className, compac
                                 <span className={`${compact ? 'text-xs' : 'text-sm'} font-bold text-slate-900 w-auto text-right`}>{formatValue(value, percentage)}</span>
                             </div>
                         </div>
-                        {}
+                        { }
                         <div className={`${compact ? 'h-1.5' : 'h-2'} w-full bg-slate-100 rounded-full overflow-hidden`}>
                             <div
                                 className={`h-full bg-slate-900 rounded-full group-hover:bg-indigo-600 transition-colors duration-300 ease-out`}

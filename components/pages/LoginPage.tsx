@@ -17,16 +17,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     return (
         <div className="min-h-screen flex w-full">
-            {}
-            <div className="hidden lg:flex w-[40%] bg-slate-900 relative flex-col items-center justify-center p-12 text-center overflow-hidden">
-                {}
+            { }
+            <div className="hidden lg:flex w-[40%] relative flex-col items-center justify-center p-12 text-center overflow-hidden" style={{ backgroundColor: '#0f172a' }}>
+                { }
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                     <div className="absolute -top-[20%] -left-[10%] w-[80%] h-[80%] bg-blue-600/10 rounded-full blur-[120px]"></div>
                     <div className="absolute top-[40%] -right-[20%] w-[60%] h-[60%] bg-violet-600/10 rounded-full blur-[100px]"></div>
                 </div>
 
                 <div className="relative z-10 flex flex-col items-center">
-                    {}
+                    { }
                     <h1 className="text-4xl font-bold text-white tracking-widest leading-tight text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
                         KARUNA VILLA
                     </h1>
@@ -45,7 +45,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 </div>
             </div>
 
-            {}
+            { }
             <div className="flex-1 bg-slate-50 flex flex-col items-center justify-center p-8 lg:p-16 relative">
                 <div className="w-full max-w-md">
                     <div className="mb-10 text-center lg:text-left">
@@ -54,7 +54,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     </div>
 
                     <div className="space-y-4">
-                        {}
+                        { }
                         <button
                             onClick={() => handleLogin('google')}
                             disabled={isLoading}
@@ -69,7 +69,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                             <span>Continue with Google</span>
                         </button>
 
-                        {}
+                        { }
                         <button
                             onClick={() => handleLogin('yahoo')}
                             disabled={isLoading}
@@ -79,11 +79,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                             <span>Continue with Yahoo</span>
                         </button>
 
-                        {}
+                        { }
                         <button
                             onClick={() => handleLogin('email')}
                             disabled={isLoading}
-                            className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white font-semibold py-4 px-6 rounded-xl hover:bg-slate-800 transition-all duration-200 active:scale-[0.98] shadow-lg shadow-slate-900/20"
+                            className="w-full flex items-center justify-center gap-3 text-white font-semibold py-4 px-6 rounded-xl hover:opacity-90 transition-all duration-200 active:scale-[0.98] shadow-lg"
+                            style={{ backgroundColor: '#0f172a' }}
                         >
                             <Mail size={20} />
                             <span>Continue with Email</span>
@@ -95,7 +96,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     </p>
                 </div>
 
-                {}
+                { }
                 <div className="lg:hidden absolute top-0 left-0 w-full p-6 bg-slate-900">
                     <div className="flex flex-col items-center">
                         <span className="font-bold text-lg text-white tracking-widest leading-tight" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
@@ -104,7 +105,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 </div>
             </div>
 
-            {}
+            { }
             {isLoading && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
