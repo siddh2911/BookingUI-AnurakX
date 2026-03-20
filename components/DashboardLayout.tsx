@@ -48,15 +48,22 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                         <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
                         <span className="text-[9px] text-blue-200/80 uppercase tracking-widest font-sans mt-0.5 ml-0.5">Dashboard</span>
                     </Link>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={toggleTheme}
+                            className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-slate-300 hover:bg-slate-800 transition-colors"
+                            title={theme === 'day' ? 'Switch to Night Mode' : 'Switch to Day Mode'}
+                        >
+                            {theme === 'day' ? <Moon size={16} /> : <Sun size={16} />}
+                        </button>
                         <button
                             onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
                             className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors"
                         >
                             {language === 'en' ? 'HI' : 'EN'}
                         </button>
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                            {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-white hover:text-blue-400 transition-colors">
+                            {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
                         </button>
                     </div>
                 </div>
