@@ -346,7 +346,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                           <div className={`${floatingGroup} w-1/3`}>
                                              <label className={elegantLabel}>Nightly Rate (₹)</label>
                                              <input
-                                                type="number"
+                                                type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
                                                 className={elegantInput}
                                                 placeholder="0"
                                                 value={srcDetail.nightlyRate}
@@ -510,7 +510,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            <label className={elegantLabel}>Nightly Rate (₹) <span className="text-[9px] text-slate-400 normal-case">(auto)</span></label>
                            {isFinancialsVisible ? (
                               <input
-                                 type="number"
+                                 type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
                                  name="roomRate"
                                  required
                                  className={`${elegantInput} cursor-not-allowed opacity-60`}
@@ -568,7 +568,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               <div className={`${floatingGroup} w-24`}>
                                  <label className={elegantLabel}>Amount</label>
                                  <input
-                                    type="number"
+                                    type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
                                     className={elegantInput}
                                     placeholder="0"
                                     value={charge.amount}
@@ -637,7 +637,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  <div className="flex items-center gap-2 mt-2">
                                     <span className="text-2xl font-serif text-slate-400">₹</span>
                                     <input
-                                       type="number"
+                                       type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
                                        className="text-3xl font-serif bg-transparent border-b border-white/10 outline-none w-full placeholder:text-slate-600 focus:border-white/50 transition-colors text-white"
                                        value={newBookingData.manualTotal !== undefined ? (newBookingData.manualTotal === null ? '' : newBookingData.manualTotal) : (localCalculatedTotal || '')}
                                        onChange={(e) => {
@@ -723,7 +723,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1 border border-white/10">
                                           <span className="text-slate-400">₹</span>
                                           <input
-                                             type="number"
+                                             type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
                                              className="w-20 bg-transparent text-right outline-none text-white placeholder:text-white/20"
                                              placeholder="0"
                                              value={newBookingData.advance}

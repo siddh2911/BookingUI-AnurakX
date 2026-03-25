@@ -135,7 +135,9 @@ export default function App() {
 
   const fetchBookings = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/allBooking`);
+      const response = await fetch(`${API_BASE_URL}/allBooking?t=${Date.now()}`, {
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
       const data: any[] = await response.json();
 

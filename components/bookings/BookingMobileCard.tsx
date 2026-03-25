@@ -24,17 +24,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
     const balance = booking.pendingBalance || 0;
     const roomNumber = room?.number || 'N/A';
 
-    const getNightlyRate = () => {
-        if (!booking.sources?.length) return 0;
-        const s: any = booking.sources[0];
-        if (s.nightlyRate != null) return Number(s.nightlyRate);
-        const start = new Date(s.startDate || booking.checkInDate);
-        const end = new Date(s.endDate || booking.checkOutDate);
-        start.setHours(0, 0, 0, 0); end.setHours(0, 0, 0, 0);
-        const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
-        return Math.round((Number(s.amount) || 0) / nights);
-    };
-    const nightlyRate = getNightlyRate();
+
 
     return (
         <div className="bg-white/70 backdrop-blur-xl transition-colors duration-1000 rounded-xl shadow-sm border border-white/20 p-4 space-y-3">
@@ -74,9 +64,6 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                     <div className="text-xs text-slate-500 flex items-center gap-1"><MapPin size={10} /> Room</div>
                     <div className="font-bold text-slate-800 flex items-baseline gap-1.5">
                         <span>{roomNumber}</span>
-                        <span className="text-[10px] text-slate-500 font-medium">
-                            (₹{nightlyRate.toLocaleString()}/night)
-                        </span>
                     </div>
                 </div>
                 <div className="space-y-0.5">

@@ -17,17 +17,7 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
   const balance = booking.pendingBalance || 0;
   const roomNumber = room?.number || 'N/A';
 
-  const getNightlyRate = () => {
-    if (!booking.sources?.length) return 0;
-    const s: any = booking.sources[0];
-    if (s.nightlyRate != null) return Number(s.nightlyRate);
-    const start = new Date(s.startDate || booking.checkInDate);
-    const end = new Date(s.endDate || booking.checkOutDate);
-    start.setHours(0, 0, 0, 0); end.setHours(0, 0, 0, 0);
-    const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
-    return Math.round((Number(s.amount) || 0) / nights);
-  };
-  const nightlyRate = getNightlyRate();
+
 
   return (
     <tr className="hover:bg-slate-50/50 transition-colors duration-300">
@@ -51,9 +41,6 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
       <td className="px-2 py-3">
         <div className="font-semibold text-slate-800 flex items-baseline gap-1.5">
           <span>{roomNumber}</span>
-          <span className="text-[10px] text-slate-500 font-medium">
-            (₹{nightlyRate.toLocaleString()}/night)
-          </span>
         </div>
       </td>
       <td className="px-2 py-3 font-medium text-slate-700">{booking.checkInDate}</td>
