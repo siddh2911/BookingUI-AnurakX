@@ -364,7 +364,7 @@ export default function App() {
       checkIn: preSelectedDate ? formatLocalDate(preSelectedDate) : today,
       checkOut: preSelectedDate ? formatLocalDate(new Date(preSelectedDate.getTime() + 86400000)) : formatLocalDate(new Date(Date.now() + 86400000)),
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
-      source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, nightlyRate: 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
+      source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, nightlyRate: defaultRoom?.pricePerNight || 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
       manualTotal: undefined,
       additionalCharges: [
         { category: 'Cleaning Fee', amount: 0 },
@@ -422,12 +422,21 @@ export default function App() {
     const bookingNights = Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)));
     const roomTotal = (roomRate || 0) * bookingNights;
     const additionalTotal = additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
-    const sourcesSum = sources?.length ? sources.reduce((sum, src) => sum + (Number(src.amount) || 0), 0) : roomTotal;
+
+    const formattedSources = sources?.map((s: any) => {
+      const srcStart = s.startDate || checkIn;
+      const srcEnd = s.endDate || checkOut;
+      const srcNights = (srcStart && srcEnd) ? Math.max(1, Math.ceil((new Date(srcEnd).getTime() - new Date(srcStart).getTime()) / (1000 * 60 * 60 * 24))) : bookingNights;
+      const amt = s.nightlyRate != null ? (Number(s.nightlyRate) * srcNights) : (Number(s.amount) || 0);
+      return { ...s, amount: amt };
+    });
+
+    const sourcesSum = formattedSources?.length ? formattedSources.reduce((sum, src) => sum + src.amount, 0) : roomTotal;
     const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
     const bookingPayload = {
       fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, checkInDate: checkIn, checkOutDate: checkOut,
-      roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: sources, advanceAmount: advance,
+      roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: formattedSources, advanceAmount: advance,
       paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges
     };
 
@@ -494,7 +503,12 @@ export default function App() {
   const bookingNights = Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)));
   const roomTotal = (newBookingData.roomRate || 0) * bookingNights;
   const additionalTotal = newBookingData.additionalCharges?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
-  const sourcesSum = newBookingData.sources?.length ? newBookingData.sources.reduce((sum: number, src: any) => sum + (Number(src.amount) || 0), 0) : roomTotal;
+  const sourcesSum = newBookingData.sources?.length ? newBookingData.sources.reduce((sum: number, src: any) => {
+    const srcStart = src.startDate || newBookingData.checkIn;
+    const srcEnd = src.endDate || newBookingData.checkOut;
+    const srcNights = (srcStart && srcEnd) ? Math.max(1, Math.ceil((new Date(srcEnd).getTime() - new Date(srcStart).getTime()) / (1000 * 60 * 60 * 24))) : bookingNights;
+    return sum + (src.nightlyRate != null ? (Number(src.nightlyRate) * srcNights) : (Number(src.amount) || 0));
+  }, 0) : roomTotal;
   const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
   let paidAmount = newBookingData.advance;

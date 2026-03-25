@@ -16,6 +16,19 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
   const paid = (booking.payments || []).reduce((sum, p) => sum + p.amount, 0);
   const balance = booking.pendingBalance || 0;
   const roomNumber = room?.number || 'N/A';
+
+  const getNightlyRate = () => {
+    if (!booking.sources?.length) return 0;
+    const s: any = booking.sources[0];
+    if (s.nightlyRate != null) return Number(s.nightlyRate);
+    const start = new Date(s.startDate || booking.checkInDate);
+    const end = new Date(s.endDate || booking.checkOutDate);
+    start.setHours(0, 0, 0, 0); end.setHours(0, 0, 0, 0);
+    const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
+    return Math.round((Number(s.amount) || 0) / nights);
+  };
+  const nightlyRate = getNightlyRate();
+
   return (
     <tr className="hover:bg-slate-50/50 transition-colors duration-300">
       <td className="px-2 py-3 font-mono text-xs text-slate-500">{booking.id}</td>
@@ -25,8 +38,8 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
           {booking.sources?.map((s, idx) => (
             <div key={idx} className="flex items-center gap-1">
               <PlatformIcon source={s.source} className="w-3.5 h-3.5 text-slate-400" />
-              <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'AIRBNB' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
-                s.source === 'BOOKING_COM' ? 'bg-[#003580]/10 text-[#003580]' :
+              <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'Airbnb' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
+                s.source === 'Booking.com' ? 'bg-[#003580]/10 text-[#003580]' :
                   'bg-slate-100 text-slate-500'
                 }`} title={`₹${s.amount || 0}${s.startDate && s.endDate ? ` (${new Date(s.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${new Date(s.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})` : ''}`}>
                 {s.source}
@@ -35,7 +48,14 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
           ))}
         </div>
       </td>
-      <td className="px-2 py-3 font-semibold text-slate-800">{roomNumber}</td>
+      <td className="px-2 py-3">
+        <div className="font-semibold text-slate-800 flex items-baseline gap-1.5">
+          <span>{roomNumber}</span>
+          <span className="text-[10px] text-slate-500 font-medium">
+            (₹{nightlyRate.toLocaleString()}/night)
+          </span>
+        </div>
+      </td>
       <td className="px-2 py-3 font-medium text-slate-700">{booking.checkInDate}</td>
       <td className="px-2 py-3 font-medium text-slate-700">{booking.checkOutDate}</td>
 

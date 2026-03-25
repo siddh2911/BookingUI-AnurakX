@@ -152,50 +152,64 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
       const fetchAvailableRooms = async () => {
          setIsLoadingRooms(true);
          setRoomFetchError(null);
+         let roomsToFilter: Room[] = [];
+
          try {
             const fetchedRooms = await getAvailableRooms({
                startDate: newBookingData.checkIn,
                endDate: newBookingData.checkOut,
             });
+            roomsToFilter = fetchedRooms;
+         } catch (error: any) {
+            console.error("API Error fetching rooms:", error);
+            setRoomFetchError(error.message || 'Failed to fetch rooms');
+         }
 
+         if (roomsToFilter.length === 0 && rooms.length > 0) {
+            console.warn("API returned 0 rooms or failed. Falling back to local room list.");
+            roomsToFilter = rooms;
+         }
 
-            let roomsToFilter = fetchedRooms;
-            if (fetchedRooms.length === 0 && rooms.length > 0) {
-               console.warn("API returned 0 rooms. Falling back to local room list.");
-               roomsToFilter = rooms;
-            }
+         const validRooms = roomsToFilter.filter(room => {
+            const hasConflict = bookings.some(b => {
+               if (editingBookingId && b.id === editingBookingId) return false;
+               if (b.status === 'Cancelled' || b.status === 'Checked Out') return false;
+               if (String(b.roomId) !== String(room.id)) return false;
 
+               const bookingStart = b.checkInDate;
+               const bookingEnd = b.checkOutDate;
+               const requestStart = newBookingData.checkIn;
+               const requestEnd = newBookingData.checkOut;
 
-            const validRooms = roomsToFilter.filter(room => {
-               const hasConflict = bookings.some(b => {
-                  if (editingBookingId && b.id === editingBookingId) return false;
-                  if (b.status === 'Cancelled' || b.status === 'Checked Out') return false;
-                  if (String(b.roomId) !== String(room.id)) return false;
-
-                  const bookingStart = b.checkInDate;
-                  const bookingEnd = b.checkOutDate;
-                  const requestStart = newBookingData.checkIn;
-                  const requestEnd = newBookingData.checkOut;
-
-                  return requestStart < bookingEnd && requestEnd > bookingStart;
-               });
-               return !hasConflict;
+               return requestStart < bookingEnd && requestEnd > bookingStart;
             });
+            return !hasConflict;
+         });
 
-            setApiAvailableRooms(validRooms);
+         setApiAvailableRooms(validRooms);
 
-            if (!newBookingData.roomId && validRooms.length > 0) {
-               setNewBookingData((prev: any) => ({
+         if (!newBookingData.roomId && validRooms.length > 0) {
+            setNewBookingData((prev: any) => {
+               const defaultRate = validRooms[0].pricePerNight;
+               let newSources = prev.sources;
+               if (newSources && newSources.length > 0) {
+                  newSources = newSources.map((s: any) => {
+                     if (!s.nightlyRate || s.nightlyRate === 0 || s.nightlyRate === prev.roomRate) {
+                        return { ...s, nightlyRate: defaultRate };
+                     }
+                     return s;
+                  });
+               }
+               return {
                   ...prev,
                   roomId: validRooms[0].id,
-                  roomRate: validRooms[0].pricePerNight,
-               }));
-            }
-         } catch (error: any) {
-            setRoomFetchError(error.message || 'Failed to fetch rooms');
-         } finally {
-            setIsLoadingRooms(false);
+                  roomRate: defaultRate,
+                  sources: newSources
+               };
+            });
          }
+
+         setIsLoadingRooms(false);
       };
 
       fetchAvailableRooms();
@@ -291,10 +305,14 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     const currentSources = newBookingData.sources || [{ source: BookingSource.WALK_IN, nightlyRate: newBookingData.roomRate || 0, startDate: newBookingData.checkIn, endDate: newBookingData.checkOut }];
                                     const lastSource = currentSources[currentSources.length - 1];
                                     const newStart = lastSource.endDate || newBookingData.checkOut;
-                                    setNewBookingData({
-                                       ...newBookingData,
-                                       sources: [...currentSources, { source: BookingSource.WALK_IN, nightlyRate: 0, startDate: newStart, endDate: newStart }]
-                                    });
+
+                                    const [y, m, d] = newStart.split('-').map(Number);
+                                    const nSd = new Date(y, m - 1, d);
+                                    nSd.setDate(nSd.getDate() + 1);
+                                    const newEnd = `${nSd.getFullYear()}-${String(nSd.getMonth() + 1).padStart(2, '0')}-${String(nSd.getDate()).padStart(2, '0')}`;
+
+                                    const updated = [...currentSources, { source: BookingSource.WALK_IN, nightlyRate: newBookingData.roomRate || 0, startDate: newStart, endDate: newEnd }];
+                                    updateFromSources(updated);
                                  }}
                                  className="text-xs font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700 transition"
                               >
@@ -458,12 +476,27 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                        }
                                     }
 
-                                    setNewBookingData((prev: any) => ({
-                                       ...prev,
-                                       roomId: roomId,
-                                       roomRate: r ? r.pricePerNight : 0,
-                                       manualTotal: undefined
-                                    }));
+                                    setNewBookingData((prev: any) => {
+                                       const newRoomRate = r ? r.pricePerNight : 0;
+                                       let newSources = prev.sources;
+
+                                       if (newSources && newSources.length > 0) {
+                                          newSources = newSources.map((s: any) => {
+                                             if (!s.nightlyRate || s.nightlyRate === 0 || s.nightlyRate === prev.roomRate) {
+                                                return { ...s, nightlyRate: newRoomRate };
+                                             }
+                                             return s;
+                                          });
+                                       }
+
+                                       return {
+                                          ...prev,
+                                          roomId: roomId,
+                                          roomRate: newRoomRate,
+                                          sources: newSources,
+                                          manualTotal: undefined
+                                       };
+                                    });
                                  }}
                                  placeholder="Choose available room..."
                                  disabled={readOnly || isLoadingRooms}
@@ -670,12 +703,18 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
                                  <div className="pt-2 pb-2 mt-2 border-y border-white/10 space-y-2">
                                     <div className="text-xs text-slate-400 font-bold uppercase">Funding Sources</div>
-                                    {(newBookingData.sources || []).map((s: any, idx: number) => (
-                                       <div key={idx} className="flex justify-between items-center text-sm">
-                                          <span className="text-slate-300 flex items-center gap-2"><PlatformIcon source={s.source} className="w-3.5 h-3.5" />{s.source}</span>
-                                          <span>₹{(s.amount || 0).toLocaleString()}</span>
-                                       </div>
-                                    ))}
+                                    {(newBookingData.sources || []).map((s: any, idx: number) => {
+                                       const srcStart = s.startDate || newBookingData.checkIn;
+                                       const srcEnd = s.endDate || newBookingData.checkOut;
+                                       const srcNights = (srcStart && srcEnd) ? Math.max(1, Math.ceil((new Date(srcEnd).getTime() - new Date(srcStart).getTime()) / (1000 * 60 * 60 * 24))) : localNights;
+                                       const amt = s.nightlyRate != null ? (Number(s.nightlyRate) * srcNights) : (Number(s.amount) || 0);
+                                       return (
+                                          <div key={idx} className="flex justify-between items-center text-sm">
+                                             <span className="text-slate-300 flex items-center gap-2"><PlatformIcon source={s.source} className="w-3.5 h-3.5" />{s.source}</span>
+                                             <span>₹{amt.toLocaleString()}</span>
+                                          </div>
+                                       );
+                                    })}
                                  </div>
 
                                  {!readOnly && (

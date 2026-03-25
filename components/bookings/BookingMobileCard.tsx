@@ -24,6 +24,18 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
     const balance = booking.pendingBalance || 0;
     const roomNumber = room?.number || 'N/A';
 
+    const getNightlyRate = () => {
+        if (!booking.sources?.length) return 0;
+        const s: any = booking.sources[0];
+        if (s.nightlyRate != null) return Number(s.nightlyRate);
+        const start = new Date(s.startDate || booking.checkInDate);
+        const end = new Date(s.endDate || booking.checkOutDate);
+        start.setHours(0, 0, 0, 0); end.setHours(0, 0, 0, 0);
+        const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
+        return Math.round((Number(s.amount) || 0) / nights);
+    };
+    const nightlyRate = getNightlyRate();
+
     return (
         <div className="bg-white/70 backdrop-blur-xl transition-colors duration-1000 rounded-xl shadow-sm border border-white/20 p-4 space-y-3">
             {/* Header: Guest Info & Status */}
@@ -34,8 +46,8 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                         {booking.sources?.map((s, idx) => (
                             <div key={idx} className="flex items-center gap-1">
                                 <PlatformIcon source={s.source} className="w-3.5 h-3.5 text-slate-400" />
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'AIRBNB' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
-                                    s.source === 'BOOKING_COM' ? 'bg-[#003580]/10 text-[#003580]' :
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'Airbnb' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
+                                    s.source === 'Booking.com' ? 'bg-[#003580]/10 text-[#003580]' :
                                         'bg-slate-100 text-slate-500'
                                     }`} title={`₹${s.amount || 0}${s.startDate && s.endDate ? ` (${new Date(s.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${new Date(s.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})` : ''}`}>
                                     {s.source}
@@ -60,7 +72,12 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
             <div className="flex items-center gap-6 text-sm">
                 <div className="space-y-1">
                     <div className="text-xs text-slate-500 flex items-center gap-1"><MapPin size={10} /> Room</div>
-                    <div className="font-bold text-slate-800">{roomNumber}</div>
+                    <div className="font-bold text-slate-800 flex items-baseline gap-1.5">
+                        <span>{roomNumber}</span>
+                        <span className="text-[10px] text-slate-500 font-medium">
+                            (₹{nightlyRate.toLocaleString()}/night)
+                        </span>
+                    </div>
                 </div>
                 <div className="space-y-0.5">
                     <div className="text-xs text-slate-500 flex items-center gap-1">Dates</div>
