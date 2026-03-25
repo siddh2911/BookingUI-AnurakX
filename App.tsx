@@ -21,6 +21,7 @@ import BookingDetailsModal from './components/modals/BookingDetailsModal';
 import DayDetailsModal from './components/modals/DayDetailsModal';
 import PaymentModal from './components/modals/PaymentModal';
 import SecurityModal from './components/modals/SecurityModal';
+import DeleteConfirmationModal from './components/modals/DeleteConfirmationModal';
 
 export default function App() {
 
@@ -84,6 +85,7 @@ export default function App() {
   const [isRevenueVisible, setIsRevenueVisible] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
+  const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
 
   const handleToggleRevenue = (visible: boolean) => {
     if (visible) {
@@ -461,13 +463,18 @@ export default function App() {
   }, [newBookingData, rooms, editingBookingId, addLog, fetchBookings]);
 
   const handleDeleteBooking = useCallback((bookingId: string) => {
-    if (window.confirm("Are you sure?")) {
-      const url = `${API_BASE_URL}/bookings/${bookingId}`;
+    setBookingToDelete(bookingId);
+  }, []);
+
+  const confirmDeleteBooking = useCallback(() => {
+    if (bookingToDelete) {
+      const url = `${API_BASE_URL}/bookings/${bookingToDelete}`;
       fetch(url, { method: 'DELETE' })
         .then(response => { if (!response.ok) throw new Error('Failed'); fetchBookings(); })
-        .catch(error => alert(error.message));
+        .catch(error => alert(error.message))
+        .finally(() => setBookingToDelete(null));
     }
-  }, [fetchBookings]);
+  }, [bookingToDelete, fetchBookings]);
 
   const handleAddPayment = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); if (!selectedBooking) return;
@@ -659,6 +666,13 @@ export default function App() {
             handleOpenNewBooking(date);
             if (roomId) setNewBookingData((prev: any) => ({ ...prev, roomId }));
           }}
+        />
+
+        <DeleteConfirmationModal
+          isOpen={!!bookingToDelete}
+          onClose={() => setBookingToDelete(null)}
+          onConfirm={confirmDeleteBooking}
+          bookingId={bookingToDelete}
         />
       </Router>
     </LanguageProvider>
