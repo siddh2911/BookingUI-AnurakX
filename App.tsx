@@ -40,6 +40,9 @@ export default function App() {
 
 
   const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
+  const roomsRef = React.useRef(rooms);
+  useEffect(() => { roomsRef.current = rooms; }, [rooms]);
+
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currentUser] = useState<User>(MOCK_USER);
@@ -151,8 +154,7 @@ export default function App() {
       const data: any[] = await response.json();
 
       const transformedBookings: Booking[] = data.map(b => {
-
-        const room = rooms.find(r => String(r.number) === String(b.room));
+        const room = roomsRef.current.find(r => String(r.number) === String(b.room));
         const roomId = room ? room.id : -1;
 
 
@@ -183,36 +185,51 @@ export default function App() {
       // Map cleanStatus from allBooking response onto rooms & housekeeping
       const cleanStatusMap = new Map<number, string>();
       data.forEach((b: any) => {
-        const room = rooms.find(r => String(r.number) === String(b.room));
+        const room = roomsRef.current.find(r => String(r.number) === String(b.room));
         if (room && b.cleanStatus) {
           cleanStatusMap.set(room.id, b.cleanStatus);
         }
       });
 
       if (cleanStatusMap.size > 0) {
-        setRooms(prev => prev.map(r => {
-          const cs = cleanStatusMap.get(r.id);
-          return cs ? { ...r, cleanStatus: cs as any } : r;
-        }));
+        setRooms(prev => {
+          const hasChanged = prev.some(r => {
+            const cs = cleanStatusMap.get(r.id);
+            return cs && r.cleanStatus !== cs;
+          });
+          if (!hasChanged) return prev;
+          return prev.map(r => {
+            const cs = cleanStatusMap.get(r.id);
+            return cs ? { ...r, cleanStatus: cs as any } : r;
+          });
+        });
+
         setHousekeepingTasks(prev => {
-          const updated = [...prev];
-          cleanStatusMap.forEach((cs, roomId) => {
-            const existing = updated.find(t => t.roomId === roomId);
+          let hasChanged = false;
+          const updated = prev.map(t => {
+            const cs = cleanStatusMap.get(t.roomId);
             const newStatus: HousekeepingStatus = cs === 'DIRTY' ? 'Dirty' : 'Clean';
-            if (existing) {
-              existing.status = newStatus;
-              existing.priority = cs === 'DIRTY' ? 'High' : 'Low';
-            } else {
-              updated.push({ id: `hk_api_${roomId}`, roomId, status: newStatus, priority: cs === 'DIRTY' ? 'High' : 'Low' });
+            if (cs && t.status !== newStatus) {
+              hasChanged = true;
+              return { ...t, status: newStatus, priority: cs === 'DIRTY' ? 'High' : 'Low' };
+            }
+            return t;
+          });
+
+          cleanStatusMap.forEach((cs, roomId) => {
+            if (!updated.find(t => t.roomId === roomId)) {
+              hasChanged = true;
+              updated.push({ id: `hk_api_${roomId}`, roomId, status: cs === 'DIRTY' ? 'Dirty' : 'Clean', priority: cs === 'DIRTY' ? 'High' : 'Low' });
             }
           });
-          return updated;
+
+          return hasChanged ? updated : prev;
         });
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
-  }, [rooms]);
+  }, []); // Only fetchMaintenanceTickets and initial setup depend on this now. roomsRef handles the lookup.
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
@@ -373,21 +390,21 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-
       fetchBookings();
-      const t = setTimeout(() => fetchBookings(), 2000);
-      return () => clearTimeout(t);
+      const interval = setInterval(() => {
+        fetchBookings();
+      }, 30000); // Regular refresh every 30 seconds
+      return () => clearInterval(interval);
     }
   }, [isAuthenticated, fetchBookings]);
 
   useEffect(() => {
-
     if (isAuthenticated && stats.totalCheckIns === 0) {
-      const retryTimer = setTimeout(() => {
+      const retryTimer = setInterval(() => {
         console.log("No check-ins found (0). Retrying fetch...");
         fetchBookings();
-      }, 5000);
-      return () => clearTimeout(retryTimer);
+      }, 10000); // Check every 10 seconds if no data
+      return () => clearInterval(retryTimer);
     }
   }, [isAuthenticated, stats.totalCheckIns, fetchBookings]);
 
