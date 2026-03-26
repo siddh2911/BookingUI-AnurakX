@@ -15,6 +15,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 interface DashboardProps {
   stats: any;
+  housekeepingTasks: any[];
 
   upcomingArrivals: Booking[];
   upcomingDepartures: Booking[];
@@ -41,6 +42,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   bookings,
   rooms,
   logs,
+  housekeepingTasks,
   availabilityForecast,
   forecastPage,
   setForecastPage,
@@ -61,12 +63,14 @@ const Dashboard: React.FC<DashboardProps> = ({
         rooms={rooms}
         today={today}
         onEditBooking={handleEditBooking}
+        housekeepingTasks={housekeepingTasks}
       />
       <UrgentDepartures
         departures={upcomingDepartures}
         rooms={rooms}
         today={today}
         onEditBooking={handleEditBooking}
+        housekeepingTasks={housekeepingTasks}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -129,7 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               positive: actual >= target
             });
 
-            
+
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             const daysElapsed = now.getDate();
@@ -210,6 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         rooms={rooms}
         onEditBooking={handleEditBooking}
         today={today}
+        housekeepingTasks={housekeepingTasks}
       />
 
 
@@ -240,6 +245,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         bookings={bookings}
         onEditBooking={handleEditBooking}
         handleOpenDayDetails={handleOpenDayDetails}
+        housekeepingTasks={housekeepingTasks}
       />
     </div>
   );

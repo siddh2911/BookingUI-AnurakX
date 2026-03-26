@@ -74,7 +74,7 @@ export const getAvailabilityForecast = async (
     return { date: d, availableRooms: available };
   });
 
-  
+
   await new Promise(resolve => setTimeout(resolve, 500));
 
   return Promise.resolve(forecast);
@@ -97,4 +97,57 @@ export const getRoomDetails = async (id: number): Promise<Room> => {
     ...data,
     number: data.roomNumber,
   };
+};
+
+export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' | 'DIRTY' | 'INSPECTED' | 'MAINTENANCE'): Promise<void> => {
+  const url = `${API_BASE_URL}/rooms/${roomNumber}/clean-status?status=${status}`;
+
+  console.log(`Updating room ${roomNumber} clean status to ${status}...`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Failed to update clean status' }));
+    throw new Error(errorData.message || 'Failed to update clean status');
+  }
+};
+
+export const fetchMaintenanceTickets = async (): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/maintenance`);
+  if (!response.ok) throw new Error('Failed to fetch tickets');
+  const data = await response.json();
+  return data.map((t: any) => ({
+    ...t,
+    status: t.status === 'IN_PROGRESS' ? 'In Progress' : t.status === 'RESOLVED' ? 'Resolved' : 'Open'
+  }));
+};
+
+export const createMaintenanceTicket = async (ticket: any): Promise<any> => {
+  const payload = {
+    ...ticket,
+    status: ticket.status === 'In Progress' ? 'IN_PROGRESS' : ticket.status === 'Resolved' ? 'RESOLVED' : 'OPEN'
+  };
+  const response = await fetch(`${API_BASE_URL}/maintenance`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('Failed to create ticket');
+  return response.json();
+};
+
+export const updateMaintenanceTicketStatus = async (id: string, status: string): Promise<void> => {
+  const payloadStatus = status === 'In Progress' ? 'IN_PROGRESS' : status === 'Resolved' ? 'RESOLVED' : 'OPEN';
+  const response = await fetch(`${API_BASE_URL}/maintenance/${id}/status?status=${payloadStatus}`, { method: 'PUT' });
+  if (!response.ok) throw new Error('Failed to update ticket status');
+};
+
+export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to delete ticket');
 };

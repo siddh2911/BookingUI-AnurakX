@@ -11,9 +11,10 @@ interface AvailabilityForecastProps {
     bookings: Booking[];
     onEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
     handleOpenDayDetails: (date: Date) => void;
+    housekeepingTasks: any[];
 }
 
-const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, forecastPage, setForecastPage, onOpenNewBooking, rooms, bookings = [], onEditBooking, handleOpenDayDetails }) => {
+const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, forecastPage, setForecastPage, onOpenNewBooking, rooms, bookings = [], onEditBooking, handleOpenDayDetails, housekeepingTasks }) => {
     return (
         <div className="bg-white/70 backdrop-blur-xl transition-colors duration-1000 rounded-2xl shadow-sm border border-white/20 p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -104,13 +105,14 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                                             current >= checkIn &&
                                             current < checkOut;
                                     }) : null;
+                                    const isDirty = housekeepingTasks?.find(t => t.roomId === r.id)?.status === 'Dirty';
 
                                     return (
                                         <span
                                             key={r.id}
                                             title={booking ? `Booked by: ${booking.guestName}` : undefined}
                                             className={`
-                                                text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors
+                                                flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors
                                                 ${r.isAvailable
                                                     ? 'bg-slate-50 border border-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 group-hover:border-blue-100'
                                                     : 'bg-red-50 border border-red-100 text-red-300 line-through decoration-red-300 hover:decoration-transparent hover:text-red-500'
@@ -118,6 +120,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                                             `}
                                         >
                                             {r.number}
+                                            {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" title="Dirty"></span>}
                                         </span>
                                     );
                                 })}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Booking, Room } from '../../types';
-import { Bell, Calendar, Clock, ArrowRight, Phone } from 'lucide-react';
+import { Bell, Calendar, Clock, ArrowRight, Phone, Droplets } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import PlatformIcon from '../common/PlatformIcon';
 
@@ -9,9 +9,10 @@ interface UrgentArrivalsProps {
     rooms: Room[];
     today: string;
     onEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
+    housekeepingTasks: any[];
 }
 
-const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today, onEditBooking }) => {
+const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today, onEditBooking, housekeepingTasks }) => {
     const { t } = useLanguage();
 
     const todayDate = new Date(today);
@@ -58,6 +59,7 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                     urgentBookings.map(booking => {
                         const room = rooms.find(r => r.id === booking.roomId);
                         const isToday = booking.checkInDate === today;
+                        const isDirty = housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
 
                         return (
                             <div
@@ -102,11 +104,16 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                                 </div>
 
                                 <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                    <div className="flex items-center gap-2 text-sm text-slate-500 flex-wrap">
                                         <div className="px-2 py-1 bg-slate-100 rounded border border-slate-200">
                                             <span className="font-mono font-bold text-slate-700">R{room?.number}</span>
                                         </div>
                                         <span className="text-xs font-semibold">{room?.type}</span>
+                                        {isDirty && (
+                                            <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-bold flex items-center">
+                                                <Droplets size={10} className="mr-0.5" /> Dirty
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {(booking.pendingBalance || 0) > 0 ? (

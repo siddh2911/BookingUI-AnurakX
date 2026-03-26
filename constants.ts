@@ -13,3 +13,16 @@ export const MOCK_USER = {
   name: 'Sanjeev Kumar Singh',
   role: 'Manager' as const
 };
+
+import { HousekeepingTask, MaintenanceTicket } from './types';
+
+export const INITIAL_HOUSEKEEPING_TASKS: HousekeepingTask[] = [
+  { id: 'hk_1', roomId: 101, status: 'Dirty', priority: 'High', notes: 'VIP Guest arriving early' },
+  { id: 'hk_2', roomId: 102, status: 'Clean', priority: 'Normal', lastCleanedAt: new Date().toISOString() },
+  { id: 'hk_3', roomId: 201, status: 'Cleaning in Progress', assignedTo: 'Maria', priority: 'Normal' },
+];
+
+export const INITIAL_MAINTENANCE_TICKETS: MaintenanceTicket[] = [
+  { id: 'mt_1', roomId: 101, category: 'Appliance', description: 'AC unit is making a loud noise', severity: 'Medium', status: 'Open', reportedAt: new Date().toISOString() },
+  { id: 'mt_2', roomId: 201, category: 'Plumbing', description: 'Leaky faucet in master bath', severity: 'Low', status: 'Resolved', reportedAt: new Date(Date.now() - 86400000).toISOString(), resolvedAt: new Date().toISOString() },
+];

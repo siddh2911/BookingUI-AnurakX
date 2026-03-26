@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { getAvailabilityForecast, API_BASE_URL } from './services/api';
-import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment } from './types';
+import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, MaintenanceTicket } from './types';
 import { LanguageProvider } from './contexts/LanguageContext';
-import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER } from './constants';
+import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER, INITIAL_HOUSEKEEPING_TASKS, INITIAL_MAINTENANCE_TICKETS } from './constants';
 
 import DashboardLayout from './components/DashboardLayout';
 import DashboardPage from './components/pages/DashboardPage';
@@ -86,7 +86,14 @@ export default function App() {
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
+  const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>(INITIAL_HOUSEKEEPING_TASKS);
+  const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>([]);
 
+  useEffect(() => {
+    import('./services/api').then(api => {
+      api.fetchMaintenanceTickets().then(setMaintenanceTickets).catch(console.error);
+    });
+  }, []);
   const handleToggleRevenue = (visible: boolean) => {
     if (visible) {
 
@@ -502,6 +509,28 @@ export default function App() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
       });
       if (!response.ok) throw new Error('Failed');
+
+      if (status === BookingStatus.CHECKED_OUT) {
+        setBookings(prev => {
+          const b = prev.find(bk => bk.id.toString() === bookingId.toString());
+          if (b) {
+            setHousekeepingTasks(hTasks => {
+              const existing = hTasks.find(t => t.roomId === b.roomId);
+              if (existing) return hTasks.map(t => t.roomId === b.roomId ? { ...t, status: 'Dirty' } : t);
+              return [...hTasks, { id: `hk_auto_${Date.now()}`, roomId: b.roomId, status: 'Dirty', priority: 'High' }];
+            });
+
+            const actualRoom = rooms.find(r => r.id === b.roomId);
+            if (actualRoom) {
+              import('./services/api').then(api => {
+                api.updateRoomCleanStatus(actualRoom.number, 'DIRTY').catch(console.error);
+              });
+            }
+          }
+          return prev;
+        });
+      }
+
       fetchBookings();
     } catch (error: any) { alert(error.message); }
   }, [fetchBookings]);
@@ -528,7 +557,7 @@ export default function App() {
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
   const dashboardProps = {
-    stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings,
+    stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings, housekeepingTasks,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
     today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
   };
@@ -570,7 +599,7 @@ export default function App() {
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
-            <Route path="rooms" element={<RoomsPage />} />
+            <Route path="rooms" element={<RoomsPage rooms={rooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
             <Route path="finance" element={<FinancePage />} />

@@ -1,16 +1,17 @@
 import React from 'react';
 import { Room, Booking } from '../../types';
-import { Phone, CheckCircle, Clock, CreditCard, ChevronRight } from 'lucide-react';
+import { Phone, CheckCircle, Clock, CreditCard, ChevronRight, Droplets } from 'lucide-react';
 import PlatformIcon from '../common/PlatformIcon';
 
 interface UpcomingArrivalsProps {
   arrivals: Booking[];
   rooms: Room[];
+  housekeepingTasks: any[];
   onEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
   today: string;
 }
 
-const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, onEditBooking, today }) => {
+const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, housekeepingTasks, onEditBooking, today }) => {
   return (
     <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-sm border border-white/20 p-6 transition-colors duration-1000">
       <div className="flex items-center justify-between mb-6">
@@ -30,6 +31,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
         ) : (
           arrivals.map(booking => {
             const room = rooms.find(r => r.id === booking.roomId);
+            const isDirty = housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
             const displayPending = booking.pendingBalance || 0;
             const checkIn = new Date(booking.checkInDate);
 
@@ -47,9 +49,12 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                 <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <h4 className="font-bold text-slate-800 text-sm truncate">{booking.guestName}</h4>
-                    <span className="font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded text-[10px] border border-slate-100 shrink-0">
-                      R{room?.number}
-                    </span>
+                    <div className="flex gap-1.5 items-center">
+                      <span className="font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded text-[10px] border border-slate-100 shrink-0">
+                        R{room?.number}
+                      </span>
+                      {isDirty && <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-bold shrink-0">Dirty</span>}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-0.5 text-xs text-slate-500">
                     <span className="flex items-center gap-1"><Clock size={10} /> {checkIn.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
@@ -102,6 +107,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
           <tbody>
             {arrivals.map(booking => {
               const room = rooms.find(r => r.id === booking.roomId);
+              const isDirty = housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
               const displayPending = booking.pendingBalance || 0;
 
               const checkIn = new Date(booking.checkInDate);
@@ -140,6 +146,11 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, on
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-md text-xs">{room?.number}</span>
                       <span className="text-xs text-slate-400">{room?.type}</span>
+                      {isDirty && (
+                        <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 font-bold flex items-center">
+                          <Droplets size={10} className="mr-0.5" /> Dirty
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-4 border-y border-slate-50 group-hover:border-slate-100">

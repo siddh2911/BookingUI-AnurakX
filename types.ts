@@ -85,6 +85,7 @@ export interface Room {
   type: RoomType;
   pricePerNight: number;
   status: RoomStatus;
+  cleanStatus?: 'CLEAN' | 'DIRTY' | 'INSPECTED' | 'MAINTENANCE';
   amenities: string[];
 }
 
@@ -125,4 +126,31 @@ export interface FoodOrder {
   status: 'Pending' | 'Cooking' | 'Delivered' | 'Cancelled';
   totalAmount: number;
   timestamp: string;
+}
+
+export type HousekeepingStatus = 'Clean' | 'Dirty' | 'Cleaning in Progress' | 'Inspected';
+
+export interface HousekeepingTask {
+  id: string;
+  roomId: number;
+  status: HousekeepingStatus;
+  assignedTo?: string;
+  priority: 'Low' | 'Normal' | 'High';
+  notes?: string;
+  lastCleanedAt?: string;
+}
+
+export type MaintenanceCategory = 'Plumbing' | 'Electrical' | 'Appliance' | 'Furniture' | 'Other';
+export type MaintenanceSeverity = 'Low' | 'Medium' | 'High';
+export type MaintenanceStatus = 'Open' | 'In Progress' | 'Resolved';
+
+export interface MaintenanceTicket {
+  id: string;
+  roomNumber: string;
+  category: MaintenanceCategory;
+  description: string;
+  severity: MaintenanceSeverity;
+  status: MaintenanceStatus;
+  reportedAt: string;
+  resolvedAt?: string;
 }
