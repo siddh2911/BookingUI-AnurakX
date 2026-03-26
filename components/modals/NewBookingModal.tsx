@@ -805,12 +805,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                   </p>
                </div>
                <button
-                  type="button"
-                  onClick={(e) => {
-
-                     const form = document.querySelector('form');
-                     if (form) form.requestSubmit();
-                  }}
+                  type="submit"
                   disabled={!!dateError || !!sourceDateError || isLoadingRooms}
                   className="flex-[2] py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors text-sm shadow-lg disabled:opacity-50"
                >

@@ -78,13 +78,13 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
             {isOpen && (
                 <div className="absolute top-full left-0 z-50 mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 p-3 md:p-4 w-[280px] md:w-[300px] max-w-[85vw] animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex items-center justify-between mb-4">
-                        <button onClick={handlePrevMonth} className="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
+                        <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
                             <ChevronLeft size={20} />
                         </button>
                         <span className="font-bold text-slate-800">
                             {format(currentMonth, 'MMMM yyyy')}
                         </span>
-                        <button onClick={handleNextMonth} className="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
+                        <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
                             <ChevronRight size={20} />
                         </button>
                     </div>
@@ -107,6 +107,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ label, value, onChange, minDate
 
                             return (
                                 <button
+                                    type="button"
                                     key={idx}
                                     onClick={() => !isDisabled && handleDateClick(date)}
                                     disabled={isDisabled}
