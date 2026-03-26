@@ -92,25 +92,6 @@ export default function App() {
   useEffect(() => {
     import('./services/api').then(api => {
       api.fetchMaintenanceTickets().then(setMaintenanceTickets).catch(console.error);
-
-      const today = new Date();
-      const futureDate = new Date(today);
-      futureDate.setDate(futureDate.getDate() + 1);
-      const startDate = today.toISOString().split('T')[0];
-      const endDate = futureDate.toISOString().split('T')[0];
-      api.getAvailableRooms({ startDate, endDate }).then(apiRooms => {
-        setRooms(prev => prev.map(r => {
-          const apiRoom = apiRooms.find(ar => String(ar.number) === String(r.number));
-          return apiRoom ? { ...r, cleanStatus: apiRoom.cleanStatus } : r;
-        }));
-        const hkTasks: HousekeepingTask[] = apiRooms.map(r => ({
-          id: `hk_api_${r.id}`,
-          roomId: r.id,
-          status: (r.cleanStatus === 'DIRTY' ? 'Dirty' : 'Clean') as HousekeepingStatus,
-          priority: (r.cleanStatus === 'DIRTY' ? 'High' : 'Low') as 'Low' | 'Normal' | 'High',
-        }));
-        setHousekeepingTasks(hkTasks);
-      }).catch(console.error);
     });
   }, []);
   const handleToggleRevenue = (visible: boolean) => {
@@ -198,6 +179,36 @@ export default function App() {
       });
 
       setBookings(transformedBookings);
+
+      // Map cleanStatus from allBooking response onto rooms & housekeeping
+      const cleanStatusMap = new Map<number, string>();
+      data.forEach((b: any) => {
+        const room = rooms.find(r => String(r.number) === String(b.room));
+        if (room && b.cleanStatus) {
+          cleanStatusMap.set(room.id, b.cleanStatus);
+        }
+      });
+
+      if (cleanStatusMap.size > 0) {
+        setRooms(prev => prev.map(r => {
+          const cs = cleanStatusMap.get(r.id);
+          return cs ? { ...r, cleanStatus: cs as any } : r;
+        }));
+        setHousekeepingTasks(prev => {
+          const updated = [...prev];
+          cleanStatusMap.forEach((cs, roomId) => {
+            const existing = updated.find(t => t.roomId === roomId);
+            const newStatus: HousekeepingStatus = cs === 'DIRTY' ? 'Dirty' : 'Clean';
+            if (existing) {
+              existing.status = newStatus;
+              existing.priority = cs === 'DIRTY' ? 'High' : 'Low';
+            } else {
+              updated.push({ id: `hk_api_${roomId}`, roomId, status: newStatus, priority: cs === 'DIRTY' ? 'High' : 'Low' });
+            }
+          });
+          return updated;
+        });
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error);
     }
