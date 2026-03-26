@@ -31,7 +31,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, ho
         ) : (
           arrivals.map(booking => {
             const room = rooms.find(r => r.id === booking.roomId);
-            const isDirty = housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
+            const isDirty = room?.cleanStatus ? room.cleanStatus === 'DIRTY' : housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
             const displayPending = booking.pendingBalance || 0;
             const checkIn = new Date(booking.checkInDate);
 
@@ -107,7 +107,7 @@ const UpcomingArrivals: React.FC<UpcomingArrivalsProps> = ({ arrivals, rooms, ho
           <tbody>
             {arrivals.map(booking => {
               const room = rooms.find(r => r.id === booking.roomId);
-              const isDirty = housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
+              const isDirty = room?.cleanStatus ? room.cleanStatus === 'DIRTY' : housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
               const displayPending = booking.pendingBalance || 0;
 
               const checkIn = new Date(booking.checkInDate);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { getAvailabilityForecast, API_BASE_URL } from './services/api';
-import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, MaintenanceTicket } from './types';
+import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER, INITIAL_HOUSEKEEPING_TASKS, INITIAL_MAINTENANCE_TICKETS } from './constants';
 
@@ -86,12 +86,31 @@ export default function App() {
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
-  const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>(INITIAL_HOUSEKEEPING_TASKS);
+  const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>([]);
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>([]);
 
   useEffect(() => {
     import('./services/api').then(api => {
       api.fetchMaintenanceTickets().then(setMaintenanceTickets).catch(console.error);
+
+      const today = new Date();
+      const futureDate = new Date(today);
+      futureDate.setDate(futureDate.getDate() + 1);
+      const startDate = today.toISOString().split('T')[0];
+      const endDate = futureDate.toISOString().split('T')[0];
+      api.getAvailableRooms({ startDate, endDate }).then(apiRooms => {
+        setRooms(prev => prev.map(r => {
+          const apiRoom = apiRooms.find(ar => String(ar.number) === String(r.number));
+          return apiRoom ? { ...r, cleanStatus: apiRoom.cleanStatus } : r;
+        }));
+        const hkTasks: HousekeepingTask[] = apiRooms.map(r => ({
+          id: `hk_api_${r.id}`,
+          roomId: r.id,
+          status: (r.cleanStatus === 'DIRTY' ? 'Dirty' : 'Clean') as HousekeepingStatus,
+          priority: (r.cleanStatus === 'DIRTY' ? 'High' : 'Low') as 'Low' | 'Normal' | 'High',
+        }));
+        setHousekeepingTasks(hkTasks);
+      }).catch(console.error);
     });
   }, []);
   const handleToggleRevenue = (visible: boolean) => {

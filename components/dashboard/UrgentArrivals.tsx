@@ -59,7 +59,7 @@ const UrgentArrivals: React.FC<UrgentArrivalsProps> = ({ arrivals, rooms, today,
                     urgentBookings.map(booking => {
                         const room = rooms.find(r => r.id === booking.roomId);
                         const isToday = booking.checkInDate === today;
-                        const isDirty = housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
+                        const isDirty = room?.cleanStatus ? room.cleanStatus === 'DIRTY' : housekeepingTasks?.find(t => t.roomId === room?.id)?.status === 'Dirty';
 
                         return (
                             <div

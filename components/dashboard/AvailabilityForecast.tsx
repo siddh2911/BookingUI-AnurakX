@@ -105,7 +105,7 @@ const AvailabilityForecast: React.FC<AvailabilityForecastProps> = ({ forecast, f
                                             current >= checkIn &&
                                             current < checkOut;
                                     }) : null;
-                                    const isDirty = housekeepingTasks?.find(t => t.roomId === r.id)?.status === 'Dirty';
+                                    const isDirty = r.cleanStatus ? r.cleanStatus === 'DIRTY' : housekeepingTasks?.find(t => t.roomId === r.id)?.status === 'Dirty';
 
                                     return (
                                         <span
