@@ -9,9 +9,10 @@ import { useTheme } from '../hooks/useTheme';
 
 interface DashboardLayoutProps {
     onLogout: () => void;
+    onDashboardClick?: () => void;
 }
 
-export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
+export default function DashboardLayout({ onLogout, onDashboardClick }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentUser] = useState<User>(MOCK_USER);
     const { language, setLanguage, t } = useLanguage();
@@ -39,12 +40,13 @@ export default function DashboardLayout({ onLogout }: DashboardLayoutProps) {
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 onLogout={onLogout}
+                onDashboardClick={onDashboardClick}
             />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10 bg-white/40 backdrop-blur-3xl transition-colors duration-1000">
                 { }
                 <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-20">
-                    <Link to="/" className="flex flex-col items-start">
+                    <Link to="/" onClick={onDashboardClick} className="flex flex-col items-start">
                         <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
                         <span className="text-[9px] text-blue-200/80 uppercase tracking-widest font-sans mt-0.5 ml-0.5">Dashboard</span>
                     </Link>

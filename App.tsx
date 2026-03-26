@@ -642,7 +642,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/" replace />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />

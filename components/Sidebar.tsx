@@ -9,9 +9,10 @@ interface SidebarProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (isOpen: boolean) => void;
   onLogout: () => void;
+  onDashboardClick?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSidebarOpen, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSidebarOpen, onLogout, onDashboardClick }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { t } = useLanguage();
 
@@ -72,6 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
             to={link.to}
             end={link.exact}
             className="block mb-1 focus:outline-none"
+            onClick={link.to === '/' ? onDashboardClick : undefined}
           >
             {({ isActive }) => (
               <div className={`
