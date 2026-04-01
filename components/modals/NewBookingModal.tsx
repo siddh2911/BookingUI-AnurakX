@@ -128,8 +128,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
          sources: sanitizedSources,
          checkIn: minDate,
          checkOut: maxDate,
-         roomRate: newRate,
-         manualTotal: undefined
+         roomRate: newRate
       });
    };
 
@@ -493,8 +492,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                           ...prev,
                                           roomId: roomId,
                                           roomRate: newRoomRate,
-                                          sources: newSources,
-                                          manualTotal: undefined
+                                          sources: newSources
                                        };
                                     });
                                  }}
@@ -538,8 +536,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               type="button"
                               onClick={() => setNewBookingData({
                                  ...newBookingData,
-                                 additionalCharges: [...(newBookingData.additionalCharges || []), { category: '', amount: 0 }],
-                                 manualTotal: undefined
+                                 additionalCharges: [...(newBookingData.additionalCharges || []), { category: '', amount: 0 }]
                               })}
                               className="text-xs font-bold text-blue-600 uppercase tracking-widest hover:text-blue-700 transition"
                            >
@@ -560,7 +557,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     onChange={(e) => {
                                        const updated = [...newBookingData.additionalCharges];
                                        updated[index].category = e.target.value;
-                                       setNewBookingData({ ...newBookingData, additionalCharges: updated, manualTotal: undefined });
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
                                     }}
                                     disabled={readOnly}
                                  />
@@ -575,7 +572,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     onChange={(e) => {
                                        const updated = [...newBookingData.additionalCharges];
                                        updated[index].amount = parseFloat(e.target.value) || 0;
-                                       setNewBookingData({ ...newBookingData, additionalCharges: updated, manualTotal: undefined });
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
                                     }}
                                     disabled={readOnly}
                                  />
@@ -585,7 +582,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                     type="button"
                                     onClick={() => {
                                        const updated = newBookingData.additionalCharges.filter((_: any, i: number) => i !== index);
-                                       setNewBookingData({ ...newBookingData, additionalCharges: updated, manualTotal: undefined });
+                                       setNewBookingData({ ...newBookingData, additionalCharges: updated });
                                     }}
                                     className="mb-2 p-2 text-slate-400 hover:text-red-500 transition"
                                  >
