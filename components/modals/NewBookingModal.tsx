@@ -668,7 +668,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                           setNewBookingData({
                                              ...newBookingData,
                                              roomRate: parseFloat((calculatedRoomTotal / overallNights).toFixed(2)),
-                                             manualTotal: undefined,
+                                             manualTotal: newTotal,
                                              sources: newSources
                                           });
                                        }}
