@@ -456,7 +456,19 @@ export default function App() {
           const sStart = s.startDate || fetchedBookingData.checkInDate;
           const sEnd = s.endDate || fetchedBookingData.checkOutDate;
           const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
-          return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : (fetchedBookingData.nightlyRate || 0) };
+          let calculatedRate = fetchedBookingData.nightlyRate || 0;
+          if (s.nightlyRate != null) {
+            calculatedRate = s.nightlyRate;
+          } else if (s.amount != null && s.amount !== fetchedBookingData.totalAmount) {
+            calculatedRate = Number(s.amount) / sNights;
+          } else if (fetchedBookingData.bookingSources && fetchedBookingData.bookingSources.length === 1 && s.amount === fetchedBookingData.totalAmount && fetchedBookingData.nightlyRate) {
+            calculatedRate = fetchedBookingData.nightlyRate;
+          } else if (fetchedBookingData.bookingSources == null && s.amount === fetchedBookingData.totalAmount) {
+            calculatedRate = fetchedBookingData.nightlyRate || (Number(s.amount) / sNights);
+          } else if (s.amount != null) {
+            calculatedRate = Number(s.amount) / sNights;
+          }
+          return { ...s, nightlyRate: calculatedRate };
         }),
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
