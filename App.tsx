@@ -457,7 +457,9 @@ export default function App() {
           const sEnd = s.endDate || fetchedBookingData.checkOutDate;
           const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
           let calculatedRate = fetchedBookingData.nightlyRate || 0;
-          if (s.nightlyRate != null) {
+          if (s.nightlyRate != null && s.amount != null && sNights > 0 && Math.abs(Number(s.nightlyRate) * sNights - Number(s.amount)) > 2) {
+            calculatedRate = Number(s.amount) / sNights;
+          } else if (s.nightlyRate != null) {
             calculatedRate = s.nightlyRate;
           } else if (s.amount != null && s.amount !== fetchedBookingData.totalAmount) {
             calculatedRate = Number(s.amount) / sNights;
