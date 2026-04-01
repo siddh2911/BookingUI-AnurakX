@@ -102,10 +102,11 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
             const now = new Date();
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const daysElapsed = now.getDate();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-            const predictedYearlyRevenue = Math.round((stats.revenueMonth / Math.max(1, daysElapsed)) * 365);
+            // Use YTD run-rate to smooth out start-of-month volatility
+            const predictedYearlyRevenue = Math.round((stats.revenueYear / daysElapsedYear) * 365);
 
             return [
               { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly) },
@@ -134,11 +135,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             });
 
 
-            const now = new Date();
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const daysElapsed = now.getDate();
-            const multiplier = daysInMonth / Math.max(1, daysElapsed);
-            const projectedOccupancyYear = Math.min(100, Math.round(stats.occupancyMonth * multiplier));
+            // Projected year occupancy is best estimated by the Year-To-Date (YTD) average,
+            // which automatically accounts for previous month-wise trends and avoids over 100% spikes.
+            const projectedOccupancyYear = stats.occupancyYear;
 
             return [
               { label: 'Week', value: `${stats.occupancyWeek}%`, trend: undefined },
@@ -165,18 +164,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
             const now = new Date();
-            const daysInMonth = now.getDate();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-
-            const currentMonthRate = stats.checkInsMonth / Math.max(1, daysInMonth);
-            const projectedYearlyCheckIns = Math.round(currentMonthRate * 365);
+            // Use YTD run-rate to smooth out start-of-month volatility based on all prior months
+            const projectedYearlyCheckIns = Math.round((stats.checkInsYear / daysElapsedYear) * 365);
 
 
             const targetAnnual = Math.round(targetDaily * 365);
-
-
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            const daysInYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
             const calcTrend = (actual: number, targetDays: number) => {
               const target = targetDaily * targetDays;
