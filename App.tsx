@@ -456,7 +456,7 @@ export default function App() {
           const sStart = s.startDate || fetchedBookingData.checkInDate;
           const sEnd = s.endDate || fetchedBookingData.checkOutDate;
           const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
-          return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
+          return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : (fetchedBookingData.nightlyRate || 0) };
         }),
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
