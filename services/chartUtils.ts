@@ -2,22 +2,22 @@ import { Booking, Room, BookingStatus } from '../types';
 
 export const generateChartData = (
     type: 'revenue' | 'occupancy',
-    range: 'daily' | 'weekly' | 'monthly' | 'yearly',
+    range: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'yoy',
     offset: number,
     bookings: Booking[],
     rooms: Room[]
 ) => {
     const today = new Date();
 
-    
-    
-    
-    
-    
 
-    
-    
-    
+
+
+
+
+
+
+
+
 
     let referenceDate = new Date(today);
 
@@ -29,7 +29,7 @@ export const generateChartData = (
     }
 
     if (range === 'weekly') {
-        
+
         referenceDate.setDate(today.getDate() - (offset * 7 * 8));
         return type === 'revenue'
             ? generateWeeklyRevenueData(8, bookings, referenceDate)
@@ -37,7 +37,7 @@ export const generateChartData = (
     }
 
     if (range === 'monthly') {
-        
+
         referenceDate.setMonth(today.getMonth() - (offset * 6));
         return type === 'revenue'
             ? generateMonthlyRevenueData(6, bookings, referenceDate)
@@ -45,14 +45,55 @@ export const generateChartData = (
     }
 
     if (range === 'yearly') {
-        
+
         referenceDate.setFullYear(today.getFullYear() - (offset * 4));
         return type === 'revenue'
             ? generateAnnualRevenueData(4, bookings, referenceDate)
             : generateAnnualOccupancyData(4, bookings, rooms, referenceDate);
     }
 
+    if (range === 'yoy' && type === 'revenue') {
+        referenceDate.setFullYear(today.getFullYear() - offset);
+        return generateYoYRevenueData(bookings, referenceDate);
+    }
+
     return [];
+};
+
+
+const generateYoYRevenueData = (bookings: Booking[], refDate: Date) => {
+    const currentYear = refDate.getFullYear();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    return months.map((monthName, m) => {
+        const dataPoint: any = { name: monthName };
+
+        // Compute for the base year and the two previous years
+        for (let y = 0; y < 3; y++) {
+            const year = currentYear - y;
+            const monthStart = new Date(year, m, 1);
+            const monthEnd = new Date(year, m + 1, 0, 23, 59, 59, 999);
+
+            const monthRevenue = bookings.filter(b => b.status !== BookingStatus.CANCELLED).reduce((sum, b) => {
+                const checkIn = new Date(b.checkInDate); checkIn.setHours(0, 0, 0, 0);
+                const checkOut = new Date(b.checkOutDate); checkOut.setHours(0, 0, 0, 0);
+
+                const overlapStart = new Date(Math.max(monthStart.getTime(), checkIn.getTime()));
+                const overlapEnd = new Date(Math.min(monthEnd.getTime(), checkOut.getTime()));
+
+                if (overlapStart < overlapEnd) {
+                    const overlapNights = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24);
+                    const totalNights = Math.max(1, (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+                    const dailyRate = (b.totalAmount || b.totalPaid || 0) / totalNights;
+                    return sum + (overlapNights * dailyRate);
+                }
+                return sum;
+            }, 0);
+
+            dataPoint[year.toString()] = Math.round(monthRevenue);
+        }
+        return dataPoint;
+    });
 };
 
 
@@ -82,7 +123,7 @@ const generateRevenueData = (days: number, bookings: Booking[], endDate: Date) =
 const generateWeeklyRevenueData = (weeks: number, bookings: Booking[], refDate: Date) => {
     return Array.from({ length: weeks }, (_, i) => {
         const currentRef = new Date(refDate);
-        
+
         const day = currentRef.getDay();
         const diff = currentRef.getDate() - day + (day === 0 ? -6 : 1);
         const currentWeekMonday = new Date(currentRef.setDate(diff));
@@ -152,23 +193,23 @@ const generateMonthlyRevenueData = (months: number, bookings: Booking[], refDate
 
 const generateAnnualRevenueData = (years: number, bookings: Booking[], refDate: Date) => {
     const currentYear = refDate.getFullYear();
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
 
     const endYear = currentYear + 1;
 
     return Array.from({ length: years }, (_, i) => {
-        const year = endYear - (years - 1) + i; 
-        
-        
-        
+        const year = endYear - (years - 1) + i;
 
-        
-        
+
+
+
+
+
 
         const yearStart = new Date(year, 0, 1);
         const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
@@ -190,7 +231,7 @@ const generateAnnualRevenueData = (years: number, bookings: Booking[], refDate: 
         }, 0);
 
         return { name: year.toString(), revenue: Math.round(yearRevenue) };
-    }); 
+    });
 };
 
 
@@ -275,7 +316,7 @@ const generateMonthlyOccupancyData = (months: number, bookings: Booking[], rooms
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0); monthEnd.setHours(23, 59, 59, 999);
 
         const daysInMonth = monthEnd.getDate();
-        const totalRoomNights = rooms.length * daysInMonth; 
+        const totalRoomNights = rooms.length * daysInMonth;
         if (totalRoomNights === 0) return { name: '', occupancy: 0 };
 
         let occupiedCount = 0;
@@ -300,7 +341,7 @@ const generateMonthlyOccupancyData = (months: number, bookings: Booking[], rooms
 
 const generateAnnualOccupancyData = (years: number, bookings: Booking[], rooms: Room[], refDate: Date) => {
     const currentYear = refDate.getFullYear();
-    const endYear = currentYear + 1; 
+    const endYear = currentYear + 1;
 
     return Array.from({ length: years }, (_, i) => {
         const year = endYear - (years - 1) + i;
