@@ -94,10 +94,18 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings, rooms }) => {
                 if (active && payload && payload.length) {
                   const revenue = payload[0].value as number;
                   const isMonthly = range === 'monthly';
+                  const isYearly = range === 'yearly';
 
-                  const normalRent = isMonthly && rooms ? rooms.length * 12000 : 0;
+                  // Calculate Normal Rent: 12000/month for monthly, 144000/year for yearly
+                  let normalRent = 0;
+                  if (rooms) {
+                    if (isMonthly) normalRent = rooms.length * 12000;
+                    if (isYearly) normalRent = rooms.length * 12000 * 12;
+                  }
+
                   const increment = revenue - normalRent;
                   const hasIncrement = increment > 0;
+                  const showExtras = (isMonthly || isYearly) && normalRent > 0;
 
                   return (
                     <div className="bg-white/90 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-xl min-w-[150px]">
@@ -107,7 +115,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings, rooms }) => {
                         <span className="font-bold text-blue-600">₹{revenue.toLocaleString()}</span>
                       </div>
 
-                      {isMonthly && normalRent > 0 && (
+                      {showExtras && (
                         <>
                           <div className="flex justify-between items-center text-sm mb-1">
                             <span className="text-slate-500 font-medium mr-4">Normal Rent</span>
