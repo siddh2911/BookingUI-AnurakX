@@ -115,7 +115,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings, rooms }) => {
                           </div>
                           <div className="flex justify-between items-center text-sm border-t border-slate-100 pt-1 mt-1">
                             <span className="text-slate-500 font-medium mr-4">Increment</span>
-                            <span className={`font-bold ${hasIncrement ? 'text-green-500' : 'text-slate-500'}`}>
+                            <span className={`font-bold ${hasIncrement ? 'text-green-500' : 'text-red-500'}`}>
                               {hasIncrement ? '+' : ''}₹{increment.toLocaleString()}
                             </span>
                           </div>
