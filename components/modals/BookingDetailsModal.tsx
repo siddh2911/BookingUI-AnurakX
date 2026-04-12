@@ -1,7 +1,8 @@
 import React from 'react';
 import Modal from '../ui/Modal';
 import { Booking } from '../../types';
-import { CreditCard, Calendar, User, Clock, CheckCircle } from 'lucide-react';
+import { CreditCard, Calendar, User, Clock, CheckCircle, Download } from 'lucide-react';
+import { generateInvoice } from '../../services/pdfGenerator';
 import PlatformIcon from '../common/PlatformIcon';
 
 interface BookingDetailsModalProps {
@@ -59,12 +60,21 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
                     <span className="text-lg font-bold text-slate-900">₹{booking.totalAmount.toLocaleString()}</span>
                 </div>
 
-                <button
-                    onClick={onAddPayment}
-                    className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition"
-                >
-                    Add Payment
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={onAddPayment}
+                        className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-sm"
+                    >
+                        Add Payment
+                    </button>
+                    <button
+                        onClick={() => generateInvoice(booking)}
+                        className="flex-1 flex justify-center items-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm"
+                    >
+                        <Download size={18} />
+                        Receipt
+                    </button>
+                </div>
             </div>
         </Modal>
     );

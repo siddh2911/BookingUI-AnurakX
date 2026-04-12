@@ -1,6 +1,7 @@
 import React from 'react';
 import { Booking, Room, BookingStatus, PaymentMethod } from '../../types';
-import { Pencil, CreditCard, CheckCircle, Trash2 } from 'lucide-react';
+import { Pencil, CreditCard, CheckCircle, Trash2, Download } from 'lucide-react';
+import { generateInvoice } from '../../services/pdfGenerator';
 import PlatformIcon from '../common/PlatformIcon';
 
 interface BookingRowProps {
@@ -77,6 +78,7 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
       </td>
       <td className="px-2 pr-16 py-3 text-center">
         <div className="flex items-center justify-center gap-2">
+          <button onClick={(e) => { e.stopPropagation(); generateInvoice(booking, room); }} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors flex items-center justify-center" title="Download Invoice"><Download size={18} /></button>
           <button onClick={(e) => { e.stopPropagation(); onEditBooking(booking); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors flex items-center justify-center" title="Update Booking"><Pencil size={18} /></button>
           <button onClick={(e) => { e.stopPropagation(); onDeleteBooking(booking.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors flex items-center justify-center" title="Delete Booking"><Trash2 size={18} /></button>
         </div>

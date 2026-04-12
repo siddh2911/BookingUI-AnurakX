@@ -1,7 +1,8 @@
 import React from 'react';
 import { Booking, Room, BookingStatus } from '../../types';
-import { Pencil, Trash2, Calendar, MapPin, CheckCircle } from 'lucide-react';
+import { Pencil, Trash2, Calendar, MapPin, CheckCircle, Download } from 'lucide-react';
 import PlatformIcon from '../common/PlatformIcon';
+import { generateInvoice } from '../../services/pdfGenerator';
 
 interface BookingMobileCardProps {
     booking: Booking;
@@ -109,6 +110,12 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); generateInvoice(booking, room); }}
+                        className="p-2 bg-slate-50 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                    >
+                        <Download size={18} />
+                    </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onEditBooking(booking); }}
                         className="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
