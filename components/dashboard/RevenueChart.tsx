@@ -1,15 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Booking } from '../../types';
+import { Booking, Room } from '../../types';
 import { generateChartData } from '../../services/chartUtils';
 
 interface RevenueChartProps {
   bookings: Booking[];
+  rooms?: Room[];
 }
 
-const RevenueChart: React.FC<RevenueChartProps> = ({ bookings }) => {
-  const [range, setRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+const RevenueChart: React.FC<RevenueChartProps> = ({ bookings, rooms }) => {
+  const [range, setRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
   const [offset, setOffset] = useState(0);
 
   const currentData = useMemo(() => {
@@ -89,16 +90,42 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings }) => {
             />
             <Tooltip
               cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-              contentStyle={{
-                backgroundColor: 'rgba(var(--color-white), 0.8)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: '12px',
-                border: '1px solid rgba(var(--color-slate-200), 1)',
-                color: 'rgba(var(--color-slate-900), 1)',
-                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                padding: '12px'
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const revenue = payload[0].value as number;
+                  const isMonthly = range === 'monthly';
+
+                  const normalRent = isMonthly && rooms ? rooms.length * 12000 : 0;
+                  const increment = revenue - normalRent;
+                  const hasIncrement = increment > 0;
+
+                  return (
+                    <div className="bg-white/90 backdrop-blur-md p-3 rounded-xl border border-slate-200 shadow-xl min-w-[150px]">
+                      <p className="text-sm font-bold text-slate-800 mb-2 border-b border-slate-100 pb-1">{label}</p>
+                      <div className="flex justify-between items-center text-sm mb-1">
+                        <span className="text-slate-500 font-medium mr-4">Revenue</span>
+                        <span className="font-bold text-blue-600">₹{revenue.toLocaleString()}</span>
+                      </div>
+
+                      {isMonthly && normalRent > 0 && (
+                        <>
+                          <div className="flex justify-between items-center text-sm mb-1">
+                            <span className="text-slate-500 font-medium mr-4">Normal Rent</span>
+                            <span className="font-bold text-slate-700">₹{normalRent.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm border-t border-slate-100 pt-1 mt-1">
+                            <span className="text-slate-500 font-medium mr-4">Increment</span>
+                            <span className={`font-bold ${hasIncrement ? 'text-green-500' : 'text-slate-500'}`}>
+                              {hasIncrement ? '+' : ''}₹{increment.toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
               }}
-              formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
             />
             <Bar
               dataKey="revenue"

@@ -218,7 +218,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         {isRevenueVisible ? (
           <>
             <div className="h-[450px] lg:h-[400px]">
-              <RevenueChart bookings={bookings} />
+              <RevenueChart bookings={bookings} rooms={rooms} />
             </div>
             <div className="h-[450px] lg:h-[400px]">
               <OccupancyChart bookings={bookings} rooms={rooms} />
