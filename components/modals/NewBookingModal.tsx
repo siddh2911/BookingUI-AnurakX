@@ -259,7 +259,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
    return (
       <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
-         <form onSubmit={(e) => {
+         <form id="new-booking-form" onSubmit={(e) => {
             e.preventDefault();
             const selectedRoom = apiAvailableRooms.find(r => Number(r.id) === Number(newBookingData.roomId)) || rooms.find(r => Number(r.id) === Number(newBookingData.roomId));
             handleSaveBooking(e, selectedRoom);
@@ -803,6 +803,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                </div>
                <button
                   type="submit"
+                  form="new-booking-form"
                   disabled={!!dateError || !!sourceDateError || isLoadingRooms}
                   className="flex-[2] py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors text-sm shadow-lg disabled:opacity-50"
                >
