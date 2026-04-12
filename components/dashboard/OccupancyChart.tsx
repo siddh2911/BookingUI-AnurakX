@@ -10,7 +10,7 @@ interface OccupancyChartProps {
 }
 
 const OccupancyChart: React.FC<OccupancyChartProps> = ({ bookings, rooms }) => {
-    const [range, setRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+    const [range, setRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
     const [offset, setOffset] = useState(0);
 
     const currentData = useMemo(() => {
