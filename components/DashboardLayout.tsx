@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Menu, X, Bell, Search, Sun, Moon } from 'lucide-react';
+import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { User } from '../types';
+import { User, Room } from '../types';
 import { MOCK_USER } from '../constants';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../hooks/useTheme';
@@ -10,9 +10,10 @@ import { useTheme } from '../hooks/useTheme';
 interface DashboardLayoutProps {
     onLogout: () => void;
     onDashboardClick?: () => void;
+    rooms?: Room[];
 }
 
-export default function DashboardLayout({ onLogout, onDashboardClick }: DashboardLayoutProps) {
+export default function DashboardLayout({ onLogout, onDashboardClick, rooms }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [currentUser] = useState<User>(MOCK_USER);
     const { language, setLanguage, t } = useLanguage();
@@ -100,6 +101,13 @@ export default function DashboardLayout({ onLogout, onDashboardClick }: Dashboar
                         </button>
                     </div>
                 </header>
+
+                {rooms && rooms.filter(r => r.cleanStatus === 'DIRTY').length > 0 && (
+                    <div className="bg-red-500/10 backdrop-blur-md border border-red-500/20 text-red-600 px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 z-20 shadow-sm animate-pulse m-2 md:mx-8 md:mt-4 rounded-xl">
+                        <AlertTriangle size={18} className="text-red-500" />
+                        <span>Attention: Room {rooms.filter(r => r.cleanStatus === 'DIRTY').map(r => r.number).join(', ')} is Uncleared and requires housekeeping!</span>
+                    </div>
+                )}
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
                     <Outlet />
