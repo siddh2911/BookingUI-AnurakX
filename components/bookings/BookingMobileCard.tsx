@@ -26,12 +26,22 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
 
 
 
+    const formatDate = (dateString: string) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+        } catch {
+            return dateString;
+        }
+    };
+
     return (
         <div className="bg-white/70 backdrop-blur-xl transition-colors duration-1000 rounded-xl shadow-sm border border-white/20 p-4 space-y-3">
             {/* Header: Guest Info & Status */}
-            <div className="flex justify-between items-start">
-                <div>
-                    <h3 className="font-semibold text-slate-900">{booking.guestName}</h3>
+            <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 truncate pr-2 w-full">{booking.guestName}</h3>
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {booking.sources?.map((s, idx) => (
                             <div key={idx} className="flex items-center gap-1">
@@ -39,7 +49,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide ${s.source === 'Airbnb' ? 'bg-[#FF5A5F]/10 text-[#FF5A5F]' :
                                     s.source === 'Booking.com' ? 'bg-[#003580]/10 text-[#003580]' :
                                         'bg-slate-100 text-slate-500'
-                                    }`} title={`₹${s.amount || 0}${s.startDate && s.endDate ? ` (${new Date(s.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${new Date(s.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})` : ''}`}>
+                                    }`} title={`₹${s.amount || 0}${s.startDate && s.endDate ? ` (${formatDate(s.startDate)} - ${formatDate(s.endDate)})` : ''}`}>
                                     {s.source}
                                 </span>
                             </div>
@@ -50,7 +60,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                 <select
                     value={booking.status}
                     onChange={(e) => onUpdateStatus(booking.id, e.target.value as BookingStatus)}
-                    className="text-xs font-medium border-white/20 rounded-md py-1 pr-7 pl-2 bg-white/10 text-slate-800 focus:ring-0 focus:border-blue-500"
+                    className="text-xs font-medium border-white/20 rounded-md py-1 pr-7 pl-2 bg-white/10 text-slate-800 focus:ring-0 focus:border-blue-500 shrink-0"
                 >
                     {Object.values(BookingStatus).map(s => <option key={s} value={s} className="text-slate-800 bg-white">{s}</option>)}
                 </select>
@@ -59,16 +69,18 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
             <div className="border-t border-white/10 -mx-4" />
 
             {/* Body: Room & Dates */}
-            <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center justify-between text-sm">
                 <div className="space-y-1">
                     <div className="text-xs text-slate-500 flex items-center gap-1"><MapPin size={10} /> Room</div>
                     <div className="font-bold text-slate-800 flex items-baseline gap-1.5">
                         <span>{roomNumber}</span>
                     </div>
                 </div>
-                <div className="space-y-0.5">
-                    <div className="text-xs text-slate-500 flex items-center gap-1">Dates</div>
-                    <div className="font-semibold text-slate-800 whitespace-nowrap">{booking.checkInDate} <span className="text-slate-400 font-bold mx-1">→</span> {booking.checkOutDate}</div>
+                <div className="space-y-0.5 text-right">
+                    <div className="text-xs text-slate-500 flex items-center justify-end gap-1">Dates</div>
+                    <div className="font-semibold text-slate-800 flex items-center justify-end flex-wrap">
+                        {formatDate(booking.checkInDate)} <span className="text-slate-400 font-bold mx-1">→</span> {formatDate(booking.checkOutDate)}
+                    </div>
                 </div>
             </div>
 
