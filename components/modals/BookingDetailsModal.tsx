@@ -68,7 +68,7 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
                         Add Payment
                     </button>
                     <button
-                        onClick={() => generateInvoice(booking)}
+                        onClick={async () => await generateInvoice(booking)}
                         className="flex-1 flex justify-center items-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm"
                     >
                         <Download size={18} />

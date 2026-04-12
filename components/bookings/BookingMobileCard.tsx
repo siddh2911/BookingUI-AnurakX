@@ -111,7 +111,7 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
 
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={(e) => { e.stopPropagation(); generateInvoice(booking, room); }}
+                        onClick={async (e) => { e.stopPropagation(); await generateInvoice(booking, room); }}
                         className="p-2 bg-slate-50 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
                     >
                         <Download size={18} />

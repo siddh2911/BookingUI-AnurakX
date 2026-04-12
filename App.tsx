@@ -171,7 +171,7 @@ export default function App() {
             return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
           }),
           status: b.status as BookingStatus,
-          totalPaid: b.totalPaid, pendingBalance: b.balance,
+          totalPaid: b.totalPaid, totalAmount: b.totalAmount, pendingBalance: b.balance,
         };
       });
 
