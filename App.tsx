@@ -58,19 +58,26 @@ export default function App() {
 
   useEffect(() => {
     const checkSession = async () => {
-      console.log('Checking session...');
+      console.log('DEBUG: Starting session check at', window.location.href);
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
-          timeout: 5000 // 5 second timeout
+          timeout: 5000 
         });
-        console.log('Session response:', response.data);
-        if (response.data && typeof response.data === 'object' && Object.keys(response.data).length > 0) {
+        
+        console.log('DEBUG: Session response status:', response.status);
+        console.log('DEBUG: Session data keys:', Object.keys(response.data || {}));
+        console.log('DEBUG: Full session data:', response.data);
+
+        // More aggressive check: must have a common user property
+        if (response.data && (response.data.id || response.data.email || response.data.username || response.data.sub)) {
+          console.log('DEBUG: Authentication confirmed.');
           setIsAuthenticated(true);
         } else {
+          console.log('DEBUG: No valid user data found in response. Redirecting to login.');
           setIsAuthenticated(false);
         }
-      } catch (error) {
-        console.error('Session check failed or timed out:', error);
+      } catch (error: any) {
+        console.error('DEBUG: Session check failed:', error.message || error);
         setIsAuthenticated(false);
       } finally {
         setIsAuthLoading(false);
@@ -690,6 +697,12 @@ export default function App() {
 
   return (
     <LanguageProvider>
+      {/* TEMP DEBUG BANNER */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white text-[10px] py-1 px-4 flex justify-between font-mono">
+        <span>DEBUG AUTH STATUS</span>
+        <span>Authenticated: {String(isAuthenticated)} | Loading: {String(isAuthLoading)}</span>
+      </div>
+      
       <Router>
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/" replace />} />
