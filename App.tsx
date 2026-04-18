@@ -162,8 +162,9 @@ export default function App() {
     const isAtLogin = location.pathname.startsWith('/login');
     const isAtUnauthorized = location.pathname.startsWith('/unauthorized');
     
-    if (isAtLogin) {
-      // If we are at login, we reset the unauthorized states to allow a fresh attempt
+    if (isAtLogin && !location.search.includes('error')) {
+      // ONLY reset the state if the user manually navigated to /login 
+      // AND there is no error parameter in the current URL.
       setIsUnauthorized(false);
       setLoginError(null);
     } else if ((loginError === 'unauthorized' || isUnauthorized) && !isAtUnauthorized) {
