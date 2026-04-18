@@ -32,6 +32,7 @@ import FinancePage from './components/pages/FinancePage';
 import FoodPage from './components/pages/FoodPage';
 import ChannelManagerPage from './components/pages/ChannelManagerPage';
 import LoginPage from './components/pages/LoginPage';
+import UnauthorizedPage from './components/pages/UnauthorizedPage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
 import BookingDetailsModal from './components/modals/BookingDetailsModal';
@@ -152,6 +153,16 @@ export default function App() {
     
     checkSession();
   }, []);
+
+  // Sync isUnauthorized state with URL redirects
+  useEffect(() => {
+    if (loginError === 'unauthorized' || isUnauthorized) {
+       // Only redirect if not already on /unauthorized
+       if (!window.location.pathname.startsWith('/unauthorized')) {
+         window.location.href = '/unauthorized';
+       }
+    }
+  }, [loginError, isUnauthorized]);
 
 
   useEffect(() => {
@@ -849,6 +860,7 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} rooms={rooms} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
