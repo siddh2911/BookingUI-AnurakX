@@ -11,7 +11,9 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 302)) {
-      window.location.href = '/login?error=unauthorized';
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login?error=unauthorized';
+      }
     }
     return Promise.reject(error);
   }
