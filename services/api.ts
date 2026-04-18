@@ -21,7 +21,8 @@ export const getAvailableRooms = async (
   console.log(`Fetching available rooms from ${url.toString()}`);
 
   const response = await fetch(url.toString(), {
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -91,7 +92,8 @@ export const getRoomDetails = async (id: number): Promise<Room> => {
 
   console.log(`Fetching room details from ${url}`);
   const response = await fetch(url, {
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -121,7 +123,8 @@ export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' 
     headers: {
       'Content-Type': 'application/json'
     },
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -136,7 +139,8 @@ export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' 
 
 export const fetchMaintenanceTickets = async (): Promise<any[]> => {
   const response = await fetch(`${API_BASE_URL}/maintenance`, {
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
   
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -160,7 +164,8 @@ export const createMaintenanceTicket = async (ticket: any): Promise<any> => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -175,7 +180,8 @@ export const updateMaintenanceTicketStatus = async (id: string, status: string):
   const payloadStatus = status === 'In Progress' ? 'IN_PROGRESS' : status === 'Resolved' ? 'RESOLVED' : 'OPEN';
   const response = await fetch(`${API_BASE_URL}/maintenance/${id}/status?status=${payloadStatus}`, { 
     method: 'PUT',
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -188,7 +194,8 @@ export const updateMaintenanceTicketStatus = async (id: string, status: string):
 export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/maintenance/${id}`, { 
     method: 'DELETE',
-    redirect: 'manual'
+    redirect: 'manual',
+    credentials: 'include'
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {

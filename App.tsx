@@ -92,7 +92,8 @@ export default function App() {
           // PHASE 2: CAPABILITY CHECK
           try {
              const capResponse = await fetch(`${API_BASE_URL}/allBooking?limit=1&t=${Date.now()}`, {
-               redirect: 'manual'
+               redirect: 'manual',
+               credentials: 'include'
              });
              
              if (capResponse.type === 'opaqueredirect' || capResponse.status === 0 || capResponse.status === 302 || capResponse.status === 401) {
@@ -209,7 +210,8 @@ export default function App() {
   const fetchBookingPayments = useCallback(async (bookingId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payments`, {
-        redirect: 'manual'
+        redirect: 'manual',
+        credentials: 'include'
       });
       
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -230,7 +232,8 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/allBooking?t=${Date.now()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
-        redirect: 'manual'
+        redirect: 'manual',
+        credentials: 'include'
       });
       
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -539,7 +542,8 @@ export default function App() {
     setIsViewOnlyMode(isViewOnly);
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${booking.id}`, {
-        redirect: 'manual'
+        redirect: 'manual',
+        credentials: 'include'
       });
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
         setIsAuthenticated(false);
@@ -628,7 +632,8 @@ export default function App() {
         method: method, 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(bookingPayload),
-        redirect: 'manual'
+        redirect: 'manual',
+        credentials: 'include'
       });
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
         setIsAuthenticated(false);
@@ -653,7 +658,7 @@ export default function App() {
   const confirmDeleteBooking = useCallback(() => {
     if (bookingToDelete) {
       const url = `${API_BASE_URL}/bookings/${bookingToDelete}`;
-      fetch(url, { method: 'DELETE', redirect: 'manual' })
+      fetch(url, { method: 'DELETE', redirect: 'manual', credentials: 'include' })
         .then(response => { 
           if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
             setIsAuthenticated(false);
@@ -682,7 +687,8 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/bookings/${selectedBooking.id}/payments`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: selectedBooking.id, amount, method, type, bookingSource, date: new Date().toISOString() }),
-        redirect: 'manual'
+        redirect: 'manual',
+        credentials: 'include'
       });
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
         setIsAuthenticated(false);
@@ -700,7 +706,8 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/status`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
-        redirect: 'manual'
+        redirect: 'manual',
+        credentials: 'include'
       });
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
         setIsAuthenticated(false);
