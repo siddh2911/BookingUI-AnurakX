@@ -104,6 +104,7 @@ export default function App() {
                setIsUnauthorized(false);
              }
           } catch (capErr) {
+             console.error('Capability check failed:', capErr);
              setIsAuthenticated(false);
           }
         } else {
@@ -317,6 +318,9 @@ export default function App() {
           return hasChanged ? updated : prev;
         });
       }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
   }, []); // Only fetchMaintenanceTickets and initial setup depend on this now. roomsRef handles the lookup.
 
   useEffect(() => { 
@@ -475,8 +479,10 @@ export default function App() {
     const fetchForecast = async () => {
       if (isAuthenticated) {
         try {
+          const forecast = await getAvailabilityForecast(rooms, bookings, forecastPage, today);
           setAvailabilityForecast(forecast);
         } catch (err: any) {
+          if (err.message !== 'AUTH_EXPIRED') console.error(err);
         }
       }
     };
@@ -497,6 +503,7 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated && stats.totalCheckIns === 0) {
       const retryTimer = setInterval(() => {
+        console.log("No check-ins found (0). Retrying fetch...");
         fetchBookings();
       }, 10000); // Check every 10 seconds if no data
       return () => clearInterval(retryTimer);
@@ -792,22 +799,6 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
         <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (isAuthLoading) {
-    return (
-      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[10000]">
-        <div className="w-16 h-16 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin mb-6"></div>
-        <div className="flex flex-col items-center gap-2 text-center px-6">
-           <h2 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: '"Playfair Display", serif' }}>Karuna Villa Admin</h2>
-           <div className="flex items-center gap-2 text-slate-400 text-sm">
-             <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
-             <p className="font-medium">Verifying secure session...</p>
-           </div>
-        </div>
-        <div className="absolute bottom-10 text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Anurak Labs Security</div>
       </div>
     );
   }
