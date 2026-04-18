@@ -10,9 +10,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     const handleLogin = (provider: string) => {
         setIsLoading(true);
-        setTimeout(() => {
-            onLogin();
-        }, 1500);
+        if (provider === 'google') {
+            window.location.href = 'https://api.karunavillas.com/oauth2/authorization/google';
+        } else {
+            setTimeout(() => {
+                onLogin();
+            }, 1500);
+        }
     };
 
     return (

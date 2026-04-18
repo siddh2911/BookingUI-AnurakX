@@ -2,6 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
+import axios from 'axios';
+
+axios.defaults.withCredentials = true;
+
 import { LanguageProvider } from './contexts/LanguageContext';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER, INITIAL_HOUSEKEEPING_TASKS, INITIAL_MAINTENANCE_TICKETS } from './constants';
 
@@ -47,8 +51,34 @@ export default function App() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currentUser] = useState<User>(MOCK_USER);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  
   const handleLogin = useCallback(() => setIsAuthenticated(true), []);
   const handleLogout = useCallback(() => setIsAuthenticated(false), []);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      console.log('Checking session...');
+      try {
+        const response = await axios.get('https://api.karunavillas.com/api/user', {
+          timeout: 5000 // 5 second timeout
+        });
+        console.log('Session response:', response.data);
+        if (response.data && typeof response.data === 'object' && Object.keys(response.data).length > 0) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Session check failed or timed out:', error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+    
+    checkSession();
+  }, []);
 
 
   useEffect(() => {
@@ -649,6 +679,14 @@ export default function App() {
     rooms,
     onEditBooking: handleEditBooking
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <LanguageProvider>
