@@ -162,10 +162,14 @@ export default function App() {
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>([]);
 
   useEffect(() => {
-    import('./services/api').then(api => {
-      api.fetchMaintenanceTickets().then(setMaintenanceTickets).catch(console.error);
-    });
-  }, []);
+    if (isAuthenticated) {
+      import('./services/api').then(api => {
+        api.fetchMaintenanceTickets().then(setMaintenanceTickets).catch(err => {
+          if (err.message !== 'AUTH_EXPIRED') console.error(err);
+        });
+      });
+    }
+  }, [isAuthenticated]);
   const handleToggleRevenue = (visible: boolean) => {
     if (visible) {
 
@@ -316,7 +320,11 @@ export default function App() {
     }
   }, []); // Only fetchMaintenanceTickets and initial setup depend on this now. roomsRef handles the lookup.
 
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  useEffect(() => { 
+    if (isAuthenticated) {
+      fetchBookings(); 
+    }
+  }, [fetchBookings, isAuthenticated]);
 
 
   const stats = useMemo(() => {
@@ -466,11 +474,17 @@ export default function App() {
 
   useEffect(() => {
     const fetchForecast = async () => {
-      const forecast = await getAvailabilityForecast(rooms, bookings, forecastPage, today);
-      setAvailabilityForecast(forecast);
+      if (isAuthenticated) {
+        try {
+          const forecast = await getAvailabilityForecast(rooms, bookings, forecastPage, today);
+          setAvailabilityForecast(forecast);
+        } catch (err: any) {
+          if (err.message !== 'AUTH_EXPIRED') console.error(err);
+        }
+      }
     };
     fetchForecast();
-  }, [bookings, rooms, forecastPage, today]);
+  }, [bookings, rooms, forecastPage, today, isAuthenticated]);
 
 
   useEffect(() => {
@@ -524,7 +538,14 @@ export default function App() {
     setEditingBookingId(booking.id);
     setIsViewOnlyMode(isViewOnly);
     try {
-      const response = await fetch(`${API_BASE_URL}/bookings/${booking.id}`);
+      const response = await fetch(`${API_BASE_URL}/bookings/${booking.id}`, {
+        redirect: 'manual'
+      });
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+        setIsAuthenticated(false);
+        setIsUnauthorized(true);
+        return;
+      }
       if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
       const fetchedBookingData = await response.json();
       setNewBookingData({
@@ -603,7 +624,17 @@ export default function App() {
       let method = 'POST';
       if (editingBookingId) { url = `${API_BASE_URL}/bookings/${editingBookingId}`; method = 'PUT'; }
 
-      response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bookingPayload) });
+      response = await fetch(url, { 
+        method: method, 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(bookingPayload),
+        redirect: 'manual'
+      });
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+        setIsAuthenticated(false);
+        setIsUnauthorized(true);
+        return;
+      }
       if (!response.ok) throw new Error(`Failed to ${editingBookingId ? 'update' : 'save'} booking.`);
 
       addLog(editingBookingId ? 'Update Booking' : 'Create Booking', `${editingBookingId ? 'Updated' : 'Created'} booking for ${guestName}.`);
@@ -622,9 +653,19 @@ export default function App() {
   const confirmDeleteBooking = useCallback(() => {
     if (bookingToDelete) {
       const url = `${API_BASE_URL}/bookings/${bookingToDelete}`;
-      fetch(url, { method: 'DELETE' })
-        .then(response => { if (!response.ok) throw new Error('Failed'); fetchBookings(); })
-        .catch(error => alert(error.message))
+      fetch(url, { method: 'DELETE', redirect: 'manual' })
+        .then(response => { 
+          if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+            setIsAuthenticated(false);
+            setIsUnauthorized(true);
+            return;
+          }
+          if (!response.ok) throw new Error('Failed'); 
+          fetchBookings(); 
+        })
+        .catch(error => {
+          if (error.message !== 'AUTH_EXPIRED') alert(error.message);
+        })
         .finally(() => setBookingToDelete(null));
     }
   }, [bookingToDelete, fetchBookings]);
@@ -641,7 +682,13 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/bookings/${selectedBooking.id}/payments`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: selectedBooking.id, amount, method, type, bookingSource, date: new Date().toISOString() }),
+        redirect: 'manual'
       });
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+        setIsAuthenticated(false);
+        setIsUnauthorized(true);
+        return;
+      }
       if (!response.ok) throw new Error('Failed to add payment');
 
       await fetchBookingPayments(selectedBooking.id); fetchBookings();
@@ -653,7 +700,13 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/status`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+        redirect: 'manual'
       });
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+        setIsAuthenticated(false);
+        setIsUnauthorized(true);
+        return;
+      }
       if (!response.ok) throw new Error('Failed');
 
       if (status === BookingStatus.CHECKED_OUT) {
