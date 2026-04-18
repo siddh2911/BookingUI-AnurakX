@@ -84,6 +84,7 @@ export default function App() {
           data && 
           typeof data === 'object' && 
           data.authenticated !== false &&
+          data.name && 
           data.name !== 'anonymousUser' && 
           data.principal !== 'anonymousUser' &&
           (data.email || data.id || (data.sub && data.sub !== 'anonymousUser'));
@@ -96,15 +97,14 @@ export default function App() {
                credentials: 'include'
              });
              
-             if (capResponse.type === 'opaqueredirect' || capResponse.status === 0 || capResponse.status === 302 || capResponse.status === 401) {
-               setIsAuthenticated(false);
-               setIsUnauthorized(true);
-             } else {
+             if (capResponse.status === 200) {
                setIsAuthenticated(true);
                setIsUnauthorized(false);
+             } else {
+               setIsAuthenticated(false);
+               setIsUnauthorized(capResponse.status === 403);
              }
           } catch (capErr) {
-             console.error('Capability check failed:', capErr);
              setIsAuthenticated(false);
           }
         } else {
@@ -797,8 +797,16 @@ export default function App() {
 
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[10000]">
+        <div className="w-16 h-16 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin mb-6"></div>
+        <div className="flex flex-col items-center gap-2 text-center px-6">
+           <h2 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: '"Playfair Display", serif' }}>Karuna Villa Admin</h2>
+           <div className="flex items-center gap-2 text-slate-400 text-sm">
+             <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
+             <p className="font-medium">Verifying secure session...</p>
+           </div>
+        </div>
+        <div className="absolute bottom-10 text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Anurak Labs Security</div>
       </div>
     );
   }

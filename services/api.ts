@@ -25,7 +25,7 @@ export const getAvailableRooms = async (
     credentials: 'include'
   });
 
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
@@ -96,7 +96,7 @@ export const getRoomDetails = async (id: number): Promise<Room> => {
     credentials: 'include'
   });
 
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
@@ -127,7 +127,7 @@ export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' 
     credentials: 'include'
   });
 
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
@@ -143,7 +143,7 @@ export const fetchMaintenanceTickets = async (): Promise<any[]> => {
     credentials: 'include'
   });
   
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
@@ -168,7 +168,7 @@ export const createMaintenanceTicket = async (ticket: any): Promise<any> => {
     credentials: 'include'
   });
 
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
@@ -184,7 +184,7 @@ export const updateMaintenanceTicketStatus = async (id: string, status: string):
     credentials: 'include'
   });
 
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
@@ -198,7 +198,7 @@ export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
     credentials: 'include'
   });
 
-  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
     throw new Error('AUTH_EXPIRED');
   }
 
