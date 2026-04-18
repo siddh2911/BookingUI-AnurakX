@@ -3,9 +3,10 @@ import { Mail, ArrowRight } from 'lucide-react';
 
 interface LoginPageProps {
     onLogin: () => void;
+    isUnauthorized?: boolean;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleLogin = (provider: string) => {
@@ -55,6 +56,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     <div className="mb-10 text-center lg:text-left">
                         <h2 className="text-3xl font-bold text-slate-900 mb-2" style={{ fontFamily: '"Playfair Display", serif' }}>Sign In</h2>
                         <p className="text-slate-500">Access your admin portal securely.</p>
+                        
+                        {isUnauthorized && (
+                            <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                                <p className="text-sm font-medium">Access Denied: Your account needs Admin permissions.</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-4">

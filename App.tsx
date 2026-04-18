@@ -11,8 +11,7 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 302)) {
-      console.warn('DEBUG: Session expired or invalid based on Axios response. Redirecting to login.');
-      window.location.href = '/login';
+      window.location.href = '/login?error=unauthorized';
     }
     return Promise.reject(error);
   }
@@ -64,28 +63,23 @@ export default function App() {
   const [currentUser] = useState<User>(MOCK_USER);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   
-  const handleLogin = useCallback(() => setIsAuthenticated(true), []);
+  const handleLogin = useCallback(() => {
+    setIsAuthenticated(true);
+    setIsUnauthorized(false);
+  }, []);
   const handleLogout = useCallback(() => setIsAuthenticated(false), []);
 
   useEffect(() => {
     const checkSession = async () => {
-      console.log('DEBUG: Starting session check at', window.location.href);
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
           timeout: 5000 
         });
         
-        console.log('DEBUG: Session response status:', response.status);
-        console.log('DEBUG: Full session data:', JSON.stringify(response.data));
-
         const data = response.data;
         
-        // HARDENED CHECK: 
-        // 1. Must exist and be an object
-        // 2. Must NOT be the common "anonymousUser" string or object
-        // 3. Must have an authenticated: true flag if the backend provides it
-        // 4. Must have a real email or substantive ID
         const isActuallyAuthenticated = 
           data && 
           typeof data === 'object' && 
@@ -95,35 +89,27 @@ export default function App() {
           (data.email || data.id || (data.sub && data.sub !== 'anonymousUser'));
 
         if (isActuallyAuthenticated) {
-          console.log('DEBUG: User check passed. Starting Capability check...');
-          
           // PHASE 2: CAPABILITY CHECK
-          // Try to hit a protected endpoint to see if we have actual data permissions
           try {
              const capResponse = await fetch(`${API_BASE_URL}/allBooking?limit=1&t=${Date.now()}`, {
                redirect: 'manual'
              });
              
              if (capResponse.type === 'opaqueredirect' || capResponse.status === 0 || capResponse.status === 302 || capResponse.status === 401) {
-               console.warn('DEBUG: Capability check failed. User authenticated but unauthorized for data.');
                setIsAuthenticated(false);
+               setIsUnauthorized(true);
              } else {
-               console.log('DEBUG: Capability check passed. Full access confirmed.');
                setIsAuthenticated(true);
+               setIsUnauthorized(false);
              }
           } catch (capErr) {
-             console.error('DEBUG: Capability check request failed:', capErr);
+             console.error('Capability check failed:', capErr);
              setIsAuthenticated(false);
           }
         } else {
-          console.log('DEBUG: No valid user data found (likely Guest/Anonymous/Not Authenticated). Redirecting.');
           setIsAuthenticated(false);
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
         }
       } catch (error: any) {
-        console.error('DEBUG: Session check failed:', error.message || error);
         setIsAuthenticated(false);
       } finally {
         setIsAuthLoading(false);
@@ -244,12 +230,8 @@ export default function App() {
       });
       
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
-        console.warn('DEBUG: Session expired or invalid based on fetch response. Redirecting to login.');
         setIsAuthenticated(false);
-        // FORCE REDIRECT to break the loop
-        if (window.location.pathname !== '/login') {
-           window.location.assign('/login');
-        }
+        setIsUnauthorized(true);
         return;
       }
 
@@ -763,15 +745,9 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      {/* TEMP DEBUG BANNER */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white text-[10px] py-1 px-4 flex justify-between font-mono">
-        <span>DEBUG AUTH STATUS</span>
-        <span>Authenticated: {String(isAuthenticated)} | Loading: {String(isAuthLoading)}</span>
-      </div>
-      
       <Router>
         <Routes>
-          <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/" replace />} />
+          <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized} /> : <Navigate to="/" replace />} />
 
           <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} rooms={rooms} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
