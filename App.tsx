@@ -11,7 +11,9 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 302)) {
-      if (!window.location.pathname.startsWith('/login')) {
+      const isHandlingAuth = window.location.pathname.startsWith('/login') || 
+                             window.location.pathname.startsWith('/unauthorized');
+      if (!isHandlingAuth) {
         window.location.href = 'https://admin.karunavillas.com/login?error=unauthorized';
       }
     }
