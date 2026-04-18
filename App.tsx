@@ -6,6 +6,18 @@ import axios from 'axios';
 
 axios.defaults.withCredentials = true;
 
+// GLOBAL AUTH INTERCEPTOR
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 302)) {
+      console.warn('DEBUG: Session expired or invalid based on Axios response. Redirecting to login.');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 import { LanguageProvider } from './contexts/LanguageContext';
 import { INITIAL_ROOMS, INITIAL_BOOKINGS, MOCK_USER, INITIAL_HOUSEKEEPING_TASKS, INITIAL_MAINTENANCE_TICKETS } from './constants';
 
@@ -65,15 +77,26 @@ export default function App() {
         });
         
         console.log('DEBUG: Session response status:', response.status);
-        console.log('DEBUG: Session data keys:', Object.keys(response.data || {}));
-        console.log('DEBUG: Full session data:', response.data);
+        console.log('DEBUG: Full session data:', JSON.stringify(response.data));
 
-        // More aggressive check: must have a common user property
-        if (response.data && (response.data.id || response.data.email || response.data.username || response.data.sub)) {
-          console.log('DEBUG: Authentication confirmed.');
+        const data = response.data;
+        
+        // HARDENED CHECK: 
+        // 1. Must exist and be an object
+        // 2. Must NOT be the common "anonymousUser" string or object
+        // 3. Must have a real email or substantive ID
+        const isActuallyAuthenticated = 
+          data && 
+          typeof data === 'object' && 
+          data.name !== 'anonymousUser' && 
+          data.principal !== 'anonymousUser' &&
+          (data.email || data.id || (data.sub && data.sub !== 'anonymousUser'));
+
+        if (isActuallyAuthenticated) {
+          console.log('DEBUG: Authentication confirmed with user data.');
           setIsAuthenticated(true);
         } else {
-          console.log('DEBUG: No valid user data found in response. Redirecting to login.');
+          console.log('DEBUG: No valid user data found (likely Guest/Anonymous). Redirecting.');
           setIsAuthenticated(false);
         }
       } catch (error: any) {
@@ -187,6 +210,13 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/allBooking?t=${Date.now()}`, {
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
       });
+      
+      if (response.redirected || response.status === 302 || response.status === 401) {
+        console.warn('DEBUG: Session expired or invalid based on fetch response. Redirecting to login.');
+        setIsAuthenticated(false);
+        return;
+      }
+
       if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
       const data: any[] = await response.json();
 
