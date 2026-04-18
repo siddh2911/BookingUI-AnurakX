@@ -11,7 +11,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const handleLogin = (provider: string) => {
         setIsLoading(true);
         if (provider === 'google') {
-            window.location.href = 'http://api.karunavillas.com/oauth2/authorization/google';
+            window.location.href = 'https://api.karunavillas.com/oauth2/authorization/google';
         } else {
             setTimeout(() => {
                 onLogin();
