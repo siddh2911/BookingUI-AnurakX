@@ -150,8 +150,8 @@ export default function App() {
     const urlError = params.get('error');
     
     if (hasError) {
-      // If ?error is present (even if empty), set a login error
-      setLoginError(urlError === 'true' || urlError === '' ? 'failed' : urlError);
+      // If ?error is present (even if empty), trigger the full Access Restricted UI
+      setLoginError(urlError === 'true' || urlError === '' ? 'unauthorized' : urlError);
     }
     
     checkSession();
