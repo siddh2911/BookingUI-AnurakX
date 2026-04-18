@@ -25,7 +25,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
         if (errorCode === 'unauthorized' || isUnauthorized) {
             return {
                 title: "Access Denied",
-                message: "Your account does not have the required Admin permissions.",
+                message: "Your account does not have the required Admin permissions. Please reach out to karunavillastay@gmail.com for access.",
                 type: 'unauthorized'
             };
         }
@@ -106,11 +106,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
                         {error && (
                             <div className={`mt-6 p-4 border rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${error.type === 'unauthorized' || error.type === 'error' ? 'bg-red-50 border-red-100 text-red-600' : 'bg-blue-50 border-blue-100 text-blue-600'
                                 } shadow-sm`}>
-                                <div className={`w-2 h-2 rounded-full animate-pulse shadow-sm ${error.type === 'unauthorized' || error.type === 'error' ? 'bg-red-500 shadow-red-500/50' : 'bg-blue-500 shadow-blue-500/50'
+                                <div className={`w-2.5 h-2.5 rounded-full animate-pulse shadow-sm flex-shrink-0 ${error.type === 'unauthorized' || error.type === 'error' ? 'bg-red-500 shadow-red-500/50' : 'bg-blue-500 shadow-blue-500/50'
                                     }`}></div>
                                 <div className="flex flex-col">
                                     <p className="text-sm font-bold tracking-tight">{error.title}</p>
-                                    <p className="text-xs opacity-90">{error.message}</p>
+                                    <p className="text-xs opacity-90 leading-relaxed">
+                                        {error.message.split('karunavillastay@gmail.com')[0]}
+                                        <a href="mailto:karunavillastay@gmail.com" className="font-bold underline hover:opacity-80 transition-opacity">
+                                            karunavillastay@gmail.com
+                                        </a>
+                                        {error.message.split('karunavillastay@gmail.com')[1]}
+                                    </p>
                                 </div>
                             </div>
                         )}
