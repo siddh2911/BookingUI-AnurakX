@@ -195,7 +195,15 @@ export default function App() {
 
   const fetchBookingPayments = useCallback(async (bookingId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payments`);
+      const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payments`, {
+        redirect: 'manual'
+      });
+      
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+
       if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
       const data: Payment[] = await response.json();
       setCurrentBookingPayments(data);
@@ -208,10 +216,11 @@ export default function App() {
   const fetchBookings = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/allBooking?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
+        redirect: 'manual'
       });
       
-      if (response.redirected || response.status === 302 || response.status === 401) {
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
         console.warn('DEBUG: Session expired or invalid based on fetch response. Redirecting to login.');
         setIsAuthenticated(false);
         return;

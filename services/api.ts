@@ -20,7 +20,13 @@ export const getAvailableRooms = async (
 
   console.log(`Fetching available rooms from ${url.toString()}`);
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), {
+    redirect: 'manual'
+  });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'Failed to fetch available rooms' }));
@@ -84,7 +90,13 @@ export const getRoomDetails = async (id: number): Promise<Room> => {
   const url = `${API_BASE_URL}/rooms/${id}`;
 
   console.log(`Fetching room details from ${url}`);
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    redirect: 'manual'
+  });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'Failed to fetch room details' }));
@@ -108,8 +120,13 @@ export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' 
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
-    }
+    },
+    redirect: 'manual'
   });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'Failed to update clean status' }));
@@ -118,7 +135,14 @@ export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' 
 };
 
 export const fetchMaintenanceTickets = async (): Promise<any[]> => {
-  const response = await fetch(`${API_BASE_URL}/maintenance`);
+  const response = await fetch(`${API_BASE_URL}/maintenance`, {
+    redirect: 'manual'
+  });
+  
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
+
   if (!response.ok) throw new Error('Failed to fetch tickets');
   const data = await response.json();
   return data.map((t: any) => ({
@@ -135,19 +159,41 @@ export const createMaintenanceTicket = async (ticket: any): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/maintenance`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    redirect: 'manual'
   });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
+
   if (!response.ok) throw new Error('Failed to create ticket');
   return response.json();
 };
 
 export const updateMaintenanceTicketStatus = async (id: string, status: string): Promise<void> => {
   const payloadStatus = status === 'In Progress' ? 'IN_PROGRESS' : status === 'Resolved' ? 'RESOLVED' : 'OPEN';
-  const response = await fetch(`${API_BASE_URL}/maintenance/${id}/status?status=${payloadStatus}`, { method: 'PUT' });
+  const response = await fetch(`${API_BASE_URL}/maintenance/${id}/status?status=${payloadStatus}`, { 
+    method: 'PUT',
+    redirect: 'manual'
+  });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
+
   if (!response.ok) throw new Error('Failed to update ticket status');
 };
 
 export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${API_BASE_URL}/maintenance/${id}`, { 
+    method: 'DELETE',
+    redirect: 'manual'
+  });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+    throw new Error('AUTH_EXPIRED');
+  }
+
   if (!response.ok) throw new Error('Failed to delete ticket');
 };
