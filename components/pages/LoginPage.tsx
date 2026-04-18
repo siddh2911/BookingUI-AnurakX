@@ -3,11 +3,45 @@ import { Mail, ArrowRight } from 'lucide-react';
 
 interface LoginPageProps {
     onLogin: () => void;
-    isUnauthorized?: boolean;
+    errorCode?: string | null;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCode }) => {
     const [isLoading, setIsLoading] = useState(false);
+
+    const getErrorMessage = () => {
+        if (errorCode === 'unauthorized' || isUnauthorized) {
+            return {
+                title: "Access Denied",
+                message: "Your account does not have the required Admin permissions.",
+                type: 'unauthorized'
+            };
+        }
+        if (errorCode === 'failed' || errorCode === 'true') {
+            return {
+                title: "Authentication Failed",
+                message: "Invalid credentials or login attempt. Please try again.",
+                type: 'error'
+            };
+        }
+        if (errorCode === 'session_expired') {
+            return {
+                title: "Session Expired",
+                message: "Your session has timed out for security. Please sign in again.",
+                type: 'info'
+            };
+        }
+        if (errorCode) {
+            return {
+                title: "Login Error",
+                message: "An unexpected error occurred during sign in. Please contact support.",
+                type: 'error'
+            };
+        }
+        return null;
+    };
+
+    const error = getErrorMessage();
 
     const handleLogin = (provider: string) => {
         setIsLoading(true);
@@ -57,10 +91,15 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized }) => {
                         <h2 className="text-3xl font-bold text-slate-900 mb-2" style={{ fontFamily: '"Playfair Display", serif' }}>Sign In</h2>
                         <p className="text-slate-500">Access your admin portal securely.</p>
                         
-                        {isUnauthorized && (
-                            <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                                <p className="text-sm font-medium">Access Denied: Your account needs Admin permissions.</p>
+                        {error && (
+                            <div className={`mt-6 p-4 border rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${error.type === 'unauthorized' || error.type === 'error' ? 'bg-red-50 border-red-100 text-red-600' : 'bg-blue-50 border-blue-100 text-blue-600'
+                                } shadow-sm`}>
+                                <div className={`w-2 h-2 rounded-full animate-pulse shadow-sm ${error.type === 'unauthorized' || error.type === 'error' ? 'bg-red-500 shadow-red-500/50' : 'bg-blue-500 shadow-blue-500/50'
+                                    }`}></div>
+                                <div className="flex flex-col">
+                                    <p className="text-sm font-bold tracking-tight">{error.title}</p>
+                                    <p className="text-xs opacity-90">{error.message}</p>
+                                </div>
                             </div>
                         )}
                     </div>

@@ -66,6 +66,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   const handleLogin = useCallback(() => {
     setIsAuthenticated(true);
@@ -102,9 +103,12 @@ export default function App() {
              if (capResponse.status === 200) {
                setIsAuthenticated(true);
                setIsUnauthorized(false);
+               setLoginError(null);
              } else {
                setIsAuthenticated(false);
-               setIsUnauthorized(capResponse.status === 403);
+               const is403 = capResponse.status === 403;
+               setIsUnauthorized(is403);
+               if (is403) setLoginError('unauthorized');
              }
           } catch (capErr) {
              setIsAuthenticated(false);
@@ -118,6 +122,12 @@ export default function App() {
         setIsAuthLoading(false);
       }
     };
+    
+    const params = new URLSearchParams(window.location.search);
+    const urlError = params.get('error');
+    if (urlError) {
+      setLoginError(urlError === 'true' ? 'failed' : urlError);
+    }
     
     checkSession();
   }, []);
@@ -817,7 +827,7 @@ export default function App() {
     <LanguageProvider>
       <Router>
         <Routes>
-          <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized} /> : <Navigate to="/" replace />} />
+          <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
 
           <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} rooms={rooms} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
