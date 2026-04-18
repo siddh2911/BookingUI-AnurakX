@@ -12,7 +12,7 @@ axios.interceptors.response.use(
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 302)) {
       if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login?error=unauthorized';
+        window.location.href = 'https://admin.karunavillas.com/login?error=unauthorized';
       }
     }
     return Promise.reject(error);
@@ -92,7 +92,7 @@ export default function App() {
       setIsUnauthorized(false);
       setLoginError(null);
       // Force reload to clear any sensitive memory/state and ensure a fresh start
-      window.location.href = '/login';
+      window.location.href = 'https://admin.karunavillas.com/login';
     }
   }, []);
 
