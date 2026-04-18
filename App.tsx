@@ -852,7 +852,7 @@ export default function App() {
     onEditBooking: handleEditBooking
   };
 
-  if (isAuthLoading) {
+  if (isAuthLoading && window.location.pathname !== '/' && window.location.pathname !== '/login') {
     return (
       <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[10000]">
         <div className="w-16 h-16 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin mb-6"></div>
