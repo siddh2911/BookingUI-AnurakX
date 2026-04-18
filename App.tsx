@@ -72,7 +72,28 @@ export default function App() {
     setIsAuthenticated(true);
     setIsUnauthorized(false);
   }, []);
-  const handleLogout = useCallback(() => setIsAuthenticated(false), []);
+  const handleLogout = useCallback(async () => {
+    try {
+      // Clear session on backend
+      await axios.post(`${API_BASE_URL}/logout`, {}, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+    } catch (err) {
+      console.error('Backend logout failed', err);
+      // Fallback: try GET if POST is not supported/configured differently
+      try {
+        await axios.get(`${API_BASE_URL}/logout`);
+      } catch (getErr) {
+        console.error('Backend logout GET fallback failed', getErr);
+      }
+    } finally {
+      setIsAuthenticated(false);
+      setIsUnauthorized(false);
+      setLoginError(null);
+      // Force reload to clear any sensitive memory/state and ensure a fresh start
+      window.location.href = '/login';
+    }
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
