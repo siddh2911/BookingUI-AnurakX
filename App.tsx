@@ -84,10 +84,12 @@ export default function App() {
         // HARDENED CHECK: 
         // 1. Must exist and be an object
         // 2. Must NOT be the common "anonymousUser" string or object
-        // 3. Must have a real email or substantive ID
+        // 3. Must have an authenticated: true flag if the backend provides it
+        // 4. Must have a real email or substantive ID
         const isActuallyAuthenticated = 
           data && 
           typeof data === 'object' && 
+          data.authenticated !== false &&
           data.name !== 'anonymousUser' && 
           data.principal !== 'anonymousUser' &&
           (data.email || data.id || (data.sub && data.sub !== 'anonymousUser'));
@@ -96,8 +98,12 @@ export default function App() {
           console.log('DEBUG: Authentication confirmed with user data.');
           setIsAuthenticated(true);
         } else {
-          console.log('DEBUG: No valid user data found (likely Guest/Anonymous). Redirecting.');
+          console.log('DEBUG: No valid user data found (likely Guest/Anonymous/Not Authenticated). Redirecting.');
           setIsAuthenticated(false);
+          // Only redirect if not already on login
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
       } catch (error: any) {
         console.error('DEBUG: Session check failed:', error.message || error);
@@ -223,6 +229,10 @@ export default function App() {
       if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
         console.warn('DEBUG: Session expired or invalid based on fetch response. Redirecting to login.');
         setIsAuthenticated(false);
+        // FORCE REDIRECT to break the loop
+        if (window.location.pathname !== '/login') {
+           window.location.assign('/login');
+        }
         return;
       }
 
