@@ -146,9 +146,12 @@ export default function App() {
     };
     
     const params = new URLSearchParams(window.location.search);
+    const hasError = params.has('error');
     const urlError = params.get('error');
-    if (urlError) {
-      setLoginError(urlError === 'true' ? 'failed' : urlError);
+    
+    if (hasError) {
+      // If ?error is present (even if empty), set a login error
+      setLoginError(urlError === 'true' || urlError === '' ? 'failed' : urlError);
     }
     
     checkSession();

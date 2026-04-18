@@ -32,7 +32,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
         if (errorCode === 'failed' || errorCode === 'true') {
             return {
                 title: "Authentication Failed",
-                message: "Invalid credentials or login attempt. Please try again.",
+                message: "Invalid credentials or login attempt. Please try again or reach out to karunavillastay@gmail.com.",
                 type: 'error'
             };
         }
