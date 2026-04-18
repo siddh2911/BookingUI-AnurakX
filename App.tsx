@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
@@ -154,15 +154,22 @@ export default function App() {
     checkSession();
   }, []);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // Sync isUnauthorized state with URL redirects
   useEffect(() => {
-    if (loginError === 'unauthorized' || isUnauthorized) {
-       // Only redirect if not already on /unauthorized
-       if (!window.location.pathname.startsWith('/unauthorized')) {
-         window.location.href = '/unauthorized';
-       }
+    const isAtLogin = location.pathname.startsWith('/login');
+    const isAtUnauthorized = location.pathname.startsWith('/unauthorized');
+    
+    if (isAtLogin) {
+      // If we are at login, we reset the unauthorized states to allow a fresh attempt
+      setIsUnauthorized(false);
+      setLoginError(null);
+    } else if ((loginError === 'unauthorized' || isUnauthorized) && !isAtUnauthorized) {
+      navigate('/unauthorized', { replace: true });
     }
-  }, [loginError, isUnauthorized]);
+  }, [loginError, isUnauthorized, location.pathname, navigate]);
 
 
   useEffect(() => {
@@ -857,7 +864,7 @@ export default function App() {
 
   return (
     <LanguageProvider>
-      <Router>
+      <>
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -970,7 +977,7 @@ export default function App() {
           onConfirm={confirmDeleteBooking}
           bookingId={bookingToDelete}
         />
-      </Router>
+      </>
     </LanguageProvider>
   );
 }
