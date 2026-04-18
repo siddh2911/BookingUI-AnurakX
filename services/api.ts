@@ -18,7 +18,7 @@ export const getAvailableRooms = async (
   url.searchParams.append('startDate', startDate);
   url.searchParams.append('endDate', endDate);
 
-  console.log(`Fetching available rooms from ${url.toString()}`);
+
 
   const response = await fetch(url.toString(), {
     redirect: 'manual',
@@ -90,7 +90,7 @@ export const getAvailabilityForecast = async (
 export const getRoomDetails = async (id: number): Promise<Room> => {
   const url = `${API_BASE_URL}/rooms/${id}`;
 
-  console.log(`Fetching room details from ${url}`);
+
   const response = await fetch(url, {
     redirect: 'manual',
     credentials: 'include'
