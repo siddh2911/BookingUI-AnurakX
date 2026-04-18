@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight } from 'lucide-react';
 
 interface LoginPageProps {
@@ -8,6 +8,18 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCode }) => {
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        // Reset loading state on mount and when returning via back button
+        const handlePageShow = (event: PageTransitionEvent) => {
+            setIsLoading(false);
+        };
+        
+        window.addEventListener('pageshow', handlePageShow);
+        setIsLoading(false);
+        
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, []);
 
     const getErrorMessage = () => {
         if (errorCode === 'unauthorized' || isUnauthorized) {
