@@ -95,12 +95,29 @@ export default function App() {
           (data.email || data.id || (data.sub && data.sub !== 'anonymousUser'));
 
         if (isActuallyAuthenticated) {
-          console.log('DEBUG: Authentication confirmed with user data.');
-          setIsAuthenticated(true);
+          console.log('DEBUG: User check passed. Starting Capability check...');
+          
+          // PHASE 2: CAPABILITY CHECK
+          // Try to hit a protected endpoint to see if we have actual data permissions
+          try {
+             const capResponse = await fetch(`${API_BASE_URL}/allBooking?limit=1&t=${Date.now()}`, {
+               redirect: 'manual'
+             });
+             
+             if (capResponse.type === 'opaqueredirect' || capResponse.status === 0 || capResponse.status === 302 || capResponse.status === 401) {
+               console.warn('DEBUG: Capability check failed. User authenticated but unauthorized for data.');
+               setIsAuthenticated(false);
+             } else {
+               console.log('DEBUG: Capability check passed. Full access confirmed.');
+               setIsAuthenticated(true);
+             }
+          } catch (capErr) {
+             console.error('DEBUG: Capability check request failed:', capErr);
+             setIsAuthenticated(false);
+          }
         } else {
           console.log('DEBUG: No valid user data found (likely Guest/Anonymous/Not Authenticated). Redirecting.');
           setIsAuthenticated(false);
-          // Only redirect if not already on login
           if (window.location.pathname !== '/login') {
             window.location.href = '/login';
           }
