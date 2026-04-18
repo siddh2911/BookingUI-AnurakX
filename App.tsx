@@ -129,10 +129,10 @@ export default function App() {
                setIsUnauthorized(false);
                setLoginError(null);
              } else {
+               // Initial auth failure should just drop to the login page, not force unauthorized UI
                setIsAuthenticated(false);
-               const is403 = capResponse.status === 403;
-               setIsUnauthorized(is403);
-               if (is403) setLoginError('unauthorized');
+               setIsUnauthorized(false);
+               setLoginError(null);
              }
           } catch (capErr) {
              setIsAuthenticated(false);
