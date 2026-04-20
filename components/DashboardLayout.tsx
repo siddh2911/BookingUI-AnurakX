@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle, Mic } from 'lucide-react';
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -18,10 +18,17 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [liveTranscript, setLiveTranscript] = useState('');
+    const recognitionRef = useRef<any>(null);
     const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
 
-    const startListening = () => {
+    const toggleListening = () => {
+        if (isListening && recognitionRef.current) {
+            recognitionRef.current.stop();
+            return; // onend handles the submission
+        }
+
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) {
             alert("Voice booking is currently only supported in Chrome or Edge browsers.");
@@ -29,26 +36,51 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         }
 
         const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        
         recognition.lang = 'en-US';
-        recognition.interimResults = false;
+        recognition.continuous = true;
+        recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
-        recognition.onstart = () => setIsListening(true);
+        let finalSentence = '';
+
+        recognition.onstart = () => {
+            setIsListening(true);
+            setLiveTranscript('');
+        };
 
         recognition.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            if (transcript) {
-                console.log("Recorded Voice:", transcript);
-                onVoiceBooking?.(transcript);
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalSentence += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
             }
+            setLiveTranscript(finalSentence + interimTranscript);
         };
 
         recognition.onerror = (event: any) => {
             console.error("Speech recognition error", event.error);
             setIsListening(false);
+            setLiveTranscript('');
+            recognitionRef.current = null;
         };
 
-        recognition.onend = () => setIsListening(false);
+        recognition.onend = () => {
+            setIsListening(false);
+            if (finalSentence || liveTranscript) {
+                const textToProcess = finalSentence || liveTranscript;
+                console.log("Recorded Voice (Final):", textToProcess);
+                if (onVoiceBooking && textToProcess.trim().length > 0) {
+                    onVoiceBooking(textToProcess);
+                }
+            }
+            setLiveTranscript('');
+            recognitionRef.current = null;
+        };
 
         recognition.start();
     };
@@ -117,9 +149,9 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                     </div>
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={isListening ? undefined : startListening}
+                            onClick={toggleListening}
                             className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isListening ? 'bg-red-50 border-red-200 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}
-                            title={isListening ? "Listening... Speak now" : "Voice Booking"}
+                            title={isListening ? "Listening... Click to Stop" : "Voice Booking"}
                         >
                             <Mic size={18} />
                         </button>
@@ -142,6 +174,28 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                         </button>
                     </div>
                 </header>
+
+                {/* --- Live Subtitles Overlay --- */}
+                {isListening && (
+                    <div className="absolute top-20 left-0 right-0 z-50 flex justify-center mt-4">
+                        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 max-w-2xl w-[90%] animate-in slide-in-from-top-4 fade-in duration-300">
+                            <div className="flex shrink-0 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">Live Transcription</p>
+                                <p className="text-sm font-medium truncate">
+                                    {liveTranscript || <span className="text-slate-500 italic">Listening to your voice...</span>}
+                                </p>
+                            </div>
+                            <button
+                                onClick={toggleListening}
+                                className="shrink-0 text-xs font-bold bg-white text-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-200 transition-colors"
+                            >
+                                Stop & Parse
+                            </button>
+                        </div>
+                    </div>
+                )}
+
 
                 {rooms && rooms.filter(r => r.cleanStatus === 'DIRTY').length > 0 && (
                     <div className="bg-red-500/10 backdrop-blur-md border border-red-500/20 text-red-600 px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 z-20 shadow-sm animate-pulse m-2 md:mx-8 md:mt-4 rounded-xl">
