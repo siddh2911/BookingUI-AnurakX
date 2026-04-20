@@ -109,40 +109,38 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
 
       { }
       <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-        <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-4' : 'justify-between'}`}>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md ring-2 ring-white text-sm">
-              {currentUser.name.charAt(0).toUpperCase()}
-            </div>
-            {!collapsed && (
-              <div className="hidden xl:block overflow-hidden max-w-[80px]">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{currentUser.role}</p>
-              </div>
-            )}
+        <div className={`flex items-center w-full ${collapsed ? 'justify-center flex-col gap-4' : 'gap-3'}`}>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md ring-2 ring-white shrink-0 text-sm">
+            {currentUser.name.charAt(0).toUpperCase()}
           </div>
 
-          {!collapsed ? (
-            <div className="flex items-center flex-1 justify-end ml-2">
-              <div className="flex items-center gap-2 bg-white border border-slate-200 py-1 pl-4 pr-1 rounded-full shadow-sm hover:border-red-200 hover:shadow-md transition-all group max-w-full">
-                <span className="text-xs font-semibold text-slate-700 truncate min-w-[50px]" title={currentUser.name}>
+          {!collapsed && (
+            <>
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <span className="text-[13px] font-bold text-slate-800 truncate tracking-tight" title={currentUser.name}>
                   {currentUser.name}
                 </span>
-                <button
-                  onClick={onLogout}
-                  className="w-8 h-8 flex items-center justify-center text-slate-400 group-hover:text-red-500 group-hover:bg-red-50 rounded-full transition-colors shrink-0"
-                  title="Sign Out"
-                >
-                  <LogOut size={16} />
-                </button>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest truncate mt-0.5">
+                  {currentUser.role}
+                </span>
               </div>
-            </div>
-          ) : (
+              <button
+                onClick={onLogout}
+                className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors shrink-0"
+                title="Sign Out"
+              >
+                <LogOut size={18} strokeWidth={2.5} />
+              </button>
+            </>
+          )}
+
+          {collapsed && (
             <button
               onClick={onLogout}
-              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border border-slate-200 bg-white shadow-sm"
+              className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border border-slate-200 bg-white shadow-sm shrink-0"
               title="Sign Out"
             >
-              <LogOut size={18} />
+              <LogOut size={18} strokeWidth={2.5} />
             </button>
           )}
         </div>
