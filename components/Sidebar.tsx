@@ -108,27 +108,41 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
       </nav>
 
       { }
-      <div className="p-6 border-t border-slate-200 bg-slate-50/50">
-        <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-5' : 'justify-between px-1'}`}>
-          <div className={`flex items-center gap-3.5 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold shadow-lg ring-2 ring-slate-200 shrink-0">
+      <div className="p-4 border-t border-slate-200 bg-slate-50/50">
+        <div className={`flex items-center ${collapsed ? 'justify-center flex-col gap-4' : 'justify-between'}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg ring-2 ring-white shrink-0 text-xs">
               {currentUser.name[0]}
             </div>
             {!collapsed && (
               <div className="overflow-hidden">
-                <p className="text-sm font-bold truncate text-slate-900">{currentUser.name}</p>
-                <p className="text-[11px] font-medium text-slate-500 truncate">{currentUser.role}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{currentUser.role}</p>
               </div>
             )}
           </div>
 
-          <button
-            onClick={onLogout}
-            className={`text-slate-500 hover:text-red-500 hover:bg-slate-200 rounded-lg transition-colors ${collapsed ? 'p-2' : 'p-2'}`}
-            title="Sign Out"
-          >
-            <LogOut size={18} />
-          </button>
+          {!collapsed ? (
+            <div className="flex items-center gap-2 bg-white border border-slate-200 py-1 pl-3 pr-1 rounded-full shadow-sm hover:border-blue-200 transition-all">
+              <span className="text-xs font-bold text-slate-700 truncate max-w-[80px]" title={currentUser.name}>
+                {currentUser.name}
+              </span>
+              <button
+                onClick={onLogout}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                title="Sign Out"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLogout}
+              className="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors border border-slate-200 bg-white"
+              title="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>

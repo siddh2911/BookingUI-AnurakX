@@ -11,11 +11,11 @@ interface DashboardLayoutProps {
     onLogout: () => void;
     onDashboardClick?: () => void;
     rooms?: Room[];
+    currentUser: User;
 }
 
-export default function DashboardLayout({ onLogout, onDashboardClick, rooms }: DashboardLayoutProps) {
+export default function DashboardLayout({ onLogout, onDashboardClick, rooms, currentUser }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [currentUser] = useState<User>(MOCK_USER);
     const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
 

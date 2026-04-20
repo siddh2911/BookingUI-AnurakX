@@ -65,7 +65,7 @@ export default function App() {
 
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [currentUser] = useState<User>(MOCK_USER);
+  const [currentUser, setCurrentUser] = useState<User>(MOCK_USER);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
@@ -125,10 +125,21 @@ export default function App() {
              });
              
              if (capResponse.status === 200) {
-               setIsAuthenticated(true);
-               setIsUnauthorized(false);
-               setLoginError(null);
-             } else {
+                setIsAuthenticated(true);
+                setIsUnauthorized(false);
+                setLoginError(null);
+                
+                // Update current user from backend data
+                if (data) {
+                  setCurrentUser({
+                    id: data.id || data.sub || 'user',
+                    name: data.name || data.email || 'Admin',
+                    email: data.email || '',
+                    role: 'Administrator',
+                    avatar: ''
+                  });
+                }
+              } else {
                // Initial auth failure should just drop to the login page, not force unauthorized UI
                setIsAuthenticated(false);
                setIsUnauthorized(false);
@@ -875,7 +886,7 @@ export default function App() {
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} rooms={rooms} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
