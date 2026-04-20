@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
+import { parseVoiceBooking } from './services/voiceParser';
 
 axios.defaults.withCredentials = true;
 
@@ -584,6 +585,30 @@ export default function App() {
     setLogs(prev => [newLog, ...prev]);
   }, [currentUser]);
 
+  const handleVoiceBooking = useCallback((transcript: string) => {
+    const parsed = parseVoiceBooking(transcript);
+    const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
+    
+    setEditingBookingId(null);
+    setNewBookingData({
+      guestName: parsed.guestName || '', guestEmail: '', guestPhone: '',
+      checkIn: parsed.checkIn || today,
+      checkOut: parsed.checkOut || formatLocalDate(new Date(Date.now() + 86400000)),
+      roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
+      source: parsed.source || BookingSource.DIRECT, 
+      sources: [{ source: parsed.source || BookingSource.DIRECT, nightlyRate: defaultRoom?.pricePerNight || 0 }], 
+      paymentMethod: PaymentMethod.CASH, 
+      notes: parsed.notes || '',
+      manualTotal: parsed.manualTotal,
+      additionalCharges: [
+        { category: 'Cleaning Fee', amount: 0 },
+        { category: 'Guest Service Fee', amount: 0 },
+        { category: 'Occupancy Taxes', amount: 0 }
+      ]
+    });
+    setIsBookingModalOpen(true);
+  }, [rooms, today, setEditingBookingId, setNewBookingData, setIsBookingModalOpen]);
+
   const handleOpenNewBooking = useCallback((preSelectedDate?: Date) => {
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     setEditingBookingId(null);
@@ -886,7 +911,7 @@ export default function App() {
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceBooking} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />

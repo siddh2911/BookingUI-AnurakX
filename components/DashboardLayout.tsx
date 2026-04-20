@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
+import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle, Mic } from 'lucide-react';
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { User, Room } from '../types';
@@ -10,14 +10,48 @@ import { useTheme } from '../hooks/useTheme';
 interface DashboardLayoutProps {
     onLogout: () => void;
     onDashboardClick?: () => void;
+    onVoiceBooking?: (transcript: string) => void;
     rooms?: Room[];
     currentUser: User;
 }
 
-export default function DashboardLayout({ onLogout, onDashboardClick, rooms, currentUser }: DashboardLayoutProps) {
+export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isListening, setIsListening] = useState(false);
     const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
+
+    const startListening = () => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Voice booking is currently only supported in Chrome or Edge browsers.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => setIsListening(true);
+
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            if (transcript) {
+                console.log("Recorded Voice:", transcript);
+                onVoiceBooking?.(transcript);
+            }
+        };
+
+        recognition.onerror = (event: any) => {
+            console.error("Speech recognition error", event.error);
+            setIsListening(false);
+        };
+
+        recognition.onend = () => setIsListening(false);
+
+        recognition.start();
+    };
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 relative overflow-hidden transition-colors duration-1000">
@@ -82,6 +116,13 @@ export default function DashboardLayout({ onLogout, onDashboardClick, rooms, cur
                         />
                     </div>
                     <div className="flex items-center gap-4">
+                        <button
+                            onClick={isListening ? undefined : startListening}
+                            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isListening ? 'bg-red-50 border-red-200 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                            title={isListening ? "Listening... Speak now" : "Voice Booking"}
+                        >
+                            <Mic size={18} />
+                        </button>
                         <button
                             onClick={toggleTheme}
                             className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
