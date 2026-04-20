@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
-import { parseVoiceBooking } from './services/voiceParser';
+import { parseVoiceCommand } from './services/voiceParser';
 
 axios.defaults.withCredentials = true;
 
@@ -585,8 +585,49 @@ export default function App() {
     setLogs(prev => [newLog, ...prev]);
   }, [currentUser]);
 
-  const handleVoiceBooking = useCallback((transcript: string) => {
-    const parsed = parseVoiceBooking(transcript);
+  const handleVoiceCommand = useCallback((transcript: string) => {
+    const result = parseVoiceCommand(transcript);
+    
+    // --- QUERY INTENT (CONVERSATIONAL ASSISTANT) ---
+    if (result.intent === 'QUERY_BOOKING') {
+      const qDate = result.data.checkIn; 
+      const qName = result.data.guestName;
+      
+      let matches = bookings.filter(b => b.status !== BookingStatus.CANCELLED);
+      
+      // If a specific date was successfully parsed, filter for overlap
+      if (qDate && qDate !== formatLocalDate(new Date())) { 
+          // Note: "today" is the fallback for parseVoiceCommand if no date explicitly set,
+          // so if date is different than today, it was explicitly asked for.
+          // Wait, 'today' might be explicitly asked too.
+        matches = matches.filter(b => b.checkInDate <= qDate && b.checkOutDate > qDate);
+      } 
+      
+      if (qName) {
+        matches = matches.filter(b => b.guestName.toLowerCase().includes(qName.toLowerCase()));
+      }
+
+      let responseText = '';
+      if (matches.length > 0) {
+        // STRICT FINANCIAL MASKING: Only construct phrase using Name, Dates, Room.
+        const firstMatch = matches[0];
+        responseText = `Yes, I found a booking for ${firstMatch.guestName}. They are checking in on ${firstMatch.checkInDate} in room ${firstMatch.roomId}.`;
+        if (matches.length > 1) {
+            responseText += ` There are also ${matches.length - 1} other matching bookings.`;
+        }
+      } else {
+        responseText = "I'm sorry, I couldn't find any bookings matching that criteria.";
+      }
+      
+      const utterance = new SpeechSynthesisUtterance(responseText);
+      // Ensure the voice speaks clearly
+      window.speechSynthesis.cancel(); 
+      window.speechSynthesis.speak(utterance);
+      return; 
+    }
+
+    // --- CREATE INTENT (NORMAL PRE-FILL MODE) ---
+    const parsed = result.data;
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     
     setEditingBookingId(null);
@@ -607,7 +648,7 @@ export default function App() {
       ]
     });
     setIsBookingModalOpen(true);
-  }, [rooms, today, setEditingBookingId, setNewBookingData, setIsBookingModalOpen]);
+  }, [rooms, today, bookings, setEditingBookingId, setNewBookingData, setIsBookingModalOpen]);
 
   const handleOpenNewBooking = useCallback((preSelectedDate?: Date) => {
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
@@ -911,7 +952,7 @@ export default function App() {
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceBooking} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />

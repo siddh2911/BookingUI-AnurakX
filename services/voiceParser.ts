@@ -1,5 +1,7 @@
 import { BookingSource } from '../types';
 
+export type VoiceIntent = 'CREATE_BOOKING' | 'QUERY_BOOKING';
+
 export interface ParsedBookingData {
   guestName?: string;
   checkIn?: string;
@@ -9,10 +11,17 @@ export interface ParsedBookingData {
   notes?: string;
 }
 
+export interface ParsedVoiceCommand {
+  intent: VoiceIntent;
+  data: ParsedBookingData;
+}
+
 const parseWordToNumber = (word: string): number | null => {
   const map: { [key: string]: number } = {
     one: 1, two: 2, three: 3, four: 4, five: 5,
-    six: 6, seven: 7, eight: 8, nine: 9, ten: 10
+    six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    ek: 1, do: 2, teen: 3, chaar: 4, paanch: 5,
+    che: 6, saat: 7, aath: 8, nau: 9, dus: 10
   };
   return map[word.toLowerCase()] || parseInt(word) || null;
 };
@@ -24,89 +33,130 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-export const parseVoiceBooking = (text: string): ParsedBookingData => {
+export const parseVoiceCommand = (text: string): ParsedVoiceCommand => {
   const lowerText = text.toLowerCase();
-  const data: ParsedBookingData = {
-    notes: `Voice Transcript: "${text}"\n(Please verify all parsed fields)`
+  const result: ParsedVoiceCommand = {
+    intent: 'CREATE_BOOKING', // Default
+    data: { notes: `Voice Transcript: "${text}"\n(Please verify all parsed fields)` }
   };
 
+  // 0. Detect Intent
+  // Query markers in English and Hindi
+  if (lowerText.match(/\b(who|whose|when|kiski|kaun|kab|tell me about|what is on)\b/)) {
+    result.intent = 'QUERY_BOOKING';
+  }
+
   // 1. Parse Duration (Nights)
-  let nights = 1; // default
-  const nightsMatch = lowerText.match(/(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+(nights?|days?)/);
+  let nights = 1;
+  const nightsMatch = lowerText.match(/(one|two|three|four|five|six|seven|eight|nine|ten|ek|do|teen|chaar|paanch|che|saat|aath|nau|dus|\d+)\s+(nights?|days?|din|raat)/);
   if (nightsMatch) {
     nights = parseWordToNumber(nightsMatch[1]) || 1;
   }
 
   // 2. Parse Check-in Date
   const today = new Date();
-  let checkInDate = new Date(); // default today
+  let checkInDate = new Date();
+  let dateFound = false;
   
-  if (lowerText.includes('tomorrow')) {
+  if (lowerText.includes('tomorrow') || lowerText.match(/\bkal\b/)) {
     checkInDate.setDate(today.getDate() + 1);
-  } else if (lowerText.includes('day after tomorrow')) {
+    dateFound = true;
+  } else if (lowerText.includes('day after tomorrow') || lowerText.match(/\bparso\b/)) {
     checkInDate.setDate(today.getDate() + 2);
+    dateFound = true;
+  } else if (lowerText.includes('today') || lowerText.match(/\baaj\b/)) {
+    checkInDate = new Date();
+    dateFound = true;
   } else {
     // Basic day matching (next monday, coming friday)
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    for (let i = 0; i < days.length; i++) {
-      if (lowerText.includes(`next ${days[i]}`) || lowerText.includes(`on ${days[i]}`)) {
+    const daysEn = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const daysHi = ['ravivar', 'somvar', 'mangalvar', 'budhvar', 'guruvar', 'shukravar', 'shanivar'];
+    
+    for (let i = 0; i < daysEn.length; i++) {
+      if (lowerText.includes(daysEn[i]) || lowerText.includes(daysHi[i])) {
         const currentDayStr = today.getDay();
         let diff = i - currentDayStr;
         if (diff <= 0) diff += 7; // Next occurrence
         checkInDate.setDate(today.getDate() + diff);
+        dateFound = true;
         break;
+      }
+    }
+
+    // Explicit date matching (e.g. "April 13th", "13 april")
+    if (!dateFound) {
+      const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      const monthPrefixMatch = lowerText.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})/);
+      const datePrefixMatch = lowerText.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
+      
+      let dayVal = -1;
+      let monthIndex = -1;
+
+      if (monthPrefixMatch) {
+        dayVal = parseInt(monthPrefixMatch[2]);
+        monthIndex = months.findIndex(m => m.startsWith(monthPrefixMatch[1]));
+      } else if (datePrefixMatch) {
+        dayVal = parseInt(datePrefixMatch[1]);
+        monthIndex = months.findIndex(m => m.startsWith(datePrefixMatch[2]));
+      }
+
+      if (dayVal > 0 && monthIndex >= 0) {
+        checkInDate.setMonth(monthIndex);
+        checkInDate.setDate(dayVal);
+        // If the date has already passed this year, assume next year
+        if (checkInDate.getTime() < today.getTime() - 86400000) {
+           checkInDate.setFullYear(checkInDate.getFullYear() + 1);
+        }
+        dateFound = true;
       }
     }
   }
   
-  data.checkIn = formatLocalDate(checkInDate);
-  
-  const checkOutDate = new Date(checkInDate);
-  checkOutDate.setDate(checkOutDate.getDate() + nights);
-  data.checkOut = formatLocalDate(checkOutDate);
+  if (dateFound) {
+    result.data.checkIn = formatLocalDate(checkInDate);
+    const checkOutDate = new Date(checkInDate);
+    checkOutDate.setDate(checkOutDate.getDate() + nights);
+    result.data.checkOut = formatLocalDate(checkOutDate);
+  }
 
   // 3. Parse Source
   if (lowerText.includes('airbnb')) {
-    data.source = BookingSource.AIRBNB;
+    result.data.source = BookingSource.AIRBNB;
   } else if (lowerText.match(/booking\.?com/)) {
-    data.source = BookingSource.BOOKING_COM;
-  } else if (lowerText.includes('makemytrip') || lowerText.includes('make my trip') || lowerText.includes('mmt')) {
-    data.source = BookingSource.MAKE_MY_TRIP;
-  } else if (lowerText.includes('expedia') || lowerText.includes('agoda')) {
-    data.source = BookingSource.EXPEDIA;
-  } else if (lowerText.includes('walk in')) {
-    data.source = BookingSource.WALK_IN;
+    result.data.source = BookingSource.BOOKING_COM;
+  } else if (lowerText.match(/\b(makemytrip|make my trip|mmt)\b/)) {
+    result.data.source = BookingSource.MAKE_MY_TRIP;
+  } else if (lowerText.match(/\b(expedia|agoda)\b/)) {
+    result.data.source = BookingSource.EXPEDIA;
+  } else if (lowerText.match(/\b(walk in|chalk ke)\b/)) {
+    result.data.source = BookingSource.WALK_IN;
   } else if (lowerText.includes('instagram')) {
-    data.source = BookingSource.INSTAGRAM;
+    result.data.source = BookingSource.INSTAGRAM;
   }
 
-  // 4. Parse Total Price (look for large numbers after keywords or just any big number)
-  // E.g. "for 5000", "total 5000", "price 5000"
-  const priceMatch = lowerText.match(/(?:total|for|price|is|amount|rupees|rs)\s*(?:of|is|at)?\s*(\d{2,})/);
-  if (priceMatch && parseInt(priceMatch[1]) > 50) { // avoid capturing '2' nights as price
-    data.manualTotal = parseInt(priceMatch[1]);
+  // 4. Parse Total Price
+  const priceMatch = lowerText.match(/(?:total|for|price|is|amount|rupees|rs|ka)\s*(?:of|is|at)?\s*(\d{2,})/);
+  if (priceMatch && parseInt(priceMatch[1]) > 50) {
+    result.data.manualTotal = parseInt(priceMatch[1]);
   } else {
-    // Fallback: Just grab any absolute 4+ digit number assuming it's the price in Rupees
     const bigNumberMatch = lowerText.match(/\b(\d{3,})\b/);
     if (bigNumberMatch) {
-      data.manualTotal = parseInt(bigNumberMatch[1]);
+      result.data.manualTotal = parseInt(bigNumberMatch[1]);
     }
   }
 
   // 5. Parse Guest Name
-  // Heuristic: "for John Doe", "guest is John Doe", "named John Doe"
-  // Stops at typical linking words
-  const nameMatch = text.match(/(?:for|guest|named|is)\s+([A-Z][a-zA-Z]+\s*(?:[A-Z][a-zA-Z]+)?)/i);
+  // Heuristic: "for John Doe", "guest is John Doe", "named John Doe", "naam John Doe hai"
+  const nameMatch = text.match(/(?:for|guest|named|is|naam)\s+([A-Z][a-zA-Z]+\s*(?:[A-Z][a-zA-Z]+)?)/i);
   if (nameMatch) {
     let name = nameMatch[1].trim();
-    // Clean up if the regex caught following filler words like 'for', 'tomorrow', 'from'
-    const stopwords = ['tomorrow', 'today', 'on', 'from', 'for', 'total', 'price', 'with', 'and'];
+    const stopwords = ['tomorrow', 'today', 'on', 'from', 'for', 'total', 'price', 'with', 'and', 'hai', 'ka', 'ki'];
     const words = name.split(' ');
     if (words.length > 1 && stopwords.includes(words[1].toLowerCase())) {
         name = words[0];
     }
-    data.guestName = name;
+    result.data.guestName = name;
   }
 
-  return data;
+  return result;
 };

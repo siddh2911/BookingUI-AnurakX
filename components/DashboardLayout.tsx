@@ -38,7 +38,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         const recognition = new SpeechRecognition();
         recognitionRef.current = recognition;
         
-        recognition.lang = 'en-US';
+        recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
