@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import QRCode from 'qrcode';
 import { Booking, Room } from '../types';
 
 export const generateInvoice = async (booking: Booking, room?: Room) => {
@@ -8,243 +9,274 @@ export const generateInvoice = async (booking: Booking, room?: Room) => {
     // --- Design Tokens (Midnight Slate Theme) ---
     const primaryColor: [number, number, number] = [15, 23, 42];    // Midnight Slate
     const secondaryColor: [number, number, number] = [71, 85, 105];  // Slate-600
-    const accentColor: [number, number, number] = [49, 46, 129];      // Indigo-900 (for borders/headers)
+    const accentColor: [number, number, number] = [79, 70, 229];      // Indigo-600 (for highlights)
     const successColor: [number, number, number] = [5, 150, 105];    // Emerald-600
     const errorColor: [number, number, number] = [220, 38, 38];      // Red-600
-    const lightFill: [number, number, number] = [248, 250, 252];    // Slate-50 background
+    const lightFill: [number, number, number] = [248, 250, 252];     // Slate-50 background // Light fill
 
     // --- Data Pre-processing ---
     const checkIn = new Date(booking.checkInDate);
     const checkOut = new Date(booking.checkOutDate);
     const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
-    // Fallback: If totalAmount is missing, sum the amounts from individual sources
     const amount = booking.totalAmount || (booking.sources?.reduce((sum, s) => sum + (s.amount || 0), 0)) || 0;
     const paid = booking.totalPaid || 0;
     const balance = Math.max(0, amount - paid);
     const ratePerNight = amount / nights;
 
     // --- 1. Header (Letterhead Mode) ---
-    // A high-end typographic branding approach
-    doc.setFontSize(22);
+    doc.setFontSize(28);
     doc.setTextColor(...primaryColor);
     doc.setFont('helvetica', 'bold');
     doc.text('KARUNA VILLA', 14, 28);
+    
+    // Sub-brand line
+    doc.setFontSize(10);
+    doc.setTextColor(...accentColor);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PREMIUM STAY & RETREAT', 14, 34);
 
-    // Property Contact Info (Right Aligned, refined positioning)
-    doc.setFontSize(8.5);
+    // Property Contact Info
+    doc.setFontSize(9);
     doc.setTextColor(...secondaryColor);
     doc.setFont('helvetica', 'bold');
-    doc.text('KARUNA VILLA VARANASI', 196, 18, { align: 'right' });
+    doc.text('KARUNA VILLA VARANASI', 196, 20, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     const contactLines = [
         'VDA Colony, Phase-1, Badalalpur',
         'Varanasi, Uttar Pradesh 221002',
-        'karunavillastay@gmail.com'
+        'karunavillastay@gmail.com',
+        '+91 99999 99999'
     ];
     contactLines.forEach((line, i) => {
-        doc.text(line, 196, 23 + (i * 4.5), { align: 'right' });
+        doc.text(line, 196, 25 + (i * 4.5), { align: 'right' });
     });
 
-    // --- 2. Editorial Invoice Meta (Restored Spacing) ---
+    // --- 2. Receipt Meta ---
     doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(0.1);
-    doc.line(14, 45, 196, 45); // Subtle hairline separator
+    doc.setLineWidth(0.4);
+    doc.line(14, 46, 196, 46);
 
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primaryColor);
-    doc.text('OFFICIAL BOOKING INVOICE', 105, 55, { align: 'center' });
+    doc.text('PAYMENT RECEIPT', 14, 56);
 
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(...secondaryColor);
-    doc.text(`Invoice ID: #INV-${String(booking.id).substring(0, 8).toUpperCase()}`, 14, 62);
-    doc.text(`Issued Date: ${new Date().toLocaleDateString('en-IN')}`, 196, 62, { align: 'right' });
+    doc.text(`RECEIPT NO: `, 196, 53, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`#INV-${String(booking.id).substring(0, 8).toUpperCase()}`, 196, 58, { align: 'right' });
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text(`DATE ISSUED: `, 196, 63, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, 196, 68, { align: 'right' });
 
     doc.setLineWidth(0.1);
-    doc.line(14, 68, 196, 68); // Closing hairline for header section
+    doc.line(14, 73, 196, 73);
 
-    // --- 3. High-Density Info Cards (Restored Air) ---
+    // --- 3. High-Density Info Cards ---
     const cardsStartY = 80;
-    const cardH = 42;
-    // Background blocks for visual separation
+    const cardH = 46;
+    
     doc.setFillColor(...lightFill);
-    doc.roundedRect(14, cardsStartY, 90, cardH, 3, 3, 'F'); // Guest Card
-    doc.roundedRect(106, cardsStartY, 90, cardH, 3, 3, 'F'); // Stay Card
+    doc.roundedRect(14, cardsStartY, 95, cardH, 4, 4, 'F'); 
+    doc.roundedRect(114, cardsStartY, 82, cardH, 4, 4, 'F'); 
 
     // Left Card: Guest Details
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...secondaryColor);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('GUEST DETAILS', 20, cardsStartY + 8);
+    doc.text('BILLED TO', 20, cardsStartY + 8);
 
     doc.setTextColor(...primaryColor);
-    doc.setFontSize(11);
-    doc.text(booking.guestName.toUpperCase(), 20, cardsStartY + 17);
+    doc.setFontSize(12);
+    doc.text(booking.guestName.toUpperCase(), 20, cardsStartY + 18);
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondaryColor);
-    if (booking.guestPhone) doc.text(`Phone: ${booking.guestPhone}`, 20, cardsStartY + 25);
-    doc.text(`Email: ${booking.guestEmail || 'Not Provided'}`, 20, cardsStartY + 31);
+    if (booking.guestPhone) doc.text(`Phone: ${booking.guestPhone}`, 20, cardsStartY + 28);
+    doc.text(`Email: ${booking.guestEmail || 'Not Provided'}`, 20, cardsStartY + 34);
 
     // Right Card: Stay Details
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...secondaryColor);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('STAY SUMMARY', 112, cardsStartY + 8);
+    doc.text('STAY INFORMATION', 120, cardsStartY + 8);
 
     doc.setFontSize(9);
     doc.setTextColor(...secondaryColor);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Check-In:`, 112, cardsStartY + 17);
-    doc.text(`Check-Out:`, 112, cardsStartY + 23);
-    doc.text(`Duration:`, 112, cardsStartY + 29);
-    doc.text(`Room Type:`, 112, cardsStartY + 35);
+    doc.text(`Check-In:`, 120, cardsStartY + 18);
+    doc.text(`Check-Out:`, 120, cardsStartY + 24);
+    doc.text(`Duration:`, 120, cardsStartY + 30);
+    doc.text(`Room Type:`, 120, cardsStartY + 36);
 
     doc.setTextColor(...primaryColor);
     doc.setFont('helvetica', 'bold');
-    doc.text(checkIn.toLocaleDateString('en-IN'), 145, cardsStartY + 17);
-    doc.text(checkOut.toLocaleDateString('en-IN'), 145, cardsStartY + 23);
-    doc.text(`${nights} Night${nights > 1 ? 's' : ''}`, 145, cardsStartY + 29);
-    doc.text(room ? `${room.number} (${room.type})` : 'N/A', 145, cardsStartY + 35);
+    doc.text(checkIn.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), 150, cardsStartY + 18);
+    doc.text(checkOut.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), 150, cardsStartY + 24);
+    doc.text(`${nights} Night${nights > 1 ? 's' : ''}`, 150, cardsStartY + 30);
+    doc.text(room ? `Room ${room.number}` : 'N/A', 150, cardsStartY + 36);
 
-    // --- 4. Detailed Ledger (Premium Grid Table) ---
+    // --- 4. Detailed Ledger ---
     autoTable(doc, {
-        startY: cardsStartY + 52,
-        theme: 'grid', // grid provides clean lines for premium look
-        head: [['SN.', 'DESCRIPTION', 'QTY', 'RATE/NIGHT', 'TOTAL']],
+        startY: cardsStartY + 55,
+        theme: 'plain', 
+        head: [['DESCRIPTION', 'QTY', 'RATE/NIGHT', 'TOTAL']],
         body: [
-            ['01', 'Accommodation Charges', `${nights} Nights`, `INR ${ratePerNight.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, `INR ${amount.toLocaleString('en-IN')}`]
+            ['Accommodation Charges', `${nights} Nights`, `INR ${ratePerNight.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, `INR ${amount.toLocaleString('en-IN')}`]
         ],
         headStyles: {
-            fillColor: primaryColor,
-            textColor: [255, 255, 255],
+            fillColor: lightFill,
+            textColor: primaryColor,
             fontStyle: 'bold',
-            fontSize: 10,
-            halign: 'center',
-            lineWidth: 0.2,
-            cellPadding: 4
+            fontSize: 9,
+            halign: 'left',
+            cellPadding: 6
         },
         bodyStyles: {
-            fillColor: lightFill,
             textColor: [51, 65, 85],
             fontSize: 10,
-            halign: 'right',
-            cellPadding: 4
+            halign: 'left',
+            cellPadding: 6
         },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 15 },
-            1: { halign: 'left', cellWidth: 82 },
-            2: { halign: 'center', cellWidth: 25 },
-            3: { halign: 'right', cellWidth: 30 },
-            4: { halign: 'right', cellWidth: 30 }
+            0: { halign: 'left', cellWidth: 80 },
+            1: { halign: 'center', cellWidth: 30 },
+            2: { halign: 'right', cellWidth: 36 },
+            3: { halign: 'right', cellWidth: 36 }
         },
-        margin: { top: 10, left: 14, right: 14 },
-        tableLineColor: primaryColor,
-        tableLineWidth: 0.3
+        margin: { left: 14, right: 14 },
     });
-    // Title for the ledger
-    const ledgerTitleY = cardsStartY + 48;
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...primaryColor);
-    doc.text('Statement of Account', 14, ledgerTitleY);
-    // Add a subtle divider after the table
-    const afterTableY = (doc as any).lastAutoTable.finalY + 5;
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(0.3);
+    
+    const afterTableY = (doc as any).lastAutoTable.finalY + 2;
+    doc.setDrawColor(...secondaryColor);
+    doc.setLineWidth(0.2);
     doc.line(14, afterTableY, 196, afterTableY);
 
+    // --- 5. Financial Summary with QR ---
+    const summaryStartY = afterTableY + 12;
+    
+    // QR Code Section
+    const qrWidth = 42;
+    const qrX = 14; 
+    
+    try {
+        const upiID = 'karunavillastay@oksbi'; // Configure real UPI ID here
+        const upiName = 'Karuna Villa';
+        const qrAmount = balance > 0 ? balance : amount;
+        const upiUrl = `upi://pay?pa=${upiID}&pn=${encodeURIComponent(upiName)}${balance > 0 ? '&am=' + qrAmount : ''}&cu=INR`;
+        
+        const qrDataUrl = await QRCode.toDataURL(upiUrl, { 
+            width: 200, 
+            margin: 0, 
+            color: { dark: '#0f172a', light: '#ffffff' } 
+        });
+        
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(qrX, summaryStartY, qrWidth + 16, qrWidth + 24, 4, 4, 'FD');
+        
+        doc.addImage(qrDataUrl, 'PNG', qrX + 8, summaryStartY + 8, qrWidth, qrWidth);
+        
+        doc.setFontSize(8);
+        doc.setTextColor(...primaryColor);
+        doc.setFont('helvetica', 'bold');
+        if (balance > 0) {
+            doc.text('SCAN TO PAY BALANCE', qrX + (qrWidth + 16)/2, summaryStartY + qrWidth + 16, { align: 'center' });
+            doc.setFontSize(7);
+            doc.setTextColor(...secondaryColor);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Accepted on all UPI Apps', qrX + (qrWidth + 16)/2, summaryStartY + qrWidth + 20, { align: 'center' });
+        } else {
+            doc.text('VERIFIED & PAID', qrX + (qrWidth + 16)/2, summaryStartY + qrWidth + 16, { align: 'center' });
+            doc.setFontSize(7);
+            doc.setTextColor(...successColor);
+            doc.text('Thank you!', qrX + (qrWidth + 16)/2, summaryStartY + qrWidth + 20, { align: 'center' });
+        }
+    } catch (e) {
+        console.error("QR Code generation failed", e);
+    }
 
-    // --- 5. Financial Summary (Boxed Statement) ---
-    const summaryStartY = (doc as any).lastAutoTable.finalY + 15;
-    const boxX = 14;
-    const boxWidth = 182;
-    const boxHeight = 38;
-    // Draw a subtle background for the summary
+    // Summary Box Section
+    const boxWidth = 100;
+    const boxX = 196 - boxWidth;
+    
     doc.setFillColor(...lightFill);
-    doc.rect(boxX, summaryStartY, boxWidth, boxHeight, 'F');
+    doc.roundedRect(boxX, summaryStartY, boxWidth, 48, 4, 4, 'F');
 
-    // Title inside the box
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...primaryColor);
-    doc.text('Account Summary', boxX + 8, summaryStartY + 12);
+    const labelX = boxX + 8;
+    const valueX = boxX + boxWidth - 8;
+    let lineY = summaryStartY + 12;
 
-    const labelX = 30;
-    const valueX = 170;
-    let lineY = summaryStartY + 22;
     doc.setFontSize(10);
     doc.setTextColor(...secondaryColor);
     doc.setFont('helvetica', 'normal');
     doc.text('Grand Total', labelX, lineY);
     doc.setTextColor(...primaryColor);
+    doc.setFont('helvetica', 'bold');
     doc.text(`INR ${amount.toLocaleString('en-IN')}`, valueX, lineY, { align: 'right' });
 
-    lineY += 8;
+    lineY += 10;
     doc.setTextColor(...secondaryColor);
+    doc.setFont('helvetica', 'normal');
     doc.text('Amount Paid', labelX, lineY);
     doc.setTextColor(...successColor);
+    doc.setFont('helvetica', 'bold');
     doc.text(`INR ${paid.toLocaleString('en-IN')}`, valueX, lineY, { align: 'right' });
 
-    lineY += 8;
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(0.5);
-    doc.line(boxX + 5, lineY, boxX + boxWidth - 5, lineY);
-
     lineY += 10;
-    doc.setFontSize(12);
+    doc.setDrawColor(...secondaryColor);
+    doc.setLineWidth(0.2);
+    doc.line(boxX + 8, lineY - 4, boxX + boxWidth - 8, lineY - 4);
+
+    lineY += 4;
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     if (balance > 0) {
         doc.setTextColor(...errorColor);
-        doc.text('Balance Amount', labelX, lineY);
+        doc.text('Balance Due', labelX, lineY);
         doc.text(`INR ${balance.toLocaleString('en-IN')}`, valueX, lineY, { align: 'right' });
     } else {
         doc.setTextColor(...successColor);
-        doc.text('Fully Paid / Settled', labelX, lineY);
+        doc.text('Total Balance', labelX, lineY);
         doc.text(`INR 0`, valueX, lineY, { align: 'right' });
     }
 
     // --- 6. Terms & Footer ---
     const pageHeight = doc.internal.pageSize.height;
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.3);
-    doc.line(14, pageHeight - 55, 196, pageHeight - 55);
-
+    
     doc.setFontSize(8);
     doc.setTextColor(...primaryColor);
     doc.setFont('helvetica', 'bold');
-    doc.text('POLICIES & GUIDELINES', 14, pageHeight - 48);
+    doc.text('TERMS & CONDITIONS', 14, pageHeight - 40);
 
     doc.setFontSize(7);
     doc.setTextColor(...secondaryColor);
     doc.setFont('helvetica', 'normal');
     const terms = [
-        '1. Guests are responsible for their own baggage and personal items; the owner/management is not liable for any losses.',
-        '2. Standard check-in time is 12:00 PM and check-out time is 11:00 AM.',
-        '3. This is a computer-generated invoice and doesn\'t require a physical signature.',
-        '4. All disputes are subject to Varanasi Jurisdiction only.'
+        '1. Standard check-in time is 12:00 PM and check-out time is 11:00 AM.',
+        '2. This is a computer-generated invoice and does not require a physical signature.',
+        '3. For payment queries, please contact karunavillastay@gmail.com'
     ];
     terms.forEach((line, index) => {
-        doc.text(line, 14, pageHeight - 42 + (index * 4));
+        doc.text(line, 14, pageHeight - 35 + (index * 4));
     });
 
-    // Signature section
-    doc.setFontSize(9);
-    doc.setTextColor(...secondaryColor);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Authorized Signature:', 14, pageHeight - 20);
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(0.2);
-    doc.line(55, pageHeight - 20, 120, pageHeight - 20);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(14, pageHeight - 18, 196, pageHeight - 18);
 
     doc.setFontSize(9);
-    doc.setTextColor(...secondaryColor);
+    doc.setTextColor(...accentColor);
     doc.setFont('helvetica', 'italic');
-    doc.text('Thank you for staying at Karuna Villa!', 105, pageHeight - 10, { align: 'center' });
+    doc.text('Thank you for choosing Karuna Villa. We hope to welcome you again!', 105, pageHeight - 10, { align: 'center' });
 
     // --- Direct Download ---
     const safeGuestName = booking.guestName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 15);
-    doc.save(`KarunaVilla_Invoice_${safeGuestName}_${String(booking.id).substring(0, 5)}.pdf`);
+    doc.save(`KarunaVilla_Receipt_${safeGuestName}_${String(booking.id).substring(0, 5)}.pdf`);
 };
