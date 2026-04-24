@@ -103,15 +103,26 @@ export default function App() {
                 
                 // Update current user from backend data
                 if (data) {
-                  let parsedRole = 'Administrator';
-                  const roleRaw = data.role ? String(data.role).toUpperCase() : '';
+                  // SECURE BY DEFAULT: Always assume View role unless explicitly confirmed as Admin
+                  let parsedRole = 'View';
                   const payloadText = JSON.stringify(data).toUpperCase();
-                  if (roleRaw === 'ROLE_VIEW' || roleRaw === 'VIEW' || payloadText.includes('"ROLE_VIEW"') || payloadText.includes('"ROLE":"ROLE_VIEW"')) {
-                    parsedRole = 'View';
-                  } else if (data.authorities?.some((a: any) => String(a.authority).toUpperCase() === 'ROLE_VIEW')) {
-                    parsedRole = 'View';
+                  const roleRaw = (data.role || '').toUpperCase();
+                  const authorities = (data.authorities || []).map((a: any) => 
+                    typeof a === 'string' ? a.toUpperCase() : (a.authority || '').toUpperCase()
+                  );
+
+                  const hasAdminPower = 
+                    roleRaw.includes('ADMIN') || 
+                    roleRaw.includes('MANAGER') ||
+                    authorities.some(a => a.includes('ADMIN') || a.includes('MANAGER')) ||
+                    payloadText.includes('ROLE_ADMIN') || 
+                    payloadText.includes('ADMINISTRATOR');
+
+                  if (hasAdminPower) {
+                    parsedRole = 'Administrator';
                   }
-                  console.log("Parsed Role from API:", parsedRole, "Data:", data);
+                  
+                  console.log("[AUTH] Final Role Decision:", parsedRole, "| Backend Data:", data);
 
                   setCurrentUser({
                     id: data.id || data.sub || 'user',
@@ -142,15 +153,17 @@ export default function App() {
 
   const handleLogin = useCallback(async () => {
     setIsAuthLoading(true);
-    await checkSession();
-    if (currentUser.role !== 'View' && currentUser.name === 'Mock User') {
-       // Force fallback assignment if checkSession failed but they clicked the mock email login
-       setCurrentUser({ id: 'u_1', name: 'Mock User', role: 'View' });
+    try {
+      await checkSession();
+      setIsAuthenticated(true);
+      setIsUnauthorized(false);
+    } catch (err) {
+      console.error("[AUTH] Login sync failed", err);
+      setIsAuthenticated(true);
+    } finally {
+      setIsAuthLoading(false);
     }
-    setIsAuthenticated(true);
-    setIsUnauthorized(false);
-    setIsAuthLoading(false);
-  }, [checkSession, currentUser.name, currentUser.role]);
+  }, [checkSession]);
   const handleLogout = useCallback(async () => {
     try {
       // Clear session on backend
