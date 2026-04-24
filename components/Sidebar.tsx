@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
-  ].filter(link => link.to !== '/bookings' || isAdmin);
+  ].filter(link => (link.to !== '/bookings' && link.to !== '/finance') || isAdmin);
 
   return (
     <div

@@ -996,7 +996,7 @@ export default function App() {
             <Route path="rooms" element={<RoomsPage rooms={rooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
-            <Route path="finance" element={<FinancePage />} />
+            <Route path="finance" element={isAdmin ? <FinancePage /> : <Navigate to="/unauthorized" replace />} />
             <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
               setBookings(prev => {
                 // 1. Filter out duplicates by ID

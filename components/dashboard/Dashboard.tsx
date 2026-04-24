@@ -14,6 +14,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 
 interface DashboardProps {
+  isAdmin?: boolean;
   stats: any;
   housekeepingTasks: any[];
 
@@ -35,6 +36,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
+  isAdmin = true,
   stats,
 
   upcomingArrivals,
@@ -74,8 +76,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard
-          title={t('totalRevenue')}
+        {isAdmin && (
+          <StatCard
+            title={t('totalRevenue')}
           comparatorLabel="% change vs Normal Rental"
           value={`₹${stats.revenueToday.toLocaleString()}`}
           total={`₹${stats.totalRevenue.toLocaleString()}`}
@@ -117,9 +120,10 @@ const Dashboard: React.FC<DashboardProps> = ({
           })()}
           isRevenueVisible={isRevenueVisible}
           setIsRevenueVisible={setIsRevenueVisible}
-          hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
-          trend={undefined}
-        />
+            hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
+            trend={undefined}
+          />
+        )}
         <StatCard
           title={t('occupancyRate')}
           comparatorLabel="vs 40% Min Monthly Occupancy"
@@ -215,7 +219,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {isRevenueVisible ? (
+        {(isAdmin && isRevenueVisible) ? (
           <>
             <div className="h-[450px] lg:h-[400px]">
               <RevenueChart bookings={bookings} rooms={rooms} />
