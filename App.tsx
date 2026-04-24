@@ -71,36 +71,7 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  
-  const handleLogin = useCallback(() => {
-    setIsAuthenticated(true);
-    setIsUnauthorized(false);
-  }, []);
-  const handleLogout = useCallback(async () => {
-    try {
-      // Clear session on backend
-      await axios.post(`${API_BASE_URL}/logout`, {}, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-    } catch (err) {
-      console.error('Backend logout failed', err);
-      // Fallback: try GET if POST is not supported/configured differently
-      try {
-        await axios.get(`${API_BASE_URL}/logout`);
-      } catch (getErr) {
-        console.error('Backend logout GET fallback failed', getErr);
-      }
-    } finally {
-      setIsAuthenticated(false);
-      setIsUnauthorized(false);
-      setLoginError(null);
-      // Force reload to clear any sensitive memory/state and ensure a fresh start
-      window.location.href = 'https://admin.karunavillas.com/login';
-    }
-  }, []);
-
-  useEffect(() => {
-    const checkSession = async () => {
+  const checkSession = useCallback(async () => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
           timeout: 5000 
@@ -167,8 +138,41 @@ export default function App() {
       } finally {
         setIsAuthLoading(false);
       }
-    };
-    
+  }, []);
+
+  const handleLogin = useCallback(async () => {
+    // Attempt to pull the real session if it exists
+    await checkSession();
+    // If not authenticated by checkSession, but they just hit login, fallback to mock UI behavior
+    setIsAuthenticated(true);
+    setIsUnauthorized(false);
+  }, []);
+  const handleLogout = useCallback(async () => {
+    try {
+      // Clear session on backend
+      await axios.post(`${API_BASE_URL}/logout`, {}, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+    } catch (err) {
+      console.error('Backend logout failed', err);
+      // Fallback: try GET if POST is not supported/configured differently
+      try {
+        await axios.get(`${API_BASE_URL}/logout`);
+      } catch (getErr) {
+        console.error('Backend logout GET fallback failed', getErr);
+      }
+    } finally {
+      setIsAuthenticated(false);
+      setIsUnauthorized(false);
+      setLoginError(null);
+      // Force reload to clear any sensitive memory/state and ensure a fresh start
+      window.location.href = 'https://admin.karunavillas.com/login';
+    }
+  }, []);
+
+
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const hasError = params.has('error');
     const urlError = params.get('error');
@@ -179,7 +183,7 @@ export default function App() {
     }
     
     checkSession();
-  }, []);
+  }, [checkSession]);
 
   const location = useLocation();
   const navigate = useNavigate();
