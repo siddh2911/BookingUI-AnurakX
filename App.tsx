@@ -104,26 +104,26 @@ export default function App() {
                 
                 // Update current user from backend data
                 if (data) {
-                  // SECURE BY DEFAULT: Always assume View role unless explicitly confirmed as Admin
+                  // SECURE BY DEFAULT: Only upgrade to Administrator if we see an explicit Admin/Manager role
                   let parsedRole = 'View';
-                  const payloadText = JSON.stringify(data).toUpperCase();
                   const roleRaw = (data.role || '').toUpperCase();
                   const authorities = (data.authorities || []).map((a: any) => 
                     typeof a === 'string' ? a.toUpperCase() : (a.authority || '').toUpperCase()
                   );
 
+                  // Only grant admin if we find an EXACT match for Admin roles
                   const hasAdminPower = 
-                    roleRaw.includes('ADMIN') || 
-                    roleRaw.includes('MANAGER') ||
-                    authorities.some(a => a.includes('ADMIN') || a.includes('MANAGER')) ||
-                    payloadText.includes('ROLE_ADMIN') || 
-                    payloadText.includes('ADMINISTRATOR');
+                    roleRaw === 'ROLE_ADMIN' || 
+                    roleRaw === 'ADMIN' || 
+                    roleRaw === 'ADMINISTRATOR' ||
+                    roleRaw === 'MANAGER' ||
+                    authorities.some(a => a === 'ROLE_ADMIN' || a === 'ADMIN' || a === 'ADMINISTRATOR' || a === 'MANAGER');
 
                   if (hasAdminPower) {
                     parsedRole = 'Administrator';
                   }
                   
-                  console.log("[AUTH] Final Role Decision:", parsedRole, "| Backend Data:", data);
+                  console.log("[AUTH] Role Decided:", parsedRole, "| Raw Role:", roleRaw, "| Authorities:", authorities);
 
                   setCurrentUser({
                     id: data.id || data.sub || 'user',
