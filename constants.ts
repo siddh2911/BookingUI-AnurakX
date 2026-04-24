@@ -11,7 +11,7 @@ export const INITIAL_BOOKINGS: Booking[] = [];
 export const MOCK_USER = {
   id: 'u_1',
   name: 'Sanjeev Kumar Singh',
-  role: 'Manager' as const
+  role: 'View' as const
 };
 
 import { HousekeepingTask, MaintenanceTicket } from './types';
