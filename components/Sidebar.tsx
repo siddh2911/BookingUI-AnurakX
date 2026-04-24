@@ -16,6 +16,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
   const [collapsed, setCollapsed] = useState(false);
   const { t } = useLanguage();
 
+  const isAdmin = currentUser.role !== 'View';
+
   const links = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
     { to: '/calendar', icon: <Calendar size={20} />, label: t('calendar') },
@@ -25,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
-  ];
+  ].filter(link => link.to !== '/bookings' || isAdmin);
 
   return (
     <div

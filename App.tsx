@@ -991,7 +991,7 @@ export default function App() {
 
           <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
-            <Route path="bookings" element={<BookingsPage bookingProps={bookingProps} />} />
+            <Route path="bookings" element={isAdmin ? <BookingsPage bookingProps={bookingProps} /> : <Navigate to="/unauthorized" replace />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
             <Route path="rooms" element={<RoomsPage rooms={rooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
             <Route path="guests" element={<GuestsPage />} />
