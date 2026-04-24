@@ -100,7 +100,7 @@ export interface AuditLog {
 export interface User {
   id: string;
   name: string;
-  role: 'Manager' | 'Receptionist' | 'Housekeeping';
+  role: 'Administrator' | 'Manager' | 'Receptionist' | 'Housekeeping' | 'View';
 }
 
 

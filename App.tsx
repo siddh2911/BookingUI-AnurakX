@@ -132,11 +132,18 @@ export default function App() {
                 
                 // Update current user from backend data
                 if (data) {
+                  let parsedRole = 'Administrator';
+                  if (data.role === 'VIEW' || data.role === 'view' || data.role === 'View') {
+                    parsedRole = 'View';
+                  } else if (data.authorities?.some((a: any) => a.authority === 'ROLE_VIEW')) {
+                    parsedRole = 'View';
+                  }
+
                   setCurrentUser({
                     id: data.id || data.sub || 'user',
                     name: data.name || data.email || 'Admin',
                     email: data.email || '',
-                    role: 'Administrator',
+                    role: parsedRole as any,
                     avatar: ''
                   });
                 }
@@ -219,6 +226,7 @@ export default function App() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
+  const isAdmin = currentUser.role !== 'View';
 
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
 
@@ -627,6 +635,10 @@ export default function App() {
     }
 
     // --- CREATE INTENT (NORMAL PRE-FILL MODE) ---
+    if (!isAdmin) {
+      alert("Access Denied: You have view-only access and cannot create bookings.");
+      return;
+    }
     const parsed = result.data;
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     
@@ -651,6 +663,10 @@ export default function App() {
   }, [rooms, today, bookings, setEditingBookingId, setNewBookingData, setIsBookingModalOpen]);
 
   const handleOpenNewBooking = useCallback((preSelectedDate?: Date) => {
+    if (!isAdmin) {
+      alert("Access Denied: View-only access cannot create new bookings.");
+      return;
+    }
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     setEditingBookingId(null);
     setNewBookingData({
@@ -673,7 +689,7 @@ export default function App() {
 
   const handleEditBooking = useCallback(async (booking: Booking, isViewOnly = false) => {
     setEditingBookingId(booking.id);
-    setIsViewOnlyMode(isViewOnly);
+    setIsViewOnlyMode(!isAdmin ? true : isViewOnly);
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${booking.id}`, {
         redirect: 'manual',
@@ -730,6 +746,10 @@ export default function App() {
 
   const handleSaveBooking = useCallback(async (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => {
     e.preventDefault();
+    if (!isAdmin) {
+      alert("Access Denied: You do not have permission to modify bookings.");
+      return;
+    }
     const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, sources, notes, guestEmail, guestPhone, additionalCharges } = newBookingData;
     const room = selectedRoom;
     if (!room) { alert("Selected room not found."); return; }
@@ -786,8 +806,12 @@ export default function App() {
   }, [newBookingData, rooms, editingBookingId, addLog, fetchBookings]);
 
   const handleDeleteBooking = useCallback((bookingId: string) => {
+    if (!isAdmin) {
+      alert("Access Denied: You do not have permission to delete bookings.");
+      return;
+    }
     setBookingToDelete(bookingId);
-  }, []);
+  }, [isAdmin]);
 
   const confirmDeleteBooking = useCallback(() => {
     if (bookingToDelete) {
@@ -811,6 +835,10 @@ export default function App() {
 
   const handleAddPayment = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); if (!selectedBooking) return;
+    if (!isAdmin) {
+      alert("Access Denied: You do not have permission to add payments.");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     const amount = parseFloat(formData.get('amount') as string);
     const method = formData.get('method') as PaymentMethod;
@@ -837,6 +865,13 @@ export default function App() {
   }, [selectedBooking, fetchBookings, fetchBookingPayments]);
 
   const updateBookingStatus = useCallback(async (bookingId: string, status: BookingStatus) => {
+    if (!isAdmin && status !== BookingStatus.CONFIRMED && status !== BookingStatus.CHECKED_IN && status !== BookingStatus.CHECKED_OUT && status !== BookingStatus.CANCELLED) {
+      // Allow nothing actually, because status updates modify
+    }
+    if (!isAdmin) {
+      alert("Access Denied: You do not have permission to update booking statuses.");
+      return;
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/status`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
@@ -897,12 +932,13 @@ export default function App() {
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
   const dashboardProps = {
-    stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings, housekeepingTasks,
+    isAdmin, stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings, housekeepingTasks,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
     today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
   };
 
   const bookingProps = {
+    isAdmin,
     bookings: useMemo(() => {
       if (!bookingFilter) return bookings;
       return bookings.filter(b => {
@@ -924,6 +960,7 @@ export default function App() {
   };
 
   const calendarProps = {
+    isAdmin,
     bookings,
     rooms,
     onEditBooking: handleEditBooking

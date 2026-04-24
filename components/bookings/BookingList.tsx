@@ -14,6 +14,7 @@ interface BookingListProps {
   onEditBooking: (booking: Booking) => void;
   onAddPayment: (booking: Booking) => void;
   onDeleteBooking: (bookingId: string) => void;
+  isAdmin?: boolean;
 }
 
 const BookingList: React.FC<BookingListProps> = ({
@@ -25,7 +26,8 @@ const BookingList: React.FC<BookingListProps> = ({
   onUpdateStatus,
   onEditBooking,
   onAddPayment,
-  onDeleteBooking
+  onDeleteBooking,
+  isAdmin = true
 }) => {
   const [sortConfig, setSortConfig] = React.useState<{ key: keyof Booking | 'roomNumber' | 'balance'; direction: 'asc' | 'desc' } | null>({ key: 'checkInDate', direction: 'asc' });
   const [activeTab, setActiveTab] = React.useState<'upcoming' | 'past'>('upcoming');
@@ -130,12 +132,14 @@ const BookingList: React.FC<BookingListProps> = ({
           </div>
 
           {/* New Booking Button */}
-          <button
-            onClick={() => onOpenNewBooking()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition justify-center shrink-0 shadow-sm hover:shadow-md active:scale-95 w-full sm:w-auto"
-          >
-            <Plus size={18} /> <span className="font-semibold">New Booking</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => onOpenNewBooking()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition justify-center shrink-0 shadow-sm hover:shadow-md active:scale-95 w-full sm:w-auto"
+            >
+              <Plus size={18} /> <span className="font-semibold">New Booking</span>
+            </button>
+          )}
         </div>
       </div>
 
