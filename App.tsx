@@ -133,11 +133,14 @@ export default function App() {
                 // Update current user from backend data
                 if (data) {
                   let parsedRole = 'Administrator';
-                  if (data.role === 'ROLE_VIEW' || data.role === 'VIEW' || data.role === 'view' || data.role === 'View') {
+                  const roleRaw = data.role ? String(data.role).toUpperCase() : '';
+                  const payloadText = JSON.stringify(data).toUpperCase();
+                  if (roleRaw === 'ROLE_VIEW' || roleRaw === 'VIEW' || payloadText.includes('"ROLE_VIEW"') || payloadText.includes('"ROLE":"ROLE_VIEW"')) {
                     parsedRole = 'View';
-                  } else if (data.authorities?.some((a: any) => a.authority === 'ROLE_VIEW')) {
+                  } else if (data.authorities?.some((a: any) => String(a.authority).toUpperCase() === 'ROLE_VIEW')) {
                     parsedRole = 'View';
                   }
+                  console.log("Parsed Role from API:", parsedRole, "Data:", data);
 
                   setCurrentUser({
                     id: data.id || data.sub || 'user',
@@ -227,6 +230,10 @@ export default function App() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const isAdmin = currentUser.role !== 'View';
+
+  useEffect(() => {
+     console.log("Current State -> User Role:", currentUser.role, "| isAdmin evaluates to:", isAdmin);
+  }, [currentUser.role, isAdmin]);
 
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
 
