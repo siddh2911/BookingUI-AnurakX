@@ -241,6 +241,18 @@ export default function App() {
     }
   }, [isAuthenticated, isRoleVerified, authRetryCount, checkSession]);
 
+  // Auto-refresh logic to ensure backend session cookies are fully recognized by the browser
+  useEffect(() => {
+    if (isAuthenticated && !sessionStorage.getItem('initial_refresh_done')) {
+      console.log("[AUTH] Triggering one-time quick refresh for session sync...");
+      sessionStorage.setItem('initial_refresh_done', 'true');
+      window.location.reload();
+    }
+    if (!isAuthenticated) {
+      sessionStorage.removeItem('initial_refresh_done');
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     const resetTimer = () => {
