@@ -133,7 +133,7 @@ export default function App() {
                 // Update current user from backend data
                 if (data) {
                   let parsedRole = 'Administrator';
-                  if (data.role === 'VIEW' || data.role === 'view' || data.role === 'View') {
+                  if (data.role === 'ROLE_VIEW' || data.role === 'VIEW' || data.role === 'view' || data.role === 'View') {
                     parsedRole = 'View';
                   } else if (data.authorities?.some((a: any) => a.authority === 'ROLE_VIEW')) {
                     parsedRole = 'View';
