@@ -71,6 +71,7 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isRoleVerified, setIsRoleVerified] = useState(false);
   const checkSession = useCallback(async () => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
@@ -131,6 +132,7 @@ export default function App() {
                     role: parsedRole as any,
                     avatar: ''
                   });
+                  setIsRoleVerified(true);
                 }
               } else {
                // Initial auth failure should just drop to the login page, not force unauthorized UI
@@ -160,6 +162,7 @@ export default function App() {
     } catch (err) {
       console.warn("[AUTH] Backend sync failed, defaulting to View role.", err);
       setCurrentUser({ id: 'u_mock', name: 'Mock User', role: 'View' });
+      setIsRoleVerified(true); // Verification complete (fallback)
       setIsAuthenticated(true);
     } finally {
       setIsAuthLoading(false);
@@ -218,6 +221,7 @@ export default function App() {
       setLoginError(null);
       // Hard reset user role on login page to prevent memory leaks from previous sessions
       setCurrentUser({ id: 'u_1', name: 'Mock User', role: 'View' });
+      setIsRoleVerified(false);
     } else if ((loginError === 'unauthorized' || isUnauthorized) && !isAtUnauthorized) {
       navigate('/unauthorized', { replace: true });
     }
@@ -253,11 +257,16 @@ export default function App() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  const isAdmin = currentUser.role !== 'View';
+  const isAdmin = isRoleVerified && currentUser.role === 'Administrator';
 
   useEffect(() => {
-     console.log("Current State -> User Role:", currentUser.role, "| isAdmin evaluates to:", isAdmin);
-  }, [currentUser.role, isAdmin]);
+     console.log("[DEBUG] Auth State Updated:", { 
+       role: currentUser.role, 
+       isRoleVerified, 
+       isAdmin, 
+       isAuthenticated 
+     });
+  }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated]);
 
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
 
