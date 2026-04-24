@@ -1000,6 +1000,11 @@ export default function App() {
   return (
     <LanguageProvider>
       <>
+        {/* DEBUG ROLE BANNER - REMOVE LATER */}
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[99999] bg-red-600 text-white px-4 py-1 rounded-b-lg font-bold text-xs shadow-xl pointer-events-none">
+          Current Role: {currentUser.role} | IsAdmin: {isAdmin ? "YES" : "NO"}
+        </div>
+        
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
