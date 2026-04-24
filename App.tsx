@@ -66,7 +66,7 @@ export default function App() {
 
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [currentUser, setCurrentUser] = useState<User>(MOCK_USER);
+  const [currentUser, setCurrentUser] = useState<User>({ id: 'u_1', name: 'Mock User', role: 'View' });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
@@ -141,12 +141,16 @@ export default function App() {
   }, []);
 
   const handleLogin = useCallback(async () => {
-    // Attempt to pull the real session if it exists
+    setIsAuthLoading(true);
     await checkSession();
-    // If not authenticated by checkSession, but they just hit login, fallback to mock UI behavior
+    if (currentUser.role !== 'View' && currentUser.name === 'Mock User') {
+       // Force fallback assignment if checkSession failed but they clicked the mock email login
+       setCurrentUser({ id: 'u_1', name: 'Mock User', role: 'View' });
+    }
     setIsAuthenticated(true);
     setIsUnauthorized(false);
-  }, []);
+    setIsAuthLoading(false);
+  }, [checkSession, currentUser.name, currentUser.role]);
   const handleLogout = useCallback(async () => {
     try {
       // Clear session on backend
