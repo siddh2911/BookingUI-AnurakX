@@ -10,13 +10,14 @@ interface SidebarProps {
   setIsSidebarOpen: (isOpen: boolean) => void;
   onLogout: () => void;
   onDashboardClick?: () => void;
+  isVerifying?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSidebarOpen, onLogout, onDashboardClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSidebarOpen, onLogout, onDashboardClick, isVerifying }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { t } = useLanguage();
 
-  const isAdmin = currentUser.role !== 'View';
+  const isAdmin = currentUser.role === 'Administrator';
 
   const links = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
@@ -69,8 +70,33 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
 
       { }
       <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-        {links.map((link) => {
-          const isRestricted = !isAdmin && (link.to === '/bookings' || link.to === '/finance');
+         {links.map((link) => {
+          const isRestrictedTarget = link.to === '/bookings' || link.to === '/finance';
+          
+          if (isVerifying && isRestrictedTarget) {
+            return (
+              <div
+                key={link.to}
+                className="block mb-1 focus:outline-none opacity-80 group relative animate-pulse"
+                title={`${link.label} (Verifying permissions...)`}
+              >
+                <div className={`
+                  flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300
+                  text-slate-400 bg-slate-50/50 border border-slate-100
+                  ${collapsed ? 'justify-center mx-1' : 'mx-2'}
+                `}>
+                  <div className="relative z-10 w-5 h-5 border-2 border-slate-200 border-t-blue-400 rounded-full animate-spin" />
+                  {!collapsed && (
+                    <span className="font-semibold whitespace-nowrap tracking-tight italic">
+                      Verifying...
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          const isRestricted = !isAdmin && isRestrictedTarget;
 
           if (isRestricted) {
             return (

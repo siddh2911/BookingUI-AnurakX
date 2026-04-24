@@ -13,9 +13,10 @@ interface DashboardLayoutProps {
     onVoiceBooking?: (transcript: string) => void;
     rooms?: Room[];
     currentUser: User;
+    isVerifying?: boolean;
 }
 
-export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser }: DashboardLayoutProps) {
+export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser, isVerifying }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState('');
@@ -108,6 +109,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                 setIsSidebarOpen={setIsSidebarOpen}
                 onLogout={onLogout}
                 onDashboardClick={onDashboardClick}
+                isVerifying={isVerifying}
             />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10 bg-white/40 backdrop-blur-3xl transition-colors duration-1000">

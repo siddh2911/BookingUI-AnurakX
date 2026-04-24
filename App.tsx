@@ -75,7 +75,7 @@ export default function App() {
   const checkSession = useCallback(async () => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
-          timeout: 5000 
+          timeout: 10000 // Increased timeout for slower resolutions
         });
         
         const data = response.data;
@@ -227,6 +227,19 @@ export default function App() {
     }
   }, [loginError, isUnauthorized, location.pathname, navigate]);
 
+
+  // Polling logic for role verification in case of backend propagation delay
+  const [authRetryCount, setAuthRetryCount] = useState(0);
+  useEffect(() => {
+    if (isAuthenticated && !isRoleVerified && authRetryCount < 6) {
+      console.log(`[AUTH] Polling for role... Attempt ${authRetryCount + 1}`);
+      const timer = setTimeout(() => {
+        checkSession();
+        setAuthRetryCount(prev => prev + 1);
+      }, 3000); // Check every 3 seconds for 18 seconds total
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, isRoleVerified, authRetryCount, checkSession]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -1029,7 +1042,7 @@ export default function App() {
         <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} isVerifying={isAuthenticated && !isRoleVerified} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={isAdmin ? <BookingsPage bookingProps={bookingProps} /> : <Navigate to="/unauthorized" replace />} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
