@@ -23,7 +23,7 @@ export default function MarketingPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [currentPost, setCurrentPost] = useState<any>(null);
-    const [postStatus, setPostStatus] = useState<'pending' | 'approved' | 'scheduled' | 'published'>('pending');
+    const [postStatus, setPostStatus] = useState<'pending' | 'approved' | 'scheduled' | 'published' | 'rejected'>('pending');
 
     useEffect(() => {
         // Load today's post if exists, else generate one
@@ -65,7 +65,11 @@ export default function MarketingPage() {
     const handleApprove = () => {
         setPostStatus('scheduled');
         localStorage.setItem('karuna_daily_post_status', 'scheduled');
-        // In a real app, this would trigger an API call to schedule via Buffer, Hootsuite, or Meta API.
+    };
+
+    const handleReject = () => {
+        setPostStatus('rejected');
+        localStorage.setItem('karuna_daily_post_status', 'rejected');
     };
 
     const handleGenerateImage = () => {
@@ -181,23 +185,40 @@ export default function MarketingPage() {
                                 <button 
                                     onClick={generateNewPost}
                                     className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-colors flex items-center gap-2"
-                                    disabled={postStatus !== 'pending'}
+                                    disabled={postStatus === 'approved' || postStatus === 'scheduled'}
                                 >
                                     <RefreshCw size={16} /> Regenerate
                                 </button>
                                 
-                                {postStatus === 'pending' ? (
-                                    <button 
-                                        onClick={handleApprove}
-                                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm font-bold shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center gap-2"
-                                    >
-                                        <CheckCircle size={18} /> Approve & Schedule
-                                    </button>
-                                ) : (
-                                    <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-bold flex items-center gap-2 border border-emerald-200">
-                                        <CheckCircle size={18} /> Post Approved
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {postStatus === 'pending' || postStatus === 'rejected' ? (
+                                        <>
+                                            {postStatus !== 'rejected' && (
+                                                <button 
+                                                    onClick={handleReject}
+                                                    className="px-4 py-2 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
+                                                >
+                                                    Discard
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={handleApprove}
+                                                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm font-bold shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center gap-2"
+                                            >
+                                                <CheckCircle size={18} /> {postStatus === 'rejected' ? 'Re-Approve' : 'Approve & Schedule'}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-bold flex items-center gap-2 border border-emerald-200">
+                                            <CheckCircle size={18} /> Post Approved
+                                        </div>
+                                    )}
+                                    {postStatus === 'rejected' && (
+                                        <div className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold flex items-center gap-2 border border-red-200">
+                                            Discarded
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
