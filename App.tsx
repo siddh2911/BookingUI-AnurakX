@@ -282,30 +282,19 @@ export default function App() {
        isAuthenticated 
      });
 
-     // One-time auto-refresh logic upon login to ensure absolute session synchronization
-     const isDashboard = window.location.pathname === '/' || window.location.pathname === '/dashboard';
-     if (isAuthenticated && !isAuthLoading && isDashboard) {
-       const sessionKey = `has_refreshed_v2_${currentUser.id || 'anon'}`;
+     // One-time auto-refresh logic upon successful Admin verification
+     if (isAdmin && isRoleVerified && isAuthenticated) {
+       const sessionKey = `has_refreshed_admin_sync_${currentUser.id || 'anon'}`;
        const hasRefreshed = sessionStorage.getItem(sessionKey);
        
        if (!hasRefreshed) {
-         console.log("[AUTH] Scheduling one-time session sync refresh in 5 seconds...");
+         console.log("[AUTH] Admin permissions verified! Triggering final sync refresh in 2 seconds...");
          sessionStorage.setItem(sessionKey, 'true');
          
-         let timeLeft = 10;
-         const interval = setInterval(() => {
-           timeLeft -= 1;
-           if (timeLeft > 0) {
-             console.log(`[AUTH] Refreshing in ${timeLeft}s...`);
-           } else {
-             clearInterval(interval);
-           }
-         }, 1000);
-
          setTimeout(() => {
-           console.log("[AUTH] Executing scheduled refresh now...");
+           console.log("[AUTH] Final synchronization refresh...");
            window.location.href = 'https://admin.karunavillas.com/';
-         }, 10000);
+         }, 2000);
        }
      }
   }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated, isAuthLoading, currentUser.id]);
