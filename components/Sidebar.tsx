@@ -26,7 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
 
   useEffect(() => {
     console.log("[DEBUG] Sidebar Role Check:", { name: currentUser.name, role: currentUser.role, isAdmin });
-  }, [currentUser, isAdmin]);
+    console.log("[DEBUG] Sidebar Links Array:", links);
+  }, [currentUser, isAdmin, links]);
 
   const links = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
