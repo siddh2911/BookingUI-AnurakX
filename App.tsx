@@ -291,6 +291,17 @@ export default function App() {
        if (!hasRefreshed) {
          console.log("[AUTH] Scheduling one-time session sync refresh in 5 seconds...");
          sessionStorage.setItem(sessionKey, 'true');
+         
+         let timeLeft = 5;
+         const interval = setInterval(() => {
+           timeLeft -= 1;
+           if (timeLeft > 0) {
+             console.log(`[AUTH] Refreshing in ${timeLeft}s...`);
+           } else {
+             clearInterval(interval);
+           }
+         }, 1000);
+
          setTimeout(() => {
            console.log("[AUTH] Executing scheduled refresh...");
            window.location.reload();
