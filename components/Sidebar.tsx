@@ -24,11 +24,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
                   role === 'HOST' || 
                   role === 'SUPERADMIN';
 
-  useEffect(() => {
-    console.log("[DEBUG] Sidebar Role Check:", { name: currentUser.name, role: currentUser.role, isAdmin });
-    console.log("[DEBUG] Sidebar Links Array:", links);
-  }, [currentUser, isAdmin, links]);
-
   const links = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
     { to: '/marketing', icon: <LayoutDashboard size={20} />, label: 'Marketing Assistant' },
@@ -40,6 +35,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
   ];
+
+  useEffect(() => {
+    console.log("[DEBUG] Sidebar Role Check:", { name: currentUser.name, role: currentUser.role, isAdmin });
+  }, [currentUser, isAdmin]);
 
   return (
     <div
