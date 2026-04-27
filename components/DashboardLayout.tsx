@@ -116,7 +116,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                 { }
                 <div className={`md:hidden flex items-center justify-between p-4 shadow-md z-20 ${theme === 'night' ? 'bg-slate-950 text-white' : 'bg-slate-900 text-white'}`}>
                     <Link to="/" onClick={onDashboardClick} className="flex flex-col items-start">
-                        <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
+                        <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA (DEBUG 1)</span>
                         <span className="text-[9px] text-blue-200/80 uppercase tracking-widest font-sans mt-0.5 ml-0.5">Dashboard</span>
                     </Link>
                     <div className="flex items-center gap-3">

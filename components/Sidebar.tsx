@@ -55,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
           <div className="flex items-center justify-center w-full px-2 py-2">
             <Link to="/" className="flex flex-col items-center hover:opacity-90 transition-opacity gap-2">
               <h1 className="text-2xl font-bold text-slate-900 tracking-widest leading-none text-center" style={{ fontFamily: '"Playfair Display", serif' }}>
-                KARUNA VILLA
+                KARUNA VILLA (DEBUG 1)
               </h1>
               <p className="text-[10px] text-blue-600 uppercase tracking-[0.3em] font-medium border-t border-blue-500/30 pt-1.5 px-2">
                 Dashboard
