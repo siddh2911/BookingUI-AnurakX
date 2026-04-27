@@ -21,6 +21,7 @@ const AI_POST_TEMPLATES = [
 
 export default function MarketingPage() {
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [currentPost, setCurrentPost] = useState<any>(null);
     const [postStatus, setPostStatus] = useState<'pending' | 'approved' | 'scheduled' | 'published'>('pending');
 
@@ -49,7 +50,8 @@ export default function MarketingPage() {
             const newPost = {
                 ...randomTemplate,
                 date: new Date().toDateString(),
-                id: Math.random().toString(36).substr(2, 9)
+                id: Math.random().toString(36).substr(2, 9),
+                imageUrl: null
             };
             
             setCurrentPost(newPost);
@@ -64,6 +66,16 @@ export default function MarketingPage() {
         setPostStatus('scheduled');
         localStorage.setItem('karuna_daily_post_status', 'scheduled');
         // In a real app, this would trigger an API call to schedule via Buffer, Hootsuite, or Meta API.
+    };
+
+    const handleGenerateImage = () => {
+        setIsGeneratingImage(true);
+        setTimeout(() => {
+            const updatedPost = { ...currentPost, imageUrl: '/placeholder_post.png?t=' + Date.now() };
+            setCurrentPost(updatedPost);
+            localStorage.setItem('karuna_daily_post', JSON.stringify(updatedPost));
+            setIsGeneratingImage(false);
+        }, 3000);
     };
 
     return (
@@ -97,17 +109,46 @@ export default function MarketingPage() {
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Image Preview Area */}
                                 <div className="space-y-3">
-                                    <div className="aspect-square bg-slate-100 rounded-lg flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-slate-200 relative overflow-hidden group">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5"></div>
-                                        <ImageIcon className="w-10 h-10 text-slate-300 mb-3" />
-                                        <p className="text-xs text-slate-500 font-medium">AI Image Prompt:</p>
-                                        <p className="text-sm text-slate-700 mt-1 italic">"{currentPost.imagePrompt}"</p>
+                                    <div className="aspect-square bg-slate-100 rounded-lg flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-slate-200 relative overflow-hidden group">
+                                        {currentPost.imageUrl && !isGeneratingImage ? (
+                                            <img src={currentPost.imageUrl} alt="Generated Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                        ) : (
+                                            <>
+                                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5"></div>
+                                                {isGeneratingImage ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mb-3" />
+                                                        <p className="text-sm font-bold text-slate-700">Nano Banana</p>
+                                                        <p className="text-xs text-slate-500">Generating masterpiece...</p>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <ImageIcon className="w-10 h-10 text-slate-300 mb-2" />
+                                                        <p className="text-xs text-slate-500 font-medium">No Image Generated Yet</p>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
                                         
-                                        <div className="absolute inset-x-0 bottom-0 p-3 bg-white/80 backdrop-blur-sm border-t border-slate-200 translate-y-full group-hover:translate-y-0 transition-transform">
-                                            <button className="w-full py-2 bg-slate-900 text-white rounded-md text-xs font-medium flex items-center justify-center gap-2">
-                                                <Sparkles size={14} /> Generate Image
-                                            </button>
-                                        </div>
+                                        {!isGeneratingImage && (
+                                            <div className={`absolute inset-x-0 bottom-0 p-3 bg-white/90 backdrop-blur-sm border-t border-slate-200 transition-transform ${currentPost.imageUrl ? 'translate-y-full group-hover:translate-y-0' : ''}`}>
+                                                <button 
+                                                    onClick={handleGenerateImage}
+                                                    className="w-full py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-md text-xs font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-shadow"
+                                                >
+                                                    <Sparkles size={14} /> Generate with Nano Banana
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Image Prompt (Nano Banana)</label>
+                                        <textarea 
+                                            value={currentPost.imagePrompt}
+                                            onChange={(e) => setCurrentPost({ ...currentPost, imagePrompt: e.target.value })}
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-700 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none h-24"
+                                            disabled={postStatus !== 'pending'}
+                                        />
                                     </div>
                                 </div>
 
