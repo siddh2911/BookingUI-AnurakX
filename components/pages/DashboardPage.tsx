@@ -25,56 +25,55 @@ export default function DashboardPage({ dashboardProps }: { dashboardProps: any 
     return (
         <div className="animate-in fade-in duration-500">
             {dashboardProps.isAdmin && marketingStatus !== 'none' && (
-                <div className="mb-8 grid grid-cols-1 md:grid-cols-12 gap-0 md:gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="md:col-span-4 lg:col-span-3 bg-slate-900 p-6 flex flex-col justify-center items-center md:items-start text-center md:text-left gap-2">
-                        <div className="flex items-center gap-2 text-purple-400 font-bold uppercase tracking-widest text-[10px]">
-                            <Sparkles size={12} /> AI Marketing
+                <div className={`mb-6 relative overflow-hidden rounded-2xl border backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between p-4 sm:px-6 shadow-sm transition-all duration-300 ${
+                    marketingStatus === 'scheduled' || marketingStatus === 'published' 
+                        ? 'bg-emerald-50/80 border-emerald-100/50' :
+                    marketingStatus === 'rejected' 
+                        ? 'bg-red-50/80 border-red-100/50' :
+                    'bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border-purple-100/50'
+                }`}>
+                    <div className="flex items-center gap-4 w-full sm:w-auto mb-3 sm:mb-0">
+                        <div className={`flex items-center justify-center w-10 h-10 rounded-full shadow-inner ${
+                            marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'bg-emerald-100 text-emerald-600' :
+                            marketingStatus === 'rejected' ? 'bg-red-100 text-red-600' :
+                            'bg-white text-purple-600 animate-pulse shadow-purple-500/10'
+                        }`}>
+                            {marketingStatus === 'scheduled' || marketingStatus === 'published' ? <CheckCircle size={20} /> :
+                             marketingStatus === 'rejected' ? <XCircle size={20} /> :
+                             <Sparkles size={20} />}
                         </div>
-                        <h3 className="text-white font-bold text-xl leading-tight">Daily Social Status</h3>
-                    </div>
-                    
-                    <div className="md:col-span-8 lg:col-span-9 p-5 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner ${
-                                marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'bg-emerald-50 text-emerald-600' :
-                                marketingStatus === 'rejected' ? 'bg-red-50 text-red-600' :
-                                'bg-purple-50 text-purple-600 animate-pulse'
-                            }`}>
-                                {marketingStatus === 'scheduled' || marketingStatus === 'published' ? <CheckCircle size={24} /> :
-                                 marketingStatus === 'rejected' ? <XCircle size={24} /> :
-                                 <Clock size={24} />}
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-slate-800">Today's Instagram Post</span>
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                        marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'bg-emerald-100 text-emerald-700' :
-                                        marketingStatus === 'rejected' ? 'bg-red-100 text-red-700' :
-                                        'bg-purple-100 text-purple-700'
-                                    }`}>
-                                        {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'Ready' :
-                                         marketingStatus === 'rejected' ? 'Discarded' :
-                                         'Pending Review'}
-                                    </span>
-                                </div>
-                                <p className="text-slate-500 text-sm mt-0.5">
-                                    {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'Awesome! Your post is scheduled for today.' :
-                                     marketingStatus === 'rejected' ? 'You discarded today\'s suggestion. Want to generate a new one?' :
-                                     'The AI has drafted a new post. It needs your approval before publishing.'}
-                                </p>
-                            </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                AI Marketing Assistant
+                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                    marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'bg-emerald-200/50 text-emerald-700' :
+                                    marketingStatus === 'rejected' ? 'bg-red-200/50 text-red-700' :
+                                    'bg-purple-200/50 text-purple-700'
+                                }`}>
+                                    {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'Scheduled' :
+                                     marketingStatus === 'rejected' ? 'Needs Attention' :
+                                     'Action Required'}
+                                </span>
+                            </span>
+                            <span className="text-xs text-slate-500 mt-0.5 font-medium">
+                                {marketingStatus === 'scheduled' || marketingStatus === 'published' ? "Today's Instagram post is ready to go." :
+                                 marketingStatus === 'rejected' ? "You discarded the draft. Generate a new one?" :
+                                 "Your daily Instagram post has been drafted and is awaiting your approval."}
+                            </span>
                         </div>
-
-                        <Link 
-                            to="/marketing" 
-                            className={`w-full md:w-auto px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md ${
-                                marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' :
-                                'bg-slate-900 text-white hover:bg-slate-800'
-                            }`}
-                        >
-                            {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'View Post' : 'Review Now'} <ArrowRight size={16} />
-                        </Link>
                     </div>
+                    <Link 
+                        to="/marketing" 
+                        className={`w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${
+                            marketingStatus === 'scheduled' || marketingStatus === 'published' 
+                                ? 'bg-white text-emerald-700 hover:bg-emerald-50 hover:shadow border border-emerald-100' :
+                            marketingStatus === 'rejected'
+                                ? 'bg-white text-red-700 hover:bg-red-50 hover:shadow border border-red-100' :
+                            'bg-slate-900 text-white hover:bg-slate-800 hover:shadow-md'
+                        }`}
+                    >
+                        {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'View Schedule' : 'Review Post'} <ArrowRight size={14} />
+                    </Link>
                 </div>
             )}
 
