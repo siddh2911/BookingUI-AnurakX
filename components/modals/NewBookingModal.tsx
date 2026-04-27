@@ -52,6 +52,24 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const [isFinancialsVisible, setIsFinancialsVisible] = useState(!readOnly);
    const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
 
+   const [dynamicPackages, setDynamicPackages] = useState<string[]>([]);
+   const [dynamicMealPlans, setDynamicMealPlans] = useState<{code: string, name: string}[]>([]);
+
+   useEffect(() => {
+      const savedPackages = localStorage.getItem('karuna_packages');
+      if (savedPackages) setDynamicPackages(JSON.parse(savedPackages));
+      else setDynamicPackages(['Honeymoon', 'Standard', 'Corporate', 'Long Stay']);
+
+      const savedPlans = localStorage.getItem('karuna_meal_plans');
+      if (savedPlans) setDynamicMealPlans(JSON.parse(savedPlans));
+      else setDynamicMealPlans([
+         { code: 'EP', name: 'Room Only' },
+         { code: 'CP', name: 'Breakfast' },
+         { code: 'MAP', name: 'Half Board' },
+         { code: 'AP', name: 'Full Board' }
+      ]);
+   }, []);
+
    const localNights = newBookingData.checkIn && newBookingData.checkOut
       ? Math.max(1, Math.ceil((new Date(newBookingData.checkOut).getTime() - new Date(newBookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)))
       : bookingNights;
@@ -527,14 +545,18 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                         <div className={floatingGroup}>
                            <label className={elegantLabel}>Package</label>
-                           <input 
+                           <select 
                               name="bookingPackage" 
-                              className={elegantInput} 
-                              placeholder="e.g. Honeymoon, Standard" 
+                              className="w-full bg-white/5 border border-white/10 rounded-lg text-slate-800 text-sm px-3 py-2 mt-2 outline-none focus:bg-slate-50 transition-colors cursor-pointer"
                               value={newBookingData.bookingPackage || ''} 
                               onChange={(e) => setNewBookingData({ ...newBookingData, bookingPackage: e.target.value })} 
                               disabled={readOnly} 
-                           />
+                           >
+                              <option value="">None</option>
+                              {dynamicPackages.map(pkg => (
+                                 <option key={pkg} value={pkg}>{pkg}</option>
+                              ))}
+                           </select>
                         </div>
                         <div className={floatingGroup}>
                            <label className={elegantLabel}>Meal Plan</label>
@@ -545,10 +567,9 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                               disabled={readOnly}
                            >
                               <option value="">None</option>
-                              <option value="EP">EP (Room Only)</option>
-                              <option value="CP">CP (Breakfast)</option>
-                              <option value="MAP">MAP (Half Board)</option>
-                              <option value="AP">AP (Full Board)</option>
+                              {dynamicMealPlans.map(plan => (
+                                 <option key={plan.code} value={plan.code}>{plan.code} ({plan.name})</option>
+                              ))}
                            </select>
                         </div>
                      </div>
