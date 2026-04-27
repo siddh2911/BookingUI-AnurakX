@@ -76,6 +76,11 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                     <div className="font-bold text-slate-800 flex items-baseline gap-1.5">
                         <span>{roomNumber}</span>
                     </div>
+                    {(booking.bookingPackage || booking.mealPlan) && (
+                        <div className="text-[10px] text-slate-500 leading-tight">
+                            {[booking.bookingPackage, booking.mealPlan].filter(Boolean).join(' | ')}
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-0.5 text-right">
                     <div className="text-xs text-slate-500 flex items-center justify-end gap-1">Dates</div>

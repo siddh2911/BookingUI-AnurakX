@@ -394,6 +394,7 @@ export default function App() {
           }),
           status: b.status as BookingStatus,
           totalPaid: b.totalPaid, totalAmount: b.totalAmount, pendingBalance: b.balance,
+          mealPlan: b.mealPlan, bookingPackage: b.bookingPackage
         };
       });
 
@@ -729,6 +730,7 @@ export default function App() {
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
       source: BookingSource.DIRECT, sources: [{ source: BookingSource.DIRECT, nightlyRate: defaultRoom?.pricePerNight || 0 }], paymentMethod: PaymentMethod.CASH, notes: '',
       manualTotal: undefined,
+      mealPlan: '', bookingPackage: '',
       additionalCharges: [
         { category: 'Cleaning Fee', amount: 0 },
         { category: 'Guest Service Fee', amount: 0 },
@@ -788,6 +790,8 @@ export default function App() {
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
         manualTotal: fetchedBookingData.totalAmount,
+        mealPlan: fetchedBookingData.mealPlan || '',
+        bookingPackage: fetchedBookingData.bookingPackage || '',
         additionalCharges: fetchedBookingData.additionalCharges || []
       });
       setIsBookingModalOpen(true);
@@ -803,7 +807,7 @@ export default function App() {
       alert("Access Denied: You do not have permission to modify bookings.");
       return;
     }
-    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, sources, notes, guestEmail, guestPhone, additionalCharges } = newBookingData;
+    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, sources, notes, guestEmail, guestPhone, additionalCharges, mealPlan, bookingPackage } = newBookingData;
     const room = selectedRoom;
     if (!room) { alert("Selected room not found."); return; }
     if (new Date(checkOut) <= new Date(checkIn)) { alert("Check-out date must be after check-in date."); return; }
@@ -826,7 +830,8 @@ export default function App() {
     const bookingPayload = {
       fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, checkInDate: checkIn, checkOutDate: checkOut,
       roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: formattedSources, advanceAmount: advance,
-      paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges
+      paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges,
+      mealPlan, bookingPackage
     };
 
     try {

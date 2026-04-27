@@ -43,6 +43,11 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
         <div className="font-semibold text-slate-800 flex items-baseline gap-1.5">
           <span>{roomNumber}</span>
         </div>
+        {(booking.bookingPackage || booking.mealPlan) && (
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            {[booking.bookingPackage, booking.mealPlan].filter(Boolean).join(' | ')}
+          </div>
+        )}
       </td>
       <td className="px-2 py-3 font-medium text-slate-700">{booking.checkInDate}</td>
       <td className="px-2 py-3 font-medium text-slate-700">{booking.checkOutDate}</td>

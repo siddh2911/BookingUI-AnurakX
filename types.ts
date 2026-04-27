@@ -75,6 +75,8 @@ export interface Booking {
   payments?: Payment[];
   pendingBalance?: number;
   additionalCharges?: { description: string; amount: number }[];
+  mealPlan?: string;
+  bookingPackage?: string;
   notes?: string;
   createdAt?: string;
 }

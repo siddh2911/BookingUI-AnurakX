@@ -523,6 +523,35 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            )}
                         </div>
                      </div>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>Package</label>
+                           <input 
+                              name="bookingPackage" 
+                              className={elegantInput} 
+                              placeholder="e.g. Honeymoon, Standard" 
+                              value={newBookingData.bookingPackage || ''} 
+                              onChange={(e) => setNewBookingData({ ...newBookingData, bookingPackage: e.target.value })} 
+                              disabled={readOnly} 
+                           />
+                        </div>
+                        <div className={floatingGroup}>
+                           <label className={elegantLabel}>Meal Plan</label>
+                           <select 
+                              className="w-full bg-white/5 border border-white/10 rounded-lg text-slate-800 text-sm px-3 py-2 mt-2 outline-none focus:bg-slate-50 transition-colors cursor-pointer"
+                              value={newBookingData.mealPlan || ''}
+                              onChange={(e) => setNewBookingData({ ...newBookingData, mealPlan: e.target.value })}
+                              disabled={readOnly}
+                           >
+                              <option value="">None</option>
+                              <option value="EP">EP (Room Only)</option>
+                              <option value="CP">CP (Breakfast)</option>
+                              <option value="MAP">MAP (Half Board)</option>
+                              <option value="AP">AP (Full Board)</option>
+                           </select>
+                        </div>
+                     </div>
                   </div>
 
                   { }
