@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight } from 'lucide-react';
-import { APP_VERSION, GOOGLE_LOGIN_STARTED_KEY } from '../../appVersion';
+import { APP_VERSION, DASHBOARD_RELOAD_KEY, GOOGLE_LOGIN_STARTED_KEY } from '../../appVersion';
 
 interface LoginPageProps {
     onLogin: () => void;
@@ -12,7 +12,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
 
     const clearPostLoginRefreshFlags = () => {
         Object.keys(sessionStorage).forEach(key => {
-            if (key.startsWith('has_refreshed_admin_sync_') || key.startsWith('has_refreshed_v2_')) {
+            if (
+                key.startsWith('has_refreshed_admin_sync_') ||
+                key.startsWith('has_refreshed_v2_') ||
+                key.startsWith(DASHBOARD_RELOAD_KEY)
+            ) {
                 sessionStorage.removeItem(key);
             }
         });

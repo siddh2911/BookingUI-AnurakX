@@ -4,7 +4,7 @@ import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';
-import { APP_VERSION, GOOGLE_LOGIN_STARTED_KEY } from './appVersion';
+import { APP_VERSION, DASHBOARD_RELOAD_KEY, GOOGLE_LOGIN_STARTED_KEY } from './appVersion';
 
 axios.defaults.withCredentials = true;
 
@@ -323,6 +323,27 @@ export default function App() {
     }
   }, [loginError, isUnauthorized, location.pathname, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated || isAuthLoading || isPostLoginRefreshing) return;
+
+    const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
+    if (!isDashboardRoute) return;
+
+    const reloadKey = `${DASHBOARD_RELOAD_KEY}_${APP_VERSION}_${currentUser.id || 'anon'}`;
+    if (sessionStorage.getItem(reloadKey)) return;
+
+    console.log("[AUTH] Reloading dashboard once after login.");
+    sessionStorage.setItem(reloadKey, 'true');
+    setIsPostLoginRefreshing(true);
+
+    setTimeout(() => {
+      const refreshUrl = new URL(window.location.href);
+      refreshUrl.searchParams.set('dashboardReload', APP_VERSION);
+      refreshUrl.searchParams.set('refreshAt', Date.now().toString());
+      window.location.replace(refreshUrl.toString());
+    }, 100);
+  }, [currentUser.id, isAuthLoading, isAuthenticated, isPostLoginRefreshing, location.pathname]);
+
 
   // Polling logic for role verification in case of backend propagation delay
   const [authRetryCount, setAuthRetryCount] = useState(0);
@@ -378,9 +399,16 @@ export default function App() {
 
      if (isAdmin && isRoleVerified && isAuthenticated) {
        const sessionKey = `has_refreshed_admin_sync_${APP_VERSION}_${currentUser.id || 'anon'}`;
+       const dashboardReloadKey = `${DASHBOARD_RELOAD_KEY}_${APP_VERSION}_${currentUser.id || 'anon'}`;
        const googleLoginStarted = sessionStorage.getItem(GOOGLE_LOGIN_STARTED_KEY);
        const hasRefreshed = sessionStorage.getItem(sessionKey);
+       const hasReloadedDashboard = sessionStorage.getItem(dashboardReloadKey);
        const shouldRefreshAfterGoogleLogin = Boolean(googleLoginStarted?.startsWith(`${APP_VERSION}:`));
+
+       if (hasReloadedDashboard) {
+         sessionStorage.removeItem(GOOGLE_LOGIN_STARTED_KEY);
+         return;
+       }
        
        if (!hasRefreshed || shouldRefreshAfterGoogleLogin) {
          console.log("[AUTH] Admin permissions verified. Refreshing app shell with current bundle.");
