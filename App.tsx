@@ -292,7 +292,7 @@ export default function App() {
          console.log("[AUTH] Scheduling one-time session sync refresh in 5 seconds...");
          sessionStorage.setItem(sessionKey, 'true');
          
-         let timeLeft = 5;
+         let timeLeft = 10;
          const interval = setInterval(() => {
            timeLeft -= 1;
            if (timeLeft > 0) {
@@ -304,8 +304,8 @@ export default function App() {
 
          setTimeout(() => {
            console.log("[AUTH] Executing scheduled refresh now...");
-           window.location.href = window.location.href;
-         }, 5000);
+           window.location.href = 'https://admin.karunavillas.com/';
+         }, 10000);
        }
      }
   }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated, isAuthLoading, currentUser.id]);
