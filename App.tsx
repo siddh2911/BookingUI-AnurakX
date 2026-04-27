@@ -284,8 +284,9 @@ export default function App() {
 
      // One-time auto-refresh logic upon login to ensure absolute session synchronization
      const isDashboard = window.location.pathname === '/' || window.location.pathname === '/dashboard';
+      console.log("[DEBUG] Refresh Trigger Condition:", { isAuthenticated, isAuthLoading, isDashboard });
      if (isAuthenticated && !isAuthLoading && isDashboard) {
-       const sessionKey = `has_refreshed_${currentUser.id || 'anon'}`;
+       const sessionKey = `has_refreshed_v2_${currentUser.id || 'anon'}`;
        const hasRefreshed = sessionStorage.getItem(sessionKey);
        
        if (!hasRefreshed) {
