@@ -80,14 +80,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
 
       { }
       <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-         {links.map((link) => {
-          return (
           <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.exact}
+            key="/marketing"
+            to="/marketing"
             className="block mb-1 focus:outline-none"
-            onClick={link.to === '/' ? onDashboardClick : undefined}
           >
             {({ isActive }) => (
               <div className={`
@@ -99,26 +95,58 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
                 ${collapsed ? 'justify-center mx-1' : 'mx-2'}
               `}>
                 <div className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'scale-110 text-blue-600' : ''}`}>
-                  {link.icon}
+                  <Sparkles size={20} />
                 </div>
                 {!collapsed && (
                   <span className={`font-semibold whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-blue-700' : ''}`}>
-                    {link.label}
+                    !!! Marketing Assistant !!!
                   </span>
-                )}
-
-                {/* Active Indicator Line */}
-                <div className={`absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'} ${collapsed ? 'hidden' : ''}`} />
-
-                {collapsed && (
-                  <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-2xl border border-slate-700 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap z-50 pointer-events-none">
-                    {link.label}
-                  </div>
                 )}
               </div>
             )}
           </NavLink>
-        )})}
+
+          {links.map((link) => {
+            if (link.to === '/marketing') return null; // Skip the one in the loop
+            return (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.exact}
+                className="block mb-1 focus:outline-none"
+                onClick={link.to === '/' ? onDashboardClick : undefined}
+              >
+                {({ isActive }) => (
+                  <div className={`
+                    flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative
+                    ${isActive
+                      ? 'bg-blue-600/10 text-blue-600 shadow-sm border border-blue-200'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
+                    }
+                    ${collapsed ? 'justify-center mx-1' : 'mx-2'}
+                  `}>
+                    <div className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'scale-110 text-blue-600' : ''}`}>
+                      {link.icon}
+                    </div>
+                    {!collapsed && (
+                      <span className={`font-semibold whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-blue-700' : ''}`}>
+                        {link.label}
+                      </span>
+                    )}
+
+                    {/* Active Indicator Line */}
+                    <div className={`absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'} ${collapsed ? 'hidden' : ''}`} />
+
+                    {collapsed && (
+                      <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-2xl border border-slate-700 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap z-50 pointer-events-none">
+                        {link.label}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </NavLink>
+            )
+          })}
       </nav>
 
       { }
