@@ -303,8 +303,8 @@ export default function App() {
          }, 1000);
 
          setTimeout(() => {
-           console.log("[AUTH] Executing scheduled refresh...");
-           window.location.reload();
+           console.log("[AUTH] Executing scheduled refresh now...");
+           window.location.href = window.location.href;
          }, 5000);
        }
      }
