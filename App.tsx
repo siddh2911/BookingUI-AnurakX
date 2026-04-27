@@ -4,6 +4,7 @@ import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';
+import { APP_VERSION, GOOGLE_LOGIN_STARTED_KEY } from './appVersion';
 
 axios.defaults.withCredentials = true;
 
@@ -172,6 +173,7 @@ export default function App() {
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isRoleVerified, setIsRoleVerified] = useState(false);
+  const [isPostLoginRefreshing, setIsPostLoginRefreshing] = useState(false);
   const checkSession = useCallback(async (): Promise<boolean> => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
@@ -367,26 +369,30 @@ export default function App() {
   const isAdmin = isRoleVerified && currentUser.role === 'Administrator';
 
   useEffect(() => {
-     console.log("[DEBUG] Auth State Updated:", { 
+     console.log("[AUTH] Auth State Updated:", {
        role: currentUser.role, 
        isRoleVerified, 
        isAdmin, 
        isAuthenticated 
      });
 
-     // One-time auto-refresh logic upon successful Admin verification
      if (isAdmin && isRoleVerified && isAuthenticated) {
-       const sessionKey = `has_refreshed_admin_sync_${currentUser.id || 'anon'}`;
+       const sessionKey = `has_refreshed_admin_sync_${APP_VERSION}_${currentUser.id || 'anon'}`;
+       const googleLoginStarted = sessionStorage.getItem(GOOGLE_LOGIN_STARTED_KEY);
        const hasRefreshed = sessionStorage.getItem(sessionKey);
+       const shouldRefreshAfterGoogleLogin = Boolean(googleLoginStarted?.startsWith(`${APP_VERSION}:`));
        
-       if (!hasRefreshed) {
-         console.log("[AUTH] Admin permissions verified! Triggering final sync refresh in 2 seconds...");
+       if (!hasRefreshed || shouldRefreshAfterGoogleLogin) {
+         console.log("[AUTH] Admin permissions verified. Refreshing app shell with current bundle.");
          sessionStorage.setItem(sessionKey, 'true');
+         sessionStorage.removeItem(GOOGLE_LOGIN_STARTED_KEY);
+         setIsPostLoginRefreshing(true);
          
          setTimeout(() => {
-           console.log("[AUTH] Final synchronization refresh...");
-           window.location.href = 'https://admin.karunavillas.com/';
-         }, 2000);
+           const refreshUrl = new URL(window.location.href);
+           refreshUrl.searchParams.set('appVersion', APP_VERSION);
+           window.location.replace(refreshUrl.toString());
+         }, 100);
        }
      }
   }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated, isAuthLoading, currentUser.id]);
@@ -1135,7 +1141,7 @@ export default function App() {
   };
 
   const isVerifying = isAuthenticated && !isRoleVerified && authRetryCount < 6;
-  const showLoading = isAuthLoading && !isAuthenticated;
+  const showLoading = (isAuthLoading && !isAuthenticated) || isPostLoginRefreshing;
   const renderAdminRoute = (element: React.ReactElement) => {
     if (isVerifying) return <PermissionSyncMessage />;
     return isAdmin ? element : <Navigate to="/unauthorized" replace />;

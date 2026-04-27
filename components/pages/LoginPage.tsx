@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight } from 'lucide-react';
+import { APP_VERSION, GOOGLE_LOGIN_STARTED_KEY } from '../../appVersion';
 
 interface LoginPageProps {
     onLogin: () => void;
@@ -58,6 +59,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
     const handleLogin = (provider: string) => {
         setIsLoading(true);
         if (provider === 'google') {
+            sessionStorage.setItem(GOOGLE_LOGIN_STARTED_KEY, `${APP_VERSION}:${Date.now()}`);
             window.location.href = 'https://api.karunavillas.com/oauth2/authorization/google';
         } else {
             setTimeout(() => {
