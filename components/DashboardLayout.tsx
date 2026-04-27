@@ -87,7 +87,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
     };
 
     return (
-        <div className="flex h-screen bg-slate-50 font-sans text-slate-900 relative overflow-hidden transition-colors duration-1000">
+        <div className={`flex h-screen font-sans relative overflow-hidden transition-colors duration-300 ${theme === 'night' ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
             {/* Environmental Background */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className={`absolute -top-[10%] -right-[10%] w-[80vw] h-[80vw] rounded-full blur-[120px] transition-all duration-3000 ease-in-out ${theme === 'day' ? 'bg-orange-100/30 opacity-100 shadow-[0_0_100px_rgba(251,146,60,0.1)]' : 'bg-violet-500/8 opacity-60 translate-y-20'}`} />
@@ -112,9 +112,9 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                 isVerifying={isVerifying}
             />
 
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10 bg-white/40 backdrop-blur-3xl transition-colors duration-1000">
+            <div className={`flex-1 flex flex-col h-screen overflow-hidden relative z-10 transition-colors duration-300 ${theme === 'night' ? 'bg-slate-950/20 backdrop-blur-3xl' : 'bg-white/40 backdrop-blur-3xl'}`}>
                 { }
-                <div className="md:hidden flex items-center justify-between p-4 bg-slate-900 text-white shadow-md z-20">
+                <div className={`md:hidden flex items-center justify-between p-4 shadow-md z-20 ${theme === 'night' ? 'bg-slate-950 text-white' : 'bg-slate-900 text-white'}`}>
                     <Link to="/" onClick={onDashboardClick} className="flex flex-col items-start">
                         <span className="font-bold text-lg text-white tracking-widest leading-none" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</span>
                         <span className="text-[9px] text-blue-200/80 uppercase tracking-widest font-sans mt-0.5 ml-0.5">Dashboard</span>
@@ -122,14 +122,14 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                     <div className="flex items-center gap-3">
                         <button
                             onClick={toggleTheme}
-                            className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-slate-300 hover:bg-slate-800 transition-colors"
+                            className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${theme === 'night' ? 'border-slate-800 text-slate-300 hover:bg-slate-900' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`}
                             title={theme === 'day' ? 'Switch to Night Mode' : 'Switch to Day Mode'}
                         >
                             {theme === 'day' ? <Moon size={16} /> : <Sun size={16} />}
                         </button>
                         <button
                             onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                            className="w-8 h-8 rounded-full border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors"
+                            className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold transition-colors ${theme === 'night' ? 'border-slate-800 text-slate-300 hover:bg-slate-900' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`}
                         >
                             {language === 'en' ? 'HI' : 'EN'}
                         </button>
@@ -140,39 +140,39 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                 </div>
 
                 { }
-                <header className="hidden md:flex items-center justify-between h-20 px-8 bg-white/40 backdrop-blur-2xl border-b border-white/20 z-10 transition-colors duration-1000">
-                    <div className="flex items-center gap-3 ml-12 text-slate-500 bg-white/50 backdrop-blur-md border border-slate-200 px-4 py-2.5 rounded-full w-96 shadow-sm focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:bg-white/70 focus-within:border-blue-400/50 transition-all duration-300">
-                        <Search size={18} className="text-slate-400" />
+                <header className={`hidden md:flex items-center justify-between h-20 px-8 backdrop-blur-2xl border-b z-10 transition-colors duration-300 ${theme === 'night' ? 'bg-slate-950/80 border-slate-800' : 'bg-white/40 border-white/20'}`}>
+                    <div className={`flex items-center gap-3 ml-12 backdrop-blur-md border px-4 py-2.5 rounded-full w-96 shadow-sm transition-all duration-300 ${theme === 'night' ? 'bg-slate-900 border-slate-800 text-slate-300 focus-within:border-blue-500/50' : 'bg-white/50 border-slate-200 text-slate-500 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:bg-white/70 focus-within:border-blue-400/50'}`}>
+                        <Search size={18} className={theme === 'night' ? 'text-slate-500' : 'text-slate-400'} />
                         <input
                             type="text"
                             placeholder={t('searchPlaceholder')}
-                            className="bg-transparent border-none outline-none text-sm w-full text-slate-900 placeholder:text-slate-400 font-medium"
+                            className={`bg-transparent border-none outline-none text-sm w-full font-medium ${theme === 'night' ? 'text-slate-200 placeholder:text-slate-600' : 'text-slate-900 placeholder:text-slate-400'}`}
                         />
                     </div>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={toggleListening}
-                            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isListening ? 'bg-red-50 border-red-200 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isListening ? 'bg-red-50 border-red-200 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse' : (theme === 'night' ? 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-100')}`}
                             title={isListening ? "Listening... Click to Stop" : "Voice Booking"}
                         >
                             <Mic size={18} />
                         </button>
                         <button
                             onClick={toggleTheme}
-                            className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${theme === 'night' ? 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}
                             title={theme === 'day' ? 'Switch to Night Mode' : 'Switch to Day Mode'}
                         >
                             {theme === 'day' ? <Moon size={18} /> : <Sun size={18} />}
                         </button>
                         <button
                             onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                            className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors"
+                            className={`w-10 h-10 rounded-full border flex items-center justify-center text-sm font-bold transition-colors ${theme === 'night' ? 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white' : 'border-slate-200 text-slate-700 hover:bg-slate-100'}`}
                         >
                             {language === 'en' ? 'HI' : 'EN'}
                         </button>
-                        <button className="p-2 relative text-slate-400 hover:text-blue-500 transition">
+                        <button className={`p-2 relative transition ${theme === 'night' ? 'text-slate-500 hover:text-blue-400' : 'text-slate-400 hover:text-blue-500'}`}>
                             <Bell size={20} />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                            <span className={`absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 ${theme === 'night' ? 'border-slate-950' : 'border-white'}`}></span>
                         </button>
                     </div>
                 </header>
@@ -180,7 +180,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                 {/* --- Live Subtitles Overlay --- */}
                 {isListening && (
                     <div className="absolute top-20 left-0 right-0 z-50 flex justify-center mt-4">
-                        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 max-w-2xl w-[90%] animate-in slide-in-from-top-4 fade-in duration-300">
+                        <div className={`backdrop-blur-xl border px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 max-w-2xl w-[90%] animate-in slide-in-from-top-4 fade-in duration-300 ${theme === 'night' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-900/90 border-slate-700/50 text-white'}`}>
                             <div className="flex shrink-0 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]" />
                             <div className="flex-1 min-w-0">
                                 <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">Live Transcription</p>
@@ -190,7 +190,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                             </div>
                             <button
                                 onClick={toggleListening}
-                                className="shrink-0 text-xs font-bold bg-white text-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-200 transition-colors"
+                                className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${theme === 'night' ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-white text-slate-900 hover:bg-slate-200'}`}
                             >
                                 Stop & Parse
                             </button>
@@ -200,7 +200,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
 
 
                 {rooms && rooms.filter(r => r.cleanStatus === 'DIRTY').length > 0 && (
-                    <div className="bg-red-500/10 backdrop-blur-md border border-red-500/20 text-red-600 px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 z-20 shadow-sm animate-pulse m-2 md:mx-8 md:mt-4 rounded-xl">
+                    <div className={`backdrop-blur-md border px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 z-20 shadow-sm animate-pulse m-2 md:mx-8 md:mt-4 rounded-xl ${theme === 'night' ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-red-500/10 border-red-500/20 text-red-600'}`}>
                         <AlertTriangle size={18} className="text-red-500" />
                         <span>Attention: Room {rooms.filter(r => r.cleanStatus === 'DIRTY').map(r => r.number).join(', ')} is Uncleared and requires housekeeping!</span>
                     </div>

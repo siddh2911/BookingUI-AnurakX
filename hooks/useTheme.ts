@@ -1,18 +1,25 @@
 import { useState, useEffect } from 'react';
 
-export function useTheme() {
-    const [theme, setTheme] = useState<'day' | 'night'>(() => {
-        const current = document.documentElement.getAttribute('data-theme');
-        return (current === 'night' ? 'night' : 'day');
-    });
+// Shared state for the theme
+let globalTheme: 'day' | 'night' = (document.documentElement.getAttribute('data-theme') as 'day' | 'night') || 'day';
+const listeners = new Set<(theme: 'day' | 'night') => void>();
 
-    // Sync state with DOM attribute
+export function useTheme() {
+    const [theme, setTheme] = useState<'day' | 'night'>(globalTheme);
+
     useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme);
-    }, [theme]);
+        const handleChange = (newTheme: 'day' | 'night') => setTheme(newTheme);
+        listeners.add(handleChange);
+        return () => {
+            listeners.delete(handleChange);
+        };
+    }, []);
 
     const toggleTheme = () => {
-        setTheme(prev => prev === 'day' ? 'night' : 'day');
+        const newTheme = theme === 'day' ? 'night' : 'day';
+        globalTheme = newTheme;
+        document.documentElement.setAttribute('data-theme', newTheme);
+        listeners.forEach(listener => listener(newTheme));
     };
 
     return { theme, toggleTheme };

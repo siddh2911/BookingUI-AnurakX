@@ -4,7 +4,21 @@
 
 @layer base {
     body {
-        @apply bg-slate-50 text-slate-900;
+        @apply bg-slate-50 text-slate-900 transition-colors duration-300;
+    }
+    
+    [data-theme='night'] body {
+        @apply bg-slate-950 text-white;
+    }
+    
+    * {
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    *:focus {
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
