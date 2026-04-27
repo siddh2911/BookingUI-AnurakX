@@ -17,7 +17,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
   const [collapsed, setCollapsed] = useState(false);
   const { t } = useLanguage();
 
-  const isAdmin = currentUser.role === 'Administrator';
+  const isAdmin = currentUser.role === 'Administrator' || 
+                  currentUser.role === 'OWNER' || 
+                  currentUser.role === 'HOST' || 
+                  currentUser.role === 'SUPERADMIN';
 
   const links = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
@@ -26,8 +29,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/dining', icon: <Utensils size={20} />, label: t('dining') },
     { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
-    { to: '/marketing', icon: <Sparkles size={20} />, label: 'Marketing' },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
+    { to: '/marketing', icon: <Sparkles size={20} />, label: 'Marketing Assistant' },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
   ];
 
