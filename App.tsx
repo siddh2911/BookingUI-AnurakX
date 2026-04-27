@@ -46,6 +46,104 @@ import PaymentModal from './components/modals/PaymentModal';
 import SecurityModal from './components/modals/SecurityModal';
 import DeleteConfirmationModal from './components/modals/DeleteConfirmationModal';
 
+const ADMIN_AUTH_TOKENS = new Set([
+  'ADMIN',
+  'ROLE_ADMIN',
+  'ADMINISTRATOR',
+  'ROLE_ADMINISTRATOR',
+  'MANAGER',
+  'ROLE_MANAGER',
+  'OWNER',
+  'ROLE_OWNER',
+  'HOST',
+  'ROLE_HOST',
+  'SUPERADMIN',
+  'SUPER_ADMIN',
+  'ROLE_SUPERADMIN',
+  'ROLE_SUPER_ADMIN',
+  'SCOPE_ADMIN',
+]);
+
+const AUTH_CLAIM_KEYS = new Set([
+  'role',
+  'roles',
+  'authority',
+  'authorities',
+  'permission',
+  'permissions',
+  'group',
+  'groups',
+  'scope',
+  'scp',
+]);
+
+const AUTH_VALUE_KEYS = new Set(['name', 'value', 'code', 'key', 'authority', 'role']);
+
+const addAuthTokens = (value: string, tokens: Set<string>) => {
+  value
+    .split(/[\s,]+/)
+    .map(token => token.trim().replace(/^[\["']+|[\]"']+$/g, '').replace(/-/g, '_').toUpperCase())
+    .filter(Boolean)
+    .forEach(token => tokens.add(token));
+};
+
+const collectAuthTokens = (value: unknown, tokens = new Set<string>(), insideAuthClaim = false): Set<string> => {
+  if (value == null) return tokens;
+
+  if (typeof value === 'string') {
+    if (insideAuthClaim) addAuthTokens(value, tokens);
+    return tokens;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(item => collectAuthTokens(item, tokens, insideAuthClaim));
+    return tokens;
+  }
+
+  if (typeof value !== 'object') return tokens;
+
+  Object.entries(value as Record<string, unknown>).forEach(([key, child]) => {
+    const normalizedKey = key.toLowerCase();
+    const isAuthClaim = AUTH_CLAIM_KEYS.has(normalizedKey);
+    const isAuthValue = insideAuthClaim && AUTH_VALUE_KEYS.has(normalizedKey);
+
+    if (isAuthClaim || isAuthValue) {
+      collectAuthTokens(child, tokens, true);
+      return;
+    }
+
+    if (typeof child === 'object' && child !== null) {
+      collectAuthTokens(child, tokens, insideAuthClaim);
+    }
+  });
+
+  return tokens;
+};
+
+const hasAdminToken = (tokens: Set<string>) => {
+  for (const token of tokens) {
+    if (ADMIN_AUTH_TOKENS.has(token)) return true;
+  }
+  return false;
+};
+
+const getRoleFromAuthPayload = (authPayload: unknown): User['role'] => {
+  const authTokens = collectAuthTokens(authPayload);
+  return hasAdminToken(authTokens) ? 'Administrator' : 'View';
+};
+
+const PermissionSyncMessage = () => (
+  <div className="min-h-[320px] flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4 text-center">
+      <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin shadow-lg" />
+      <div>
+        <h2 className="text-lg font-bold text-slate-900 tracking-tight">Synchronizing permissions</h2>
+        <p className="text-sm text-slate-500 mt-1">Admin tools will unlock as soon as your role is verified.</p>
+      </div>
+    </div>
+  </div>
+);
+
 export default function App() {
 
   const formatLocalDate = (date: Date) => {
@@ -74,7 +172,7 @@ export default function App() {
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isRoleVerified, setIsRoleVerified] = useState(false);
-  const checkSession = useCallback(async () => {
+  const checkSession = useCallback(async (): Promise<boolean> => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
           timeout: 10000 // Increased timeout for slower resolutions
@@ -106,26 +204,10 @@ export default function App() {
                 
                 // Update current user from backend data
                 if (data) {
-                  // SECURE BY DEFAULT: Only upgrade to Administrator if we see an explicit Admin/Manager role
-                  let parsedRole = 'View';
-                  const roleRaw = (data.role || '').toUpperCase();
-                  const authorities = (data.authorities || []).map((a: any) => 
-                    typeof a === 'string' ? a.toUpperCase() : (a.authority || '').toUpperCase()
-                  );
-
-                  // Only grant admin if we find an EXACT match for Admin roles
-                  const hasAdminPower = 
-                    roleRaw === 'ROLE_ADMIN' || 
-                    roleRaw === 'ADMIN' || 
-                    roleRaw === 'ADMINISTRATOR' ||
-                    roleRaw === 'MANAGER' ||
-                    authorities.some(a => a === 'ROLE_ADMIN' || a === 'ADMIN' || a === 'ADMINISTRATOR' || a === 'MANAGER');
-
-                  if (hasAdminPower) {
-                    parsedRole = 'Administrator';
-                  }
+                  const authTokens = collectAuthTokens(data);
+                  const parsedRole = getRoleFromAuthPayload(data);
                   
-                  console.log("[AUTH] Role Decided:", parsedRole, "| Raw Role:", roleRaw, "| Authorities:", authorities);
+                  console.log("[AUTH] Role Decided:", parsedRole, "| Auth Tokens:", Array.from(authTokens));
 
                   setCurrentUser({
                     id: data.id || data.sub || 'user',
@@ -135,21 +217,30 @@ export default function App() {
                     avatar: ''
                   });
                   setIsRoleVerified(true);
+                  return true;
                 }
               } else {
                // Initial auth failure should just drop to the login page, not force unauthorized UI
                setIsAuthenticated(false);
+               setIsRoleVerified(false);
                setIsUnauthorized(false);
                setLoginError(null);
+               return false;
              }
           } catch (capErr) {
              setIsAuthenticated(false);
+             setIsRoleVerified(false);
+             return false;
           }
         } else {
           setIsAuthenticated(false);
+          setIsRoleVerified(false);
+          return false;
         }
       } catch (error: any) {
         setIsAuthenticated(false);
+        setIsRoleVerified(false);
+        return false;
       } finally {
         setIsAuthLoading(false);
       }
@@ -158,9 +249,10 @@ export default function App() {
   const handleLogin = useCallback(async () => {
     setIsAuthLoading(true);
     try {
-      await checkSession();
-      setIsAuthenticated(true);
-      setIsUnauthorized(false);
+      const sessionVerified = await checkSession();
+      if (sessionVerified) {
+        setIsUnauthorized(false);
+      }
     } catch (err) {
       console.warn("[AUTH] Backend sync failed, defaulting to View role.", err);
       setCurrentUser({ id: 'u_mock', name: 'Mock User', role: 'View' });
@@ -1042,9 +1134,12 @@ export default function App() {
     onEditBooking: handleEditBooking
   };
 
-  // Hard wait for authentication AND role verification before showing the dashboard
-  const isVerifying = isAuthenticated && !isRoleVerified;
-  const showLoading = isAuthLoading || (isAuthenticated && isVerifying);
+  const isVerifying = isAuthenticated && !isRoleVerified && authRetryCount < 6;
+  const showLoading = isAuthLoading && !isAuthenticated;
+  const renderAdminRoute = (element: React.ReactElement) => {
+    if (isVerifying) return <PermissionSyncMessage />;
+    return isAdmin ? element : <Navigate to="/unauthorized" replace />;
+  };
 
   if (showLoading && window.location.pathname !== '/login') {
     return (
@@ -1069,15 +1164,15 @@ export default function App() {
         <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} isVerifying={isAuthenticated && !isRoleVerified} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} isAdmin={isAdmin} isVerifying={isVerifying} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
-            <Route path="bookings" element={isAdmin ? <BookingsPage bookingProps={bookingProps} /> : <Navigate to="/unauthorized" replace />} />
+            <Route path="bookings" element={renderAdminRoute(<BookingsPage bookingProps={bookingProps} />)} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
             <Route path="rooms" element={<RoomsPage rooms={rooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
-            <Route path="marketing" element={isAdmin ? <MarketingPage /> : <Navigate to="/unauthorized" replace />} />
-            <Route path="finance" element={isAdmin ? <FinancePage /> : <Navigate to="/unauthorized" replace />} />
+            <Route path="marketing" element={renderAdminRoute(<MarketingPage />)} />
+            <Route path="finance" element={renderAdminRoute(<FinancePage />)} />
             <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
               setBookings(prev => {
                 // 1. Filter out duplicates by ID
