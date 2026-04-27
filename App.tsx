@@ -34,6 +34,8 @@ import GuestsPage from './components/pages/GuestsPage';
 import FinancePage from './components/pages/FinancePage';
 import FoodPage from './components/pages/FoodPage';
 import ChannelManagerPage from './components/pages/ChannelManagerPage';
+import MarketingPage from './components/pages/MarketingPage';
+import NotificationSettings from './components/settings/NotificationSettings';
 import LoginPage from './components/pages/LoginPage';
 import UnauthorizedPage from './components/pages/UnauthorizedPage';
 
@@ -1054,6 +1056,7 @@ export default function App() {
             <Route path="rooms" element={<RoomsPage rooms={rooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
+            <Route path="marketing" element={isAdmin ? <MarketingPage /> : <Navigate to="/unauthorized" replace />} />
             <Route path="finance" element={isAdmin ? <FinancePage /> : <Navigate to="/unauthorized" replace />} />
             <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
               setBookings(prev => {

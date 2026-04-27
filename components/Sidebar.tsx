@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils, Globe } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils, Globe, Sparkles } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
 import { User } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -26,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/dining', icon: <Utensils size={20} />, label: t('dining') },
     { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
+    { to: '/marketing', icon: <Sparkles size={20} />, label: 'Marketing' },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
   ];
@@ -71,7 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
       { }
       <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
          {links.map((link) => {
-          const isRestrictedTarget = link.to === '/bookings' || link.to === '/finance';
+          const isRestrictedTarget = link.to === '/bookings' || link.to === '/finance' || link.to === '/marketing';
           
           if (isVerifying && isRestrictedTarget) {
             return (
