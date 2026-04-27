@@ -30,13 +30,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
 
   const links = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: t('dashboard'), exact: true },
+    { to: '/marketing', icon: <LayoutDashboard size={20} />, label: 'Marketing Assistant' },
     { to: '/calendar', icon: <Calendar size={20} />, label: t('calendar') },
     { to: '/bookings', icon: <CalendarDays size={20} />, label: t('bookings') },
     { to: '/dining', icon: <Utensils size={20} />, label: t('dining') },
     { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance') },
-    { to: '/marketing', icon: <Sparkles size={20} />, label: 'Marketing Assistant' },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
   ];
 
