@@ -28,54 +28,59 @@ export default function DashboardPage({ dashboardProps }: { dashboardProps: any 
     return (
         <div className="flex flex-col gap-6">
             {dashboardProps.isAdmin && marketingStatus !== 'none' && (
-                <div className={`p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 transition-all duration-500 shadow-sm relative overflow-hidden group ${
+                <div className={`p-6 rounded-[2rem] border-2 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-700 shadow-2xl relative overflow-hidden group ${
                     marketingStatus === 'scheduled' || marketingStatus === 'published' 
-                        ? (night ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50/80 border-emerald-100/50') :
+                        ? (night ? 'bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5' : 'bg-emerald-50/80 border-emerald-100 shadow-sm') :
                     marketingStatus === 'rejected' 
-                        ? (night ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50/80 border-red-100/50') :
-                    (night ? 'bg-slate-900 border-slate-800' : 'bg-gradient-to-r from-purple-50/80 to-indigo-50/80 border-purple-100/50')
+                        ? (night ? 'bg-red-500/10 border-red-500/20 shadow-red-500/5' : 'bg-red-50/80 border-red-100 shadow-sm') :
+                    (night ? 'bg-slate-950/40 border-blue-500/20 backdrop-blur-xl shadow-blue-500/5' : 'bg-white border-blue-100 shadow-[0_10px_40px_-10px_rgba(59,130,246,0.1)]')
                 }`}>
-                    <div className="flex items-center gap-4 w-full sm:w-auto mb-3 sm:mb-0">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full shadow-inner ${
-                            marketingStatus === 'scheduled' || marketingStatus === 'published' ? (night ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600') :
-                            marketingStatus === 'rejected' ? (night ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600') :
-                            (night ? 'bg-blue-500/20 text-blue-400' : 'bg-white text-purple-600 animate-pulse shadow-purple-500/10')
+                    {/* Background Decorative Blur */}
+                    <div className={`absolute top-0 right-0 w-64 h-64 blur-3xl opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 ${night ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
+                    
+                    <div className="flex items-center gap-6 w-full md:w-auto relative z-10">
+                        <div className={`flex items-center justify-center w-14 h-14 rounded-2xl shadow-lg transition-transform duration-500 group-hover:scale-110 ${
+                            marketingStatus === 'scheduled' || marketingStatus === 'published' ? (night ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-600 text-white') :
+                            marketingStatus === 'rejected' ? (night ? 'bg-red-500/20 text-red-400' : 'bg-red-600 text-white') :
+                            (night ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-blue-600 text-white shadow-blue-500/20 animate-pulse')
                         }`}>
-                            {marketingStatus === 'scheduled' || marketingStatus === 'published' ? <CheckCircle size={20} /> :
-                             marketingStatus === 'rejected' ? <XCircle size={20} /> :
-                             <Sparkles size={20} />}
+                            {marketingStatus === 'scheduled' || marketingStatus === 'published' ? <CheckCircle size={28} /> :
+                             marketingStatus === 'rejected' ? <XCircle size={28} /> :
+                             <Sparkles size={28} />}
                         </div>
                         <div className="flex flex-col">
-                            <span className={`text-sm font-bold flex items-center gap-2 ${night ? 'text-white' : 'text-slate-800'}`}>
-                                AI Marketing Assistant
-                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                                    marketingStatus === 'scheduled' || marketingStatus === 'published' ? (night ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-200/50 text-emerald-700') :
-                                    marketingStatus === 'rejected' ? (night ? 'bg-red-500/20 text-red-400' : 'bg-red-200/50 text-red-700') :
-                                    (night ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-200/50 text-purple-700')
+                            <div className="flex items-center gap-3 mb-1">
+                                <h3 className={`text-xl font-black tracking-tight ${night ? 'text-white' : 'text-slate-900'}`}>
+                                    AI Marketing Assistant
+                                </h3>
+                                <span className={`text-[10px] px-2.5 py-1 rounded-lg font-black uppercase tracking-wider shadow-sm ${
+                                    marketingStatus === 'scheduled' || marketingStatus === 'published' ? (night ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700') :
+                                    marketingStatus === 'rejected' ? (night ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700') :
+                                    (night ? 'bg-blue-500 text-white' : 'bg-blue-600 text-white')
                                 }`}>
                                     {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'Scheduled' :
                                      marketingStatus === 'rejected' ? 'Needs Attention' :
                                      'Action Required'}
                                 </span>
-                            </span>
-                            <span className={`text-xs mt-0.5 font-medium ${night ? 'text-slate-400' : 'text-slate-500'}`}>
+                            </div>
+                            <p className={`text-sm font-medium leading-relaxed ${night ? 'text-slate-400' : 'text-slate-500'}`}>
                                 {marketingStatus === 'scheduled' || marketingStatus === 'published' ? "Today's Instagram post is ready to go." :
                                  marketingStatus === 'rejected' ? "You discarded the draft. Generate a new one?" :
                                  "Your daily Instagram post has been drafted and is awaiting your approval."}
-                            </span>
+                            </p>
                         </div>
                     </div>
                     <Link 
                         to="/marketing" 
-                        className={`w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${
+                        className={`relative z-10 w-full md:w-auto px-8 py-3.5 rounded-2xl text-sm font-black transition-all flex items-center justify-center gap-3 active:scale-95 ${
                             marketingStatus === 'scheduled' || marketingStatus === 'published' 
-                                ? (night ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30 hover:bg-slate-700' : 'bg-white text-emerald-700 hover:bg-emerald-50 hover:shadow border border-emerald-100') :
+                                ? (night ? 'bg-slate-900 text-emerald-400 border border-emerald-500/30 hover:bg-slate-800' : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-100 shadow-sm') :
                             marketingStatus === 'rejected'
-                                ? (night ? 'bg-slate-800 text-red-400 border border-red-500/30 hover:bg-slate-700' : 'bg-white text-red-700 hover:bg-red-50 hover:shadow border border-red-100') :
-                            (night ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20' : 'bg-slate-900 text-white hover:bg-slate-800 hover:shadow-md')
+                                ? (night ? 'bg-slate-900 text-red-400 border border-red-500/30 hover:bg-slate-800' : 'bg-white text-red-700 hover:bg-red-50 border border-red-100 shadow-sm') :
+                            (night ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-900/20' : 'bg-slate-950 text-white hover:bg-slate-800 shadow-xl')
                         }`}
                     >
-                        {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'View Schedule' : 'Review Post'} <ArrowRight size={14} />
+                        {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'View Schedule' : 'Review Post'} <ArrowRight size={18} />
                     </Link>
                 </div>
             )}
