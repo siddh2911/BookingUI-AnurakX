@@ -20,6 +20,8 @@ export enum BookingSource {
   EXPEDIA = 'Expedia',
   INSTAGRAM = 'Instagram',
   MAKE_MY_TRIP = 'MakeMyTrip',
+  AGODA = 'Agoda',
+  GOIBIBO = 'Goibibo'
 }
 
 export enum BookingStatus {

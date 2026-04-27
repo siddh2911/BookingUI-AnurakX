@@ -61,6 +61,27 @@ export const PlatformIcon: React.FC<PlatformIconProps> = ({ source, className = 
         return <Globe className={`${className} text-blue-600`} />;
     }
 
+    if (normalizedSource.includes('agoda')) {
+        return (
+            <svg className={className} viewBox="0 0 24 24" fill="currentColor" style={{ color: '#000000' }}>
+                <circle cx="12" cy="12" r="10" fill="#E6EEF5"/>
+                <circle cx="12" cy="12" r="8" fill="#F03D45"/>
+                <circle cx="8.5" cy="10" r="1.5" fill="#FFF"/>
+                <circle cx="15.5" cy="10" r="1.5" fill="#FFF"/>
+                <path d="M8 15 Q12 18 16 15" stroke="#FFF" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            </svg>
+        );
+    }
+
+    if (normalizedSource.includes('goibibo')) {
+        return (
+            <svg className={className} viewBox="0 0 24 24" fill="currentColor" style={{ color: '#ED6B22' }}>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                <text x="12" y="15.5" fontSize="10" textAnchor="middle" fill="#ED6B22" fontWeight="bold">go</text>
+            </svg>
+        );
+    }
+
 
     return <Phone className={`${className} text-slate-400`} />;
 };
