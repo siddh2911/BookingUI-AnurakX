@@ -24,6 +24,12 @@ export default function RoomsPage({
             { code: 'AP', name: 'Full Board' }
         ];
     });
+    const [bookingSources, setBookingSources] = useState<string[]>(() => {
+        const saved = localStorage.getItem('karuna_booking_sources');
+        if (saved) return JSON.parse(saved);
+        // Default to the enum values
+        return ['Direct Website', 'Walk-in', 'Booking.com', 'Airbnb', 'Expedia', 'Instagram', 'MakeMyTrip', 'Agoda', 'Goibibo'];
+    });
 
     React.useEffect(() => {
         localStorage.setItem('karuna_packages', JSON.stringify(packages));
@@ -32,6 +38,10 @@ export default function RoomsPage({
     React.useEffect(() => {
         localStorage.setItem('karuna_meal_plans', JSON.stringify(mealPlans));
     }, [mealPlans]);
+
+    React.useEffect(() => {
+        localStorage.setItem('karuna_booking_sources', JSON.stringify(bookingSources));
+    }, [bookingSources]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -234,6 +244,57 @@ export default function RoomsPage({
                                             Add
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Booking Sources Section */}
+                            <div className="md:col-span-2 mt-4 pt-8 border-t border-slate-100">
+                                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
+                                    Booking Sources (OTAs)
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                    {bookingSources.map((src, idx) => (
+                                        <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-100 p-3 rounded-lg">
+                                            <span className="font-medium text-slate-700">{src}</span>
+                                            <button 
+                                                onClick={() => setBookingSources(bookingSources.filter((_, i) => i !== idx))}
+                                                className="text-slate-400 hover:text-red-500 transition-colors ml-2 flex-shrink-0"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2 mt-4 max-w-md">
+                                    <input 
+                                        type="text" 
+                                        id="new-source"
+                                        placeholder="Add new source (e.g. Cleartrip)..." 
+                                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                const val = (e.target as HTMLInputElement).value.trim();
+                                                if (val && !bookingSources.includes(val)) {
+                                                    setBookingSources([...bookingSources, val]);
+                                                    (e.target as HTMLInputElement).value = '';
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            const el = document.getElementById('new-source') as HTMLInputElement;
+                                            const val = el.value.trim();
+                                            if (val && !bookingSources.includes(val)) {
+                                                setBookingSources([...bookingSources, val]);
+                                                el.value = '';
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 flex-shrink-0"
+                                    >
+                                        Add Source
+                                    </button>
                                 </div>
                             </div>
                         </div>

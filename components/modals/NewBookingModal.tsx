@@ -54,6 +54,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
    const [dynamicPackages, setDynamicPackages] = useState<string[]>([]);
    const [dynamicMealPlans, setDynamicMealPlans] = useState<{code: string, name: string}[]>([]);
+   const [dynamicBookingSources, setDynamicBookingSources] = useState<string[]>([]);
 
    useEffect(() => {
       const savedPackages = localStorage.getItem('karuna_packages');
@@ -68,6 +69,10 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
          { code: 'MAP', name: 'Half Board' },
          { code: 'AP', name: 'Full Board' }
       ]);
+
+      const savedSources = localStorage.getItem('karuna_booking_sources');
+      if (savedSources) setDynamicBookingSources(JSON.parse(savedSources));
+      else setDynamicBookingSources(['Direct Website', 'Walk-in', 'Booking.com', 'Airbnb', 'Expedia', 'Instagram', 'MakeMyTrip', 'Agoda', 'Goibibo']);
    }, []);
 
    const localNights = newBookingData.checkIn && newBookingData.checkOut
@@ -267,7 +272,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    }
 
 
-   const sourceOptions: SelectOption[] = Object.values(BookingSource).map(s => ({
+   const sourceOptions: SelectOption[] = dynamicBookingSources.map(s => ({
       value: s,
       label: s,
       icon: <PlatformIcon source={s} className="w-4 h-4" />

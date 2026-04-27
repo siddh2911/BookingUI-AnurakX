@@ -51,12 +51,12 @@ export interface Payment {
   date: string;
   method: PaymentMethod;
   type: PaymentType;
-  bookingSource?: BookingSource;
+  bookingSource?: BookingSource | string;
   notes?: string;
 }
 
 export interface BookingSourceDetail {
-  source: BookingSource;
+  source: BookingSource | string;
   startDate?: string;
   endDate?: string;
   amount: number;
