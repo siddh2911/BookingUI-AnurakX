@@ -178,7 +178,7 @@ export default function MarketingPage() {
                                         <textarea 
                                             value={currentPost.imagePrompt}
                                             onChange={(e) => setCurrentPost({ ...currentPost, imagePrompt: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none h-24"
+                                            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all resize-none h-24 disabled:opacity-70 disabled:dark:text-slate-400 disabled:cursor-not-allowed"
                                             disabled={postStatus !== 'pending' && postStatus !== 'rejected'}
                                         />
                                     </div>
