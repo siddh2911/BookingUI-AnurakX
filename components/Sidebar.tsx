@@ -85,25 +85,28 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
             to="/marketing"
             className="block mb-1 focus:outline-none"
           >
-            {({ isActive }) => (
-              <div className={`
-                flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative
-                ${isActive
-                  ? 'bg-blue-600/10 text-blue-600 shadow-sm border border-blue-200'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
-                }
-                ${collapsed ? 'justify-center mx-1' : 'mx-2'}
-              `}>
-                <div className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'scale-110 text-blue-600' : ''}`}>
-                  <Sparkles size={20} />
+            {({ isActive }) => {
+              console.log("[DEBUG] Rendering Marketing Link...");
+              return (
+                <div className={`
+                  flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 group relative border-2 border-red-500
+                  ${isActive
+                    ? 'bg-blue-600/10 text-blue-600 shadow-sm border border-blue-200'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border border-transparent'
+                  }
+                  ${collapsed ? 'justify-center mx-1' : 'mx-2'}
+                `}>
+                  <div className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'scale-110 text-blue-600' : ''}`}>
+                    <LayoutDashboard size={20} />
+                  </div>
+                  {!collapsed && (
+                    <span className={`font-semibold whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-blue-700' : ''}`}>
+                      !!! MARKETING !!!
+                    </span>
+                  )}
                 </div>
-                {!collapsed && (
-                  <span className={`font-semibold whitespace-nowrap tracking-tight transition-colors duration-300 ${isActive ? 'text-blue-700' : ''}`}>
-                    !!! Marketing Assistant !!!
-                  </span>
-                )}
-              </div>
-            )}
+              );
+            }}
           </NavLink>
 
           {links.map((link) => {
