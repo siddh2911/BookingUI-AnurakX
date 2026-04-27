@@ -1053,15 +1053,19 @@ export default function App() {
     onEditBooking: handleEditBooking
   };
 
-  if (isAuthLoading && window.location.pathname !== '/' && window.location.pathname !== '/login') {
+  // Hard wait for authentication AND role verification before showing the dashboard
+  const isVerifying = isAuthenticated && !isRoleVerified;
+  const showLoading = isAuthLoading || (isAuthenticated && isVerifying);
+
+  if (showLoading && window.location.pathname !== '/login') {
     return (
       <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[10000]">
-        <div className="w-16 h-16 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin mb-6"></div>
+        <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-6 shadow-xl"></div>
         <div className="flex flex-col items-center gap-2 text-center px-6">
-           <h2 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: '"Playfair Display", serif' }}>Karuna Villa Admin</h2>
-           <div className="flex items-center gap-2 text-slate-400 text-sm">
-             <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
-             <p className="font-medium">Verifying secure session...</p>
+           <h2 className="text-2xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: '"Playfair Display", serif' }}>KARUNA VILLA</h2>
+           <div className="flex items-center gap-2 text-blue-500 text-sm">
+             <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"></div>
+             <p className="font-semibold tracking-wide uppercase text-[10px]">Synchronizing Permissions...</p>
            </div>
         </div>
         <div className="absolute bottom-10 text-[10px] text-slate-300 uppercase tracking-widest font-semibold">Anurak Labs Security</div>
