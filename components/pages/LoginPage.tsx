@@ -10,6 +10,33 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCode }) => {
     const [isLoading, setIsLoading] = useState(false);
 
+    const clearPostLoginRefreshFlags = () => {
+        Object.keys(sessionStorage).forEach(key => {
+            if (key.startsWith('has_refreshed_admin_sync_') || key.startsWith('has_refreshed_v2_')) {
+                sessionStorage.removeItem(key);
+            }
+        });
+    };
+
+    const primeFreshAppShell = async () => {
+        try {
+            const response = await fetch('/', {
+                cache: 'reload',
+                credentials: 'include'
+            });
+            const html = await response.text();
+            const scriptMatch = html.match(/<script[^>]+type="module"[^>]+src="([^"]+)"/);
+            if (scriptMatch?.[1]) {
+                await fetch(new URL(scriptMatch[1], window.location.origin).toString(), {
+                    cache: 'reload',
+                    credentials: 'include'
+                });
+            }
+        } catch (error) {
+            console.warn('[AUTH] Unable to prefetch fresh app shell before Google login.', error);
+        }
+    };
+
     useEffect(() => {
         // Reset loading state on mount and when returning via back button
         const handlePageShow = (event: PageTransitionEvent) => {
@@ -56,10 +83,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
 
     const error = getErrorMessage();
 
-    const handleLogin = (provider: string) => {
+    const handleLogin = async (provider: string) => {
         setIsLoading(true);
         if (provider === 'google') {
+            clearPostLoginRefreshFlags();
             sessionStorage.setItem(GOOGLE_LOGIN_STARTED_KEY, `${APP_VERSION}:${Date.now()}`);
+            await primeFreshAppShell();
             window.location.href = 'https://api.karunavillas.com/oauth2/authorization/google';
         } else {
             setTimeout(() => {
