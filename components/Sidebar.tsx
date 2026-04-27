@@ -81,62 +81,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
       { }
       <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
          {links.map((link) => {
-          const isRestrictedTarget = link.to === '/bookings' || link.to === '/finance' || link.to === '/marketing';
-          
-          if (isVerifying && isRestrictedTarget) {
-            return (
-              <div
-                key={link.to}
-                className="block mb-1 focus:outline-none opacity-80 group relative animate-pulse"
-                title={`${link.label} (Verifying permissions...)`}
-              >
-                <div className={`
-                  flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300
-                  text-slate-400 bg-slate-50/50 border border-slate-100
-                  ${collapsed ? 'justify-center mx-1' : 'mx-2'}
-                `}>
-                  <div className="relative z-10 w-5 h-5 border-2 border-slate-200 border-t-blue-400 rounded-full animate-spin" />
-                  {!collapsed && (
-                    <span className="font-semibold whitespace-nowrap tracking-tight italic">
-                      Verifying...
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          const isRestricted = !isAdmin && isRestrictedTarget;
-
-          if (isRestricted) {
-            return (
-              <div
-                key={link.to}
-                className="block mb-1 focus:outline-none opacity-50 cursor-not-allowed group relative"
-                title={`${link.label} (Access Restricted)`}
-              >
-                <div className={`
-                  flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300
-                  text-slate-400 bg-slate-100/50 border border-transparent
-                  ${collapsed ? 'justify-center mx-1' : 'mx-2'}
-                `}>
-                  <div className="relative z-10">{link.icon}</div>
-                  {!collapsed && (
-                    <span className="font-semibold whitespace-nowrap tracking-tight">
-                      {link.label}
-                    </span>
-                  )}
-                  {!collapsed && <div className="ml-auto text-xs text-slate-500 font-bold">🔒</div>}
-                  {collapsed && (
-                    <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-2xl border border-slate-700 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap z-50 pointer-events-none">
-                      {link.label} (Restricted)
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
           return (
           <NavLink
             key={link.to}

@@ -8,6 +8,8 @@ export const translations = {
         guests: "Guests",
         dining: "Dining",
         finance: "Finance",
+        marketing: "Marketing",
+        channels: "Channels",
         logout: "Sign Out",
         adminDashboard: "Admin Dashboard",
 
