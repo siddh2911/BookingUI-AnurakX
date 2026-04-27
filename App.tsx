@@ -283,7 +283,8 @@ export default function App() {
      });
 
      // One-time auto-refresh logic upon login to ensure absolute session synchronization
-     if (isAuthenticated && !isAuthLoading && window.location.pathname === '/') {
+     const isDashboard = window.location.pathname === '/' || window.location.pathname === '/dashboard';
+     if (isAuthenticated && !isAuthLoading && isDashboard) {
        const sessionKey = `has_refreshed_${currentUser.id || 'anon'}`;
        const hasRefreshed = sessionStorage.getItem(sessionKey);
        
