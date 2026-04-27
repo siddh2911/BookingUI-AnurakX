@@ -289,12 +289,12 @@ export default function App() {
        const hasRefreshed = sessionStorage.getItem(sessionKey);
        
        if (!hasRefreshed) {
-         console.log("[AUTH] Scheduling one-time session sync refresh in 30 seconds...");
+         console.log("[AUTH] Scheduling one-time session sync refresh in 10 seconds...");
          sessionStorage.setItem(sessionKey, 'true');
          setTimeout(() => {
            console.log("[AUTH] Executing scheduled refresh...");
            window.location.reload();
-         }, 30000);
+         }, 10000);
        }
      }
   }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated, isAuthLoading, currentUser.id]);
