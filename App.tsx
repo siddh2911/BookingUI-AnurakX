@@ -281,7 +281,19 @@ export default function App() {
        isAdmin, 
        isAuthenticated 
      });
-  }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated]);
+
+     // One-time auto-refresh logic upon login to ensure absolute session synchronization
+     if (isAuthenticated && !isAuthLoading && window.location.pathname === '/') {
+       const sessionKey = `has_refreshed_${currentUser.id || 'anon'}`;
+       const hasRefreshed = sessionStorage.getItem(sessionKey);
+       
+       if (!hasRefreshed) {
+         console.log("[AUTH] Triggering one-time session sync refresh...");
+         sessionStorage.setItem(sessionKey, 'true');
+         window.location.reload();
+       }
+     }
+  }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated, isAuthLoading, currentUser.id]);
 
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
 
