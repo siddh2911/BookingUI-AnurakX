@@ -20,7 +20,12 @@ interface VoiceAssistantDrawerProps {
   liveTranscript: string;
 }
 
-const QUICK_QUERIES = ["Today's Check-ins", "Rooms under maintenance", "Total revenue today"];
+const QUICK_QUERIES = [
+  "Book Room 101 for John Doe from May 10th",
+  "Is Room 102 free for tomorrow?",
+  "Who is arriving today?",
+  "Show me total revenue for this month"
+];
 
 // Animated waveform bars
 function Waveform({ active }: { active: boolean }) {
@@ -261,7 +266,7 @@ export default function VoiceAssistantDrawer({
             {isListening && (
               <div className="absolute inset-0 rounded-2xl bg-red-400/20 animate-ping" />
             )}
-            <Mic size={24} className="text-white relative z-10" />
+            {isListening ? <Mic size={24} className="text-white relative z-10" /> : <Sparkles size={24} className="text-white relative z-10" />}
           </button>
         </div>
 
