@@ -38,6 +38,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
     const { theme, toggleTheme } = useTheme();
 
     const resetSilenceTimer = () => {
+        console.log("[DEBUG] resetSilenceTimer called");
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
             if (recognitionRef.current) {
