@@ -830,6 +830,9 @@ export default function App() {
       const utterance = new SpeechSynthesisUtterance(responseText);
       // Ensure the voice speaks clearly
       window.speechSynthesis.cancel(); 
+      utterance.onend = () => {
+         window.dispatchEvent(new Event('resume-voice-assistant'));
+      };
       window.speechSynthesis.speak(utterance);
       return; 
     }

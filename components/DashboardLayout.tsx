@@ -41,7 +41,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         recognitionRef.current = recognition;
         
         recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
-        recognition.continuous = true;
+        recognition.continuous = false; // Auto-stop when user stops speaking
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
 
@@ -86,6 +86,18 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
 
         recognition.start();
     };
+
+    // Listen for custom event to resume listening
+    useEffect(() => {
+        const handleResume = () => {
+            if (!isListening) {
+                toggleListening();
+            }
+        };
+        window.addEventListener('resume-voice-assistant', handleResume);
+        return () => window.removeEventListener('resume-voice-assistant', handleResume);
+    }, [isListening, language, theme]); // Added dependencies to ensure closures are fresh
+
 
     return (
         <div className={`flex h-screen font-sans relative overflow-hidden transition-colors duration-300 ${theme === 'night' ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -187,15 +199,9 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                             <div className="flex-1 min-w-0">
                                 <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">Live Transcription</p>
                                 <p className="text-sm font-medium truncate">
-                                    {liveTranscript || <span className="text-slate-500 italic">Listening to your voice...</span>}
+                                    {liveTranscript || <span className="text-slate-500 italic">Listening to your voice... (Auto-stops when you finish)</span>}
                                 </p>
                             </div>
-                            <button
-                                onClick={toggleListening}
-                                className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition-colors ${theme === 'night' ? 'bg-white text-slate-900 hover:bg-slate-200' : 'bg-white text-slate-900 hover:bg-slate-200'}`}
-                            >
-                                Stop & Parse
-                            </button>
                         </div>
                     </div>
                 )}
