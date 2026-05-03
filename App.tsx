@@ -4,7 +4,7 @@ import { getAvailabilityForecast, API_BASE_URL } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';
-import { parseVoiceCommandWithGemini } from './services/geminiVoiceParser';
+import { parseVoiceCommandWithAI } from './services/aiVoiceService';
 import { APP_VERSION, DASHBOARD_RELOAD_KEY, GOOGLE_LOGIN_STARTED_KEY } from './appVersion';
 
 axios.defaults.withCredentials = true;
@@ -794,7 +794,7 @@ export default function App() {
 
   const handleVoiceCommand = useCallback(async (transcript: string) => {
     try {
-      const result = await parseVoiceCommandWithGemini(transcript, today);
+      const result = await parseVoiceCommandWithAI(transcript, today);
       
       // --- QUERY INTENT (CONVERSATIONAL ASSISTANT) ---
       if (result.intent === 'QUERY_BOOKING') {
