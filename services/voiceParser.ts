@@ -9,6 +9,7 @@ export interface ParsedBookingData {
   source?: BookingSource;
   manualTotal?: number;
   notes?: string;
+  aiResponse?: string;
 }
 
 export interface ParsedVoiceCommand {

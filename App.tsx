@@ -792,7 +792,7 @@ export default function App() {
     setLogs(prev => [newLog, ...prev]);
   }, [currentUser]);
 
-  const handleVoiceCommand = useCallback(async (transcript: string) => {
+  const handleVoiceCommand = useCallback(async (transcript: string): Promise<string> => {
     try {
       const result = await parseVoiceCommandWithAI(transcript, today);
       
@@ -816,15 +816,20 @@ export default function App() {
       }
 
       let responseText = '';
-      if (matches.length > 0) {
-        // STRICT FINANCIAL MASKING: Only construct phrase using Name, Dates, Room.
-        const firstMatch = matches[0];
-        responseText = `Yes, I found a booking for ${firstMatch.guestName}. They are checking in on ${firstMatch.checkInDate} in room ${firstMatch.roomId}.`;
-        if (matches.length > 1) {
-            responseText += ` There are also ${matches.length - 1} other matching bookings.`;
-        }
+
+      if (result.data.aiResponse) {
+        responseText = result.data.aiResponse;
       } else {
-        responseText = "I'm sorry, I couldn't find any bookings matching that criteria.";
+        if (matches.length > 0) {
+          // STRICT FINANCIAL MASKING: Only construct phrase using Name, Dates, Room.
+          const firstMatch = matches[0];
+          responseText = `Yes, I found a booking for ${firstMatch.guestName}. They are checking in on ${firstMatch.checkInDate} in room ${firstMatch.roomId}.`;
+          if (matches.length > 1) {
+              responseText += ` There are also ${matches.length - 1} other matching bookings.`;
+          }
+        } else {
+          responseText = "I'm sorry, I couldn't find any bookings matching that criteria.";
+        }
       }
       
       const utterance = new SpeechSynthesisUtterance(responseText);
@@ -834,13 +839,13 @@ export default function App() {
          window.dispatchEvent(new Event('resume-voice-assistant'));
       };
       window.speechSynthesis.speak(utterance);
-      return; 
+      return responseText; 
     }
 
     // --- CREATE INTENT (NORMAL PRE-FILL MODE) ---
     if (!isAdmin) {
       alert("Access Denied: You have view-only access and cannot create bookings.");
-      return;
+      return "Access Denied: You have view-only access and cannot create bookings.";
     }
     const parsed = result.data;
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
@@ -863,12 +868,21 @@ export default function App() {
       ]
     });
     setIsBookingModalOpen(true);
+    
+    const successMsg = "Opening new booking form with the details you provided.";
+    const utterance = new SpeechSynthesisUtterance(successMsg);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    return successMsg;
+
     } catch (err) {
       console.error("Gemini failed, falling back to basic parser", err);
       // Fallback
       const result = parseVoiceCommand(transcript);
       // ... basic error handling or same logic could go here but simple alert is safer
-      alert("AI Parser is currently unavailable. " + result.data.notes);
+      const fallbackMsg = "AI Parser is currently unavailable. Using basic parser.";
+      alert(fallbackMsg + " " + result.data.notes);
+      return fallbackMsg;
     }
   }, [rooms, today, bookings, isAdmin, setEditingBookingId, setNewBookingData, setIsBookingModalOpen]);
 

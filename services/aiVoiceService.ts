@@ -16,23 +16,26 @@ export const parseVoiceCommandWithAI = async (
 ): Promise<ParsedVoiceCommand> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/api/ai/voice-query`, {
-      query: text,
-      today: todayStr
+      query: text
     }, {
       withCredentials: true
     });
 
     const parsedData = response.data;
+    
+    // Check if the backend returned a direct conversational response
+    const conversationalResponse = parsedData.response || parsedData.message || parsedData.answer;
 
     const result: ParsedVoiceCommand = {
-      intent: parsedData.intent as VoiceIntent || 'CREATE_BOOKING',
+      intent: conversationalResponse ? 'QUERY_BOOKING' : (parsedData.intent as VoiceIntent || 'CREATE_BOOKING'),
       data: {
         guestName: parsedData.guestName || undefined,
         checkIn: parsedData.checkIn || undefined,
         checkOut: parsedData.checkOut || undefined,
         source: parsedData.source as BookingSource || BookingSource.DIRECT,
         manualTotal: parsedData.manualTotal || undefined,
-        notes: `AI Parsed Transcript: "${text}"`
+        notes: `AI Parsed Transcript: "${text}"`,
+        aiResponse: conversationalResponse
       }
     };
 

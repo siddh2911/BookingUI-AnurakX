@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle, Mic } from 'lucide-react';
+import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import VoiceAssistantDrawer from './VoiceAssistantDrawer';
 import { User, Room } from '../types';
 import { MOCK_USER } from '../constants';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -10,20 +11,46 @@ import { useTheme } from '../hooks/useTheme';
 interface DashboardLayoutProps {
     onLogout: () => void;
     onDashboardClick?: () => void;
-    onVoiceBooking?: (transcript: string) => void;
+    onVoiceBooking?: (transcript: string) => Promise<string | undefined>;
     rooms?: Room[];
     currentUser: User;
     isAdmin?: boolean;
     isVerifying?: boolean;
 }
 
+interface Message {
+  id: string;
+  type: 'user' | 'ai';
+  text: string;
+  action?: { label: string; onClick: () => void };
+}
+
 export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser, isAdmin = false, isVerifying }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [isThinking, setIsThinking] = useState(false);
+    const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [liveTranscript, setLiveTranscript] = useState('');
     const recognitionRef = useRef<any>(null);
     const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
+
+    const handleQuickQuery = async (query: string) => {
+        setIsAssistantOpen(true);
+        setMessages(prev => [...prev, { id: Date.now().toString(), type: 'user', text: query }]);
+        if (onVoiceBooking) {
+            setIsThinking(true);
+            try {
+                const response = await onVoiceBooking(query);
+                if (response) {
+                    setMessages(prev => [...prev, { id: Date.now().toString() + 'ai', type: 'ai', text: response }]);
+                }
+            } finally {
+                setIsThinking(false);
+            }
+        }
+    };
 
     const toggleListening = () => {
         if (isListening && recognitionRef.current) {
@@ -71,13 +98,26 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
             recognitionRef.current = null;
         };
 
-        recognition.onend = () => {
+        recognition.onend = async () => {
             setIsListening(false);
-            if (finalSentence || liveTranscript) {
-                const textToProcess = finalSentence || liveTranscript;
+            const textToProcess = finalSentence || liveTranscript;
+            
+            if (textToProcess.trim().length > 0) {
                 console.log("Recorded Voice (Final):", textToProcess);
-                if (onVoiceBooking && textToProcess.trim().length > 0) {
-                    onVoiceBooking(textToProcess);
+                setMessages(prev => [...prev, { id: Date.now().toString(), type: 'user', text: textToProcess }]);
+                
+                if (onVoiceBooking) {
+                    setIsThinking(true);
+                    try {
+                        const response = await onVoiceBooking(textToProcess);
+                        if (response) {
+                            setMessages(prev => [...prev, { id: Date.now().toString() + 'ai', type: 'ai', text: response }]);
+                        }
+                    } catch (err) {
+                        setMessages(prev => [...prev, { id: Date.now().toString() + 'ai', type: 'ai', text: "Sorry, I encountered an error." }]);
+                    } finally {
+                        setIsThinking(false);
+                    }
                 }
             }
             setLiveTranscript('');
@@ -165,13 +205,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                     </div>
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={toggleListening}
-                            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isListening ? 'bg-red-50 border-red-200 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse' : (theme === 'night' ? 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-100')}`}
-                            title={isListening ? "Listening... Click to Stop" : "Voice Booking"}
-                        >
-                            <Mic size={18} />
-                        </button>
-                        <button
+
                             onClick={toggleTheme}
                             className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors ${theme === 'night' ? 'border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}
                             title={theme === 'day' ? 'Switch to Night Mode' : 'Switch to Day Mode'}
@@ -191,20 +225,18 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                     </div>
                 </header>
 
-                {/* --- Live Subtitles Overlay --- */}
-                {isListening && (
-                    <div className="absolute top-20 left-0 right-0 z-50 flex justify-center mt-4">
-                        <div className={`backdrop-blur-xl border px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 max-w-2xl w-[90%] animate-in slide-in-from-top-4 fade-in duration-300 ${theme === 'night' ? 'bg-slate-900/90 border-slate-700 text-white' : 'bg-slate-900/90 border-slate-700/50 text-white'}`}>
-                            <div className="flex shrink-0 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]" />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">Live Transcription</p>
-                                <p className="text-sm font-medium truncate">
-                                    {liveTranscript || <span className="text-slate-500 italic">Listening to your voice... (Auto-stops when you finish)</span>}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <VoiceAssistantDrawer
+                    isListening={isListening}
+                    isThinking={isThinking}
+                    isOpen={isAssistantOpen}
+                    setIsOpen={setIsAssistantOpen}
+                    onToggleListening={toggleListening}
+                    messages={messages}
+                    onQuickQuery={handleQuickQuery}
+                    theme={theme}
+                    liveTranscript={liveTranscript}
+                />
+
 
 
                 {rooms && rooms.filter(r => r.cleanStatus === 'DIRTY').length > 0 && (
