@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mic, X, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Mic, X, MessageSquare, Sparkles, ChevronDown } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -20,6 +20,27 @@ interface VoiceAssistantDrawerProps {
   liveTranscript: string;
 }
 
+const QUICK_QUERIES = ["Today's Check-ins", "Rooms under maintenance", "Total revenue today"];
+
+// Animated waveform bars
+function Waveform({ active }: { active: boolean }) {
+  return (
+    <div className="flex items-center gap-[3px] h-5">
+      {[0.9, 0.5, 1, 0.6, 0.8, 0.4, 0.9, 0.7].map((scale, i) => (
+        <div
+          key={i}
+          className={`w-[3px] rounded-full bg-gradient-to-t from-indigo-500 to-cyan-400 transition-all duration-300 ${active ? 'animate-pulse' : 'opacity-30'}`}
+          style={{
+            height: active ? `${scale * 20}px` : '4px',
+            animationDuration: `${0.5 + i * 0.1}s`,
+            animationDelay: `${i * 60}ms`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function VoiceAssistantDrawer({
   isListening,
   isThinking,
@@ -29,90 +50,138 @@ export default function VoiceAssistantDrawer({
   messages,
   onQuickQuery,
   theme,
-  liveTranscript
+  liveTranscript,
 }: VoiceAssistantDrawerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const night = theme === 'night';
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, liveTranscript, isOpen]);
 
-  // If closed but listening/thinking, show floating button with animation
+  const hasActivity = isListening || isThinking;
+
+  // --- Floating Action Button (closed state) ---
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-[9999] p-5 md:p-4 rounded-full shadow-[0_0_30px_rgba(34,211,238,0.3)] transition-all duration-500 overflow-hidden group
-          ${isListening ? 'scale-110 ring-4 ring-cyan-400/30' : 'hover:scale-105'}
-          ${theme === 'night' ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200'}
+        title="AI Assistant"
+        className={`
+          fixed bottom-6 right-6 z-[9999] w-16 h-16 md:w-14 md:h-14 rounded-2xl
+          flex items-center justify-center
+          shadow-[0_8px_32px_rgba(99,102,241,0.5)]
+          transition-all duration-300 ease-out active:scale-95 hover:scale-105
+          bg-gradient-to-br from-indigo-600 via-indigo-500 to-cyan-500
+          ${hasActivity ? 'ring-4 ring-cyan-400/40 animate-pulse' : ''}
         `}
       >
-        <div className="relative z-10">
-          <Mic size={24} className={isListening ? 'text-cyan-400 animate-pulse' : 'text-indigo-500 group-hover:text-cyan-400'} />
-        </div>
-        
-        {/* Gemini Aura */}
-        <div className={`absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-cyan-400/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
-        {isListening && (
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/40 to-cyan-400/40 animate-pulse" />
+        <MessageSquare size={26} className="text-white drop-shadow" />
+
+        {/* Subtle shimmer overlay */}
+        <div className="absolute inset-0 rounded-2xl bg-white/10 opacity-0 hover:opacity-100 transition-opacity" />
+
+        {/* Active dot indicator */}
+        {messages.length > 0 && (
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-cyan-400 rounded-full border-2 border-slate-950 animate-bounce" />
         )}
       </button>
     );
   }
 
+  // --- Full Drawer (open state) ---
   return (
-    <div className={`fixed bottom-0 right-0 md:right-6 md:bottom-6 w-full md:w-[400px] h-[70vh] md:h-[600px] z-[9999] flex flex-col rounded-t-[2.5rem] md:rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-3xl transition-all duration-500 ease-out transform translate-y-0
-      ${theme === 'night' ? 'bg-slate-950/90 border border-slate-800/50' : 'bg-white/95 border border-slate-200/50'}
-    `}>
-      {/* Header */}
-      <div className={`p-4 flex justify-between items-center border-b backdrop-blur-md z-10
-        ${theme === 'night' ? 'border-slate-800/50 bg-slate-900/50' : 'border-slate-200/50 bg-white/50'}
-      `}>
+    <div
+      className={`
+        fixed bottom-0 right-0 md:right-6 md:bottom-6
+        w-full md:w-[420px]
+        h-[72vh] md:h-[600px]
+        z-[9999]
+        flex flex-col
+        rounded-t-[2.5rem] md:rounded-3xl
+        overflow-hidden
+        shadow-[0_-8px_60px_rgba(0,0,0,0.4)]
+        transition-all duration-500 ease-out
+        ${night
+          ? 'bg-slate-950/95 border border-slate-800/60'
+          : 'bg-white/96 border border-slate-200/60'}
+        backdrop-blur-3xl
+      `}
+    >
+      {/* ─── Header ─── */}
+      <div className={`flex-shrink-0 flex items-center justify-between px-5 py-4 border-b ${night ? 'border-slate-800/50' : 'border-slate-200/50'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Mic size={16} className="text-white" />
+          {/* Animated icon */}
+          <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-500 shadow-lg shadow-indigo-500/30`}>
+            <MessageSquare size={18} className="text-white" />
+            {hasActivity && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full border-2 border-slate-950 animate-ping" />
+            )}
           </div>
           <div>
-            <h3 className="font-bold text-sm bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">AI Assistant</h3>
-            <p className={`text-[10px] uppercase tracking-widest font-semibold ${isListening ? 'text-cyan-500 animate-pulse' : 'text-slate-500'}`}>
-              {isListening ? 'Listening...' : isThinking ? 'Thinking...' : 'Idle'}
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-semibold text-sm bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                Karuna AI
+              </h3>
+              <Sparkles size={11} className="text-cyan-400" />
+            </div>
+            <p className={`text-[10px] uppercase tracking-wider font-medium mt-0.5 ${isListening ? 'text-cyan-500' : isThinking ? 'text-indigo-400' : night ? 'text-slate-500' : 'text-slate-400'}`}>
+              {isListening ? '● Listening' : isThinking ? '● Thinking' : 'Ready'}
             </p>
           </div>
         </div>
-        <button onClick={() => setIsOpen(false)} className={`p-2 rounded-full transition-colors ${theme === 'night' ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}>
-          <ChevronDown size={20} />
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsOpen(false)}
+            className={`p-2 rounded-xl transition-colors ${night ? 'hover:bg-slate-800 text-slate-500' : 'hover:bg-slate-100 text-slate-400'}`}
+          >
+            <ChevronDown size={20} />
+          </button>
+        </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center px-6 opacity-60">
-            <div className="w-16 h-16 mb-4 rounded-full bg-gradient-to-tr from-indigo-500/20 to-cyan-400/20 flex items-center justify-center">
-              <Mic size={24} className="text-indigo-400" />
+      {/* ─── Messages ─── */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scroll-smooth">
+        {/* Empty state */}
+        {messages.length === 0 && !hasActivity && (
+          <div className="h-full flex flex-col items-center justify-center text-center px-6 gap-4">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-cyan-400/15 border border-indigo-500/20 flex items-center justify-center">
+              <MessageSquare size={32} className="text-indigo-400 opacity-80" />
             </div>
-            <p className={`text-sm ${theme === 'night' ? 'text-slate-400' : 'text-slate-500'}`}>
-              Tap the microphone and ask me anything about the villa.
-            </p>
+            <div>
+              <p className={`font-semibold text-base mb-1 ${night ? 'text-slate-300' : 'text-slate-700'}`}>
+                Ask me anything
+              </p>
+              <p className={`text-sm ${night ? 'text-slate-500' : 'text-slate-400'}`}>
+                Tap a quick query below or press the mic to speak.
+              </p>
+            </div>
           </div>
         )}
 
+        {/* Message bubbles */}
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm
-              ${msg.type === 'user' 
-                ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-br-sm' 
-                : theme === 'night' 
-                  ? 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/50' 
-                  : 'bg-white/90 text-slate-700 rounded-bl-sm border border-slate-200/50'}
-            `}>
-              <p className="text-sm leading-relaxed">{msg.text}</p>
+          <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
+            {msg.type === 'ai' && (
+              <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center mt-0.5 shadow shadow-indigo-500/20">
+                <Sparkles size={12} className="text-white" />
+              </div>
+            )}
+            <div
+              className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm
+                ${msg.type === 'user'
+                  ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-tr-sm'
+                  : night
+                    ? 'bg-slate-800/80 text-slate-200 rounded-tl-sm border border-slate-700/40'
+                    : 'bg-slate-100/90 text-slate-700 rounded-tl-sm border border-slate-200/60'}
+              `}
+            >
+              {msg.text}
               {msg.action && (
-                <button 
+                <button
                   onClick={msg.action.onClick}
-                  className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20 transition-colors border border-cyan-500/20"
+                  className="mt-2.5 block text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 transition-colors border border-cyan-500/20"
                 >
                   {msg.action.label}
                 </button>
@@ -121,78 +190,84 @@ export default function VoiceAssistantDrawer({
           </div>
         ))}
 
-        {/* Live Transcript / Thinking State */}
-        {(isListening || isThinking) && (
-          <div className="flex justify-start">
-            <div className={`max-w-[85%] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm border
-              ${theme === 'night' ? 'bg-slate-800/80 border-cyan-500/30' : 'bg-white/90 border-cyan-500/30'}
-            `}>
-              {isThinking ? (
-                <div className="flex gap-1.5 items-center h-5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className={`text-sm italic ${theme === 'night' ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {liveTranscript || 'Listening...'}
-                  </p>
-                  {/* Organic Waveform Simulation */}
-                  <div className="flex items-center gap-1 h-3 mt-2 opacity-70">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div 
-                        key={i} 
-                        className="w-1 bg-gradient-to-t from-indigo-500 to-cyan-400 rounded-full animate-pulse" 
-                        style={{ 
-                          height: `${Math.floor(Math.random() * 60 + 40)}%`,
-                          animationDuration: `${0.5 + Math.random()}s`
-                        }} 
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+        {/* Live state bubble */}
+        {isListening && (
+          <div className="flex justify-start gap-2">
+            <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center mt-0.5">
+              <Sparkles size={12} className="text-white" />
+            </div>
+            <div className={`max-w-[78%] rounded-2xl rounded-tl-sm px-4 py-3 border ${night ? 'bg-slate-800/80 border-cyan-500/25 text-slate-300' : 'bg-slate-100/90 border-cyan-500/25 text-slate-600'}`}>
+              <p className="text-sm italic opacity-75 mb-2">{liveTranscript || 'Listening to your voice…'}</p>
+              <Waveform active />
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Input / Action Area */}
-      <div className={`p-4 border-t backdrop-blur-md z-10
-        ${theme === 'night' ? 'border-slate-800/50 bg-slate-900/50' : 'border-slate-200/50 bg-white/50'}
-      `}>
-        {/* Quick Queries */}
-        {!isListening && !isThinking && messages.length === 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {["Today's Check-ins", "Rooms under maintenance", "Total revenue today"].map((query) => (
-              <button
-                key={query}
-                onClick={() => onQuickQuery(query)}
-                className={`text-xs font-medium px-3 py-1.5 rounded-full transition-colors border
-                  ${theme === 'night' ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-cyan-400' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-cyan-600'}
-                `}
-              >
-                {query}
-              </button>
-            ))}
+        {/* Thinking indicator */}
+        {isThinking && (
+          <div className="flex justify-start gap-2">
+            <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center mt-0.5">
+              <Sparkles size={12} className="text-white animate-spin" />
+            </div>
+            <div className={`rounded-2xl rounded-tl-sm px-4 py-3 border ${night ? 'bg-slate-800/80 border-indigo-500/20' : 'bg-slate-100/90 border-indigo-500/20'}`}>
+              <div className="flex gap-1.5 items-center h-4">
+                {[0, 150, 300].map((delay) => (
+                  <div
+                    key={delay}
+                    className="w-2 h-2 rounded-full bg-gradient-to-b from-indigo-400 to-cyan-400 animate-bounce"
+                    style={{ animationDelay: `${delay}ms` }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="flex justify-center">
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* ─── Footer ─── */}
+      <div className={`flex-shrink-0 px-4 pb-5 pt-3 border-t ${night ? 'border-slate-800/50' : 'border-slate-200/50'}`}>
+        {/* Quick queries — show always at the bottom */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {QUICK_QUERIES.map((q) => (
+            <button
+              key={q}
+              onClick={() => onQuickQuery(q)}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full transition-all duration-200 border
+                ${night
+                  ? 'bg-slate-800/60 border-slate-700 text-slate-400 hover:bg-indigo-500/15 hover:text-cyan-400 hover:border-indigo-500/40'
+                  : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300'}
+              `}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+
+        {/* Mic button row */}
+        <div className="flex items-center justify-center">
           <button
             onClick={onToggleListening}
-            className={`relative p-4 rounded-full overflow-hidden group shadow-lg transition-transform hover:scale-105 active:scale-95
-              ${isListening ? 'bg-slate-900' : 'bg-gradient-to-r from-indigo-500 to-cyan-500'}
+            className={`
+              relative w-14 h-14 rounded-2xl flex items-center justify-center
+              transition-all duration-300 ease-out active:scale-90 hover:scale-105
+              shadow-lg
+              ${isListening
+                ? 'bg-gradient-to-br from-red-500 to-pink-600 shadow-red-500/40'
+                : 'bg-gradient-to-br from-indigo-500 to-cyan-500 shadow-indigo-500/30'}
             `}
           >
             {isListening && (
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 opacity-20 animate-pulse" />
+              <div className="absolute inset-0 rounded-2xl bg-red-400/20 animate-ping" />
             )}
-            <Mic size={24} className={isListening ? 'text-red-400 relative z-10' : 'text-white relative z-10'} />
+            <Mic size={24} className="text-white relative z-10" />
           </button>
         </div>
+
+        <p className={`text-center text-[10px] mt-2 tracking-wide ${night ? 'text-slate-600' : 'text-slate-400'}`}>
+          {isListening ? 'Speaking… stops automatically when done' : 'Tap to speak'}
+        </p>
       </div>
     </div>
   );

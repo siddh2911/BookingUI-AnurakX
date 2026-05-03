@@ -832,13 +832,45 @@ export default function App() {
         }
       }
       
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(responseText);
-      // Ensure the voice speaks clearly
-      window.speechSynthesis.cancel(); 
-      utterance.onend = () => {
-         window.dispatchEvent(new Event('resume-voice-assistant'));
+
+      // Pick the most natural-sounding voice available
+      const pickBestVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const priority = [
+          (v: SpeechSynthesisVoice) => /google.*english/i.test(v.name),
+          (v: SpeechSynthesisVoice) => /google/i.test(v.name) && v.lang.startsWith('en'),
+          (v: SpeechSynthesisVoice) => /microsoft.*(aria|jenny|natasha)/i.test(v.name),
+          (v: SpeechSynthesisVoice) => v.lang === 'en-IN',
+          (v: SpeechSynthesisVoice) => v.lang === 'en-GB',
+          (v: SpeechSynthesisVoice) => v.lang.startsWith('en'),
+        ];
+        for (const test of priority) {
+          const found = voices.find(test);
+          if (found) return found;
+        }
+        return null;
       };
-      window.speechSynthesis.speak(utterance);
+
+      const applyVoiceAndSpeak = () => {
+        const best = pickBestVoice();
+        if (best) utterance.voice = best;
+        utterance.rate = 0.95;
+        utterance.pitch = 1.05;
+        utterance.volume = 1;
+        utterance.onend = () => {
+          window.dispatchEvent(new Event('resume-voice-assistant'));
+        };
+        window.speechSynthesis.speak(utterance);
+      };
+
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => applyVoiceAndSpeak();
+      } else {
+        applyVoiceAndSpeak();
+      }
+
       return responseText; 
     }
 
