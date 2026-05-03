@@ -12,6 +12,7 @@
     "@capacitor/android": "^8.3.0",
     "@capacitor/core": "^8.3.0",
     "@capacitor/ios": "^8.3.0",
+    "@google/genai": "^1.51.0",
     "axios": "^1.6.8",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
