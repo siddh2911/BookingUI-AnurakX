@@ -77,9 +77,11 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         recognition.onstart = () => {
             setIsListening(true);
             setLiveTranscript('');
+            resetSilenceTimer();
         };
 
         recognition.onresult = (event: any) => {
+            resetSilenceTimer();
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
@@ -92,6 +94,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         };
 
         recognition.onerror = (event: any) => {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             console.error("Speech recognition error", event.error);
             setIsListening(false);
             setLiveTranscript('');
@@ -99,6 +102,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         };
 
         recognition.onend = async () => {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             setIsListening(false);
             const textToProcess = finalSentence || liveTranscript;
             
