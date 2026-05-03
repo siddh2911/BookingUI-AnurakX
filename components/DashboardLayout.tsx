@@ -33,8 +33,19 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
     const [messages, setMessages] = useState<Message[]>([]);
     const [liveTranscript, setLiveTranscript] = useState('');
     const recognitionRef = useRef<any>(null);
+    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const { language, setLanguage, t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
+
+    const resetSilenceTimer = () => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+            if (recognitionRef.current) {
+                console.log("Silence detected (2s). Stopping...");
+                recognitionRef.current.stop();
+            }
+        }, 2000);
+    };
 
     const handleQuickQuery = async (query: string) => {
         setIsAssistantOpen(true);
