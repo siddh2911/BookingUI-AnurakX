@@ -167,7 +167,10 @@ export default function App() {
   useEffect(() => { roomsRef.current = rooms; }, [rooms]);
 
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [logs, setLogs] = useState<AuditLog[]>(() => {
+    const savedLogs = localStorage.getItem('karuna_audit_logs');
+    return savedLogs ? JSON.parse(savedLogs) : [];
+  });
   const [currentUser, setCurrentUser] = useState<User>({ id: 'u_1', name: 'Mock User', role: 'View' });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -175,6 +178,10 @@ export default function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isRoleVerified, setIsRoleVerified] = useState(false);
   const [isPostLoginRefreshing, setIsPostLoginRefreshing] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('karuna_audit_logs', JSON.stringify(logs));
+  }, [logs]);
   const checkSession = useCallback(async (): Promise<boolean> => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
