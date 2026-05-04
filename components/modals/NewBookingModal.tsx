@@ -778,7 +778,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                              type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
                                              className="w-20 bg-transparent text-right outline-none text-white placeholder:text-white/20"
                                              placeholder="0"
-                                             value={newBookingData.advance === 0 ? '' : newBookingData.advance}
+                                             value={newBookingData.advance}
                                              onChange={(e) => {
                                                 const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
                                                 setNewBookingData({ ...newBookingData, advance: isNaN(val) ? 0 : val });

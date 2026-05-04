@@ -549,7 +549,8 @@ export default function App() {
           totalPaid: b.totalPaid || 0, 
           totalAmount: b.totalAmount || 0,
           advanceAmount: b.advanceAmount || 0,
-          pendingBalance: Math.max(0, (b.totalAmount || 0) - (b.totalPaid || 0) - (b.advanceAmount || 0)),
+          // Use the higher of totalPaid or advanceAmount to avoid double-subtracting if they are linked
+          pendingBalance: Math.max(0, (b.totalAmount || 0) - Math.max((b.totalPaid || 0), (b.advanceAmount || 0))),
           mealPlan: b.mealPlan, bookingPackage: b.bookingPackage
         };
       });
@@ -1002,7 +1003,25 @@ export default function App() {
         }),
         paymentMethod: fetchedBookingData.paymentMethod as PaymentMethod || PaymentMethod.CASH,
         notes: fetchedBookingData.internalNotes || '',
-        manualTotal: fetchedBookingData.totalAmount,
+        manualTotal: (() => {
+          // Calculate what the total SHOULD be
+          const bIn = fetchedBookingData.checkInDate;
+          const bOut = fetchedBookingData.checkOutDate;
+          const nights = (bIn && bOut) ? Math.max(1, Math.ceil((new Date(bOut).getTime() - new Date(bIn).getTime()) / (1000 * 60 * 60 * 24))) : 1;
+          const roomRate = fetchedBookingData.nightlyRate || 0;
+          const additionalTotal = (fetchedBookingData.additionalCharges || []).reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+          
+          const sources = fetchedBookingData.bookingSources || [];
+          const sourcesSum = sources.length > 0 
+            ? sources.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0)
+            : (roomRate * nights);
+            
+          const calculatedTotal = sourcesSum + additionalTotal;
+          
+          // If the server's total matches our calculation, don't lock it as "manual"
+          // This allows the total to update if the user changes the rate or dates.
+          return Math.abs(calculatedTotal - (fetchedBookingData.totalAmount || 0)) < 2 ? undefined : fetchedBookingData.totalAmount;
+        })(),
         mealPlan: fetchedBookingData.mealPlan || '',
         bookingPackage: fetchedBookingData.bookingPackage || '',
         additionalCharges: fetchedBookingData.additionalCharges || []
