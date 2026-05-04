@@ -1059,7 +1059,9 @@ export default function App() {
       addLog(editingBookingId ? 'Update Booking' : 'Create Booking', `${editingBookingId ? 'Updated' : 'Created'} booking for ${guestName}.`);
       
       if (!editingBookingId && newBookingData.sendWhatsAppNotification !== false && guestPhone) {
-         addLog('WhatsApp Notification', `Sent booking confirmation via WhatsApp to ${guestName} (${guestPhone}).`);
+         if (window.confirm(`Are you sure you want to send a WhatsApp booking confirmation to ${guestName}?`)) {
+            addLog('WhatsApp Notification', `Sent booking confirmation via WhatsApp to ${guestName} (${guestPhone}).`);
+         }
       }
 
       setIsBookingModalOpen(false); setEditingBookingId(null);
