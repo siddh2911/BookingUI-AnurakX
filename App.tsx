@@ -37,6 +37,7 @@ import FinancePage from './components/pages/FinancePage';
 import FoodPage from './components/pages/FoodPage';
 import ChannelManagerPage from './components/pages/ChannelManagerPage';
 import MarketingPage from './components/pages/MarketingPage';
+import HouseRulesPage from './components/pages/HouseRulesPage';
 import NotificationSettings from './components/settings/NotificationSettings';
 import LoginPage from './components/pages/LoginPage';
 import UnauthorizedPage from './components/pages/UnauthorizedPage';
@@ -1289,6 +1290,7 @@ export default function App() {
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
             <Route path="marketing" element={renderAdminRoute(<MarketingPage />)} />
+            <Route path="house-rules" element={renderAdminRoute(<HouseRulesPage />)} />
             <Route path="finance" element={renderAdminRoute(<FinancePage />)} />
             <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
               setBookings(prev => {

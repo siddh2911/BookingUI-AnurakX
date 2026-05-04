@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils, Globe, Sparkles, Lock } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, BedDouble, Users, CreditCard, Calendar, ChevronLeft, ChevronRight, LogOut, Utensils, Globe, Sparkles, Lock, BookOpen } from 'lucide-react';
 import { NavLink, Link } from 'react-router-dom';
 import { User } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -26,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, isSidebarOpen, setIsSide
     { to: '/dining', icon: <Utensils size={20} />, label: t('dining') },
     { to: '/rooms', icon: <BedDouble size={20} />, label: t('rooms') },
     { to: '/guests', icon: <Users size={20} />, label: t('guests') },
+    { to: '/house-rules', icon: <BookOpen size={20} />, label: 'House Rules', restricted: true },
     { to: '/finance', icon: <CreditCard size={20} />, label: t('finance'), restricted: true },
     { to: '/channels', icon: <Globe size={20} />, label: 'Channels' },
   ];
