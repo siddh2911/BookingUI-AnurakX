@@ -40,9 +40,15 @@ const ActivityLog: React.FC<ActivityLogProps> = ({ logs }) => {
               <div>
                 <p className="text-sm font-semibold text-slate-800">{log.action}</p>
                 <p className="text-slate-500 text-xs mt-0.5 line-clamp-2">{log.details}</p>
-                <p className="text-slate-400 text-[10px] mt-1.5 font-medium bg-slate-50 inline-block px-1.5 py-0.5 rounded">
-                  {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <p className="text-slate-400 text-[10px] font-medium bg-slate-50 inline-block px-1.5 py-0.5 rounded">
+                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <span className="text-slate-200 text-[10px]">•</span>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    {log.user || 'System'}
+                  </p>
+                </div>
               </div>
             </div>
           ))

@@ -288,7 +288,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                                                         <span className={`text-[10px] ${theme === 'night' ? 'text-slate-500' : 'text-slate-400'}`}>{formatNotificationTime(log.timestamp)}</span>
                                                     </div>
                                                     <p className={`text-sm ${theme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>{log.details}</p>
-                                                    <p className={`text-[10px] mt-1.5 font-medium ${theme === 'night' ? 'text-slate-600' : 'text-slate-400'}`}>By: {log.userEmail}</p>
+                                                    <p className={`text-[10px] mt-1.5 font-medium ${theme === 'night' ? 'text-slate-600' : 'text-slate-400'}`}>By: {log.user || 'System'}</p>
                                                 </div>
                                             ))
                                         ) : (
