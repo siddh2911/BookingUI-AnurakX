@@ -1201,8 +1201,10 @@ export default function App() {
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
   const handleSendReviewRequest = useCallback((b: Booking) => {
-    addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber || b.guestPhone || 'No Phone Number'}).`);
-    alert(`WhatsApp Review Request sent to ${b.guestName}`);
+    if (window.confirm(`Are you sure you want to send a WhatsApp message for review to ${b.guestName}?`)) {
+      addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber || b.guestPhone || 'No Phone Number'}).`);
+      alert(`WhatsApp Review Request sent to ${b.guestName}`);
+    }
   }, [addLog]);
 
   const dashboardProps = {
