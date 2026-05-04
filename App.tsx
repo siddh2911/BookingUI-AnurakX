@@ -688,6 +688,7 @@ export default function App() {
 
     const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 7);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const endOfYear = new Date(now.getFullYear(), 11, 31);
     const currentMonth = now.getMonth();
     const fyStartYear = currentMonth < 3 ? now.getFullYear() - 1 : now.getFullYear();
     const startOfFY = new Date(fyStartYear, 3, 1);
@@ -696,7 +697,7 @@ export default function App() {
     const occupancyToday = calculateOccupancy(startOfDay, endOfDay);
     const occupancyWeek = calculateOccupancy(startOfWeek, endOfWeek);
     const occupancyMonth = calculateOccupancy(startOfMonth, endOfMonth);
-    const occupancyYear = calculateOccupancy(startOfFY, endOfFY);
+    const occupancyYear = calculateOccupancy(startOfYear, endOfYear);
 
 
     let occupancyAllTime = 0;
@@ -750,7 +751,8 @@ export default function App() {
     const revenueToday = calculateRevenue(startOfDay, endOfDay);
     const revenueWeek = calculateRevenue(startOfWeek, endOfWeek);
     const revenueMonth = calculateRevenue(startOfMonth, endOfMonth);
-    const revenueYear = calculateRevenue(startOfFY, endOfFY);
+    const revenueYear = calculateRevenue(startOfYear, endOfYear);
+    const revenueFY = calculateRevenue(startOfFY, endOfFY);
 
 
     const countCheckIns = (startDate: Date, endDate: Date) => {
@@ -764,12 +766,12 @@ export default function App() {
     const checkInsToday = countCheckIns(startOfDay, endOfDay);
     const checkInsWeek = countCheckIns(startOfWeek, endOfWeek);
     const checkInsMonth = countCheckIns(startOfMonth, endOfMonth);
-    const checkInsYear = countCheckIns(startOfFY, endOfFY);
+    const checkInsYear = countCheckIns(startOfYear, endOfYear);
     const totalCheckIns = bookings.filter(b => b.status !== BookingStatus.CANCELLED).length;
 
     return {
-      totalRevenue, revenueToday, revenueWeek, revenueMonth, revenueYear,
       occupancyToday, occupancyWeek, occupancyMonth, occupancyYear, occupancyAllTime,
+      revenueToday, revenueWeek, revenueMonth, revenueYear, totalRevenue, revenueFY,
       checkInsToday, checkInsWeek, checkInsMonth, checkInsYear, totalCheckIns
     };
   }, [bookings, rooms, today]);
