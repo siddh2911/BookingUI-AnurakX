@@ -1,6 +1,6 @@
 import React from 'react';
 import { Booking, Room } from '../../types';
-import { LogOut, ArrowRight, Phone, Droplets } from 'lucide-react';
+import { LogOut, ArrowRight, Phone, Droplets, MessageCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import PlatformIcon from '../common/PlatformIcon';
 
@@ -10,9 +10,10 @@ interface UrgentDeparturesProps {
     today: string;
     onEditBooking: (booking: Booking, isViewOnly?: boolean) => void;
     housekeepingTasks: any[];
+    onSendReviewRequest?: (b: Booking) => void;
 }
 
-const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, today, onEditBooking, housekeepingTasks }) => {
+const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, today, onEditBooking, housekeepingTasks, onSendReviewRequest }) => {
     const { t } = useLanguage();
 
     const todayDate = new Date(today);
@@ -79,6 +80,18 @@ const UrgentDepartures: React.FC<UrgentDeparturesProps> = ({ departures, rooms, 
                                                 </div>
                                             ))}
                                         </div>
+                                        {onSendReviewRequest && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSendReviewRequest(booking);
+                                                }}
+                                                className="w-8 h-8 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 flex items-center justify-center transition-colors group/whatsapp"
+                                                title={`Send WhatsApp Review Request to ${booking.guestName}`}
+                                            >
+                                                <MessageCircle className="w-3.5 h-3.5 text-blue-500/70 group-hover/whatsapp:text-blue-500 transition-colors" />
+                                            </button>
+                                        )}
                                         {booking.guestPhone && (
                                             <a
                                                 href={`tel:${booking.guestPhone}`}

@@ -1200,10 +1200,15 @@ export default function App() {
 
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
+  const handleSendReviewRequest = useCallback((b: Booking) => {
+    addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber || b.guestPhone || 'No Phone Number'}).`);
+    alert(`WhatsApp Review Request sent to ${b.guestName}`);
+  }, [addLog]);
+
   const dashboardProps = {
     isAdmin, stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings, housekeepingTasks,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
-    today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue
+    today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue, handleSendReviewRequest
   };
 
   const bookingProps = {

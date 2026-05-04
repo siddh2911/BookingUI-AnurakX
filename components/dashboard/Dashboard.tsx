@@ -33,6 +33,7 @@ interface DashboardProps {
   today: string;
   isRevenueVisible: boolean;
   setIsRevenueVisible: (visible: boolean) => void;
+  handleSendReviewRequest?: (b: Booking) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -55,6 +56,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   today,
   isRevenueVisible,
   setIsRevenueVisible,
+  handleSendReviewRequest,
 }) => {
   const { t } = useLanguage();
 
@@ -73,6 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         today={today}
         onEditBooking={handleEditBooking}
         housekeepingTasks={housekeepingTasks}
+        onSendReviewRequest={handleSendReviewRequest}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
