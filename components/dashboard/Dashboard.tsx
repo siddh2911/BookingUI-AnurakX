@@ -125,6 +125,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           setIsRevenueVisible={setIsRevenueVisible}
             hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
             trend={undefined}
+            taxBadge={(() => {
+              const now2 = new Date();
+              const startOfYear2 = new Date(now2.getFullYear(), 0, 1);
+              const daysElapsed2 = Math.max(1, Math.floor((now2.getTime() - startOfYear2.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+              const projYearly = Math.round((stats.revenueYear / daysElapsed2) * 365);
+              return { label: '20% FY Est.', value: `₹${Math.round(projYearly * 0.20).toLocaleString()}` };
+            })()}
           />
         )}
         <StatCard

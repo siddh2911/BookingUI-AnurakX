@@ -14,6 +14,7 @@ interface StatCardProps {
   isRevenueVisible?: boolean;
   setIsRevenueVisible?: (visible: boolean) => void;
   hoverContent?: React.ReactNode;
+  taxBadge?: { label: string; value: string };
   trend?: {
     value: number;
     label: string;
@@ -21,7 +22,7 @@ interface StatCardProps {
   };
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTrend, icon, onClick, details, comparatorLabel, isRevenueVisible = true, setIsRevenueVisible, hoverContent, trend }) => {
+export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTrend, icon, onClick, details, comparatorLabel, isRevenueVisible = true, setIsRevenueVisible, hoverContent, trend, taxBadge }) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +120,12 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                   <p className={`text-[10px] font-bold mt-1 ${totalTrend?.positive ? 'text-emerald-500' : 'text-rose-500'} ${isRevenueVisible && totalTrend ? '' : 'invisible'}`}>
                     {totalTrend ? (totalTrend.value > 0 ? '+' : '') + totalTrend.value + '%' : '0%'}
                   </p>
+                  {isRevenueVisible && taxBadge && (
+                    <div className="mt-2 flex flex-col items-end gap-0.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400/80">~Tax ({taxBadge.label})</span>
+                      <span className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded-md">{taxBadge.value}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
