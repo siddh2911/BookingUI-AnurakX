@@ -537,22 +537,32 @@ export default function App() {
 
         if (roomId === -1) console.warn(`Could not map API room '${b.room}' to local rooms.`);
 
+        const bIn = b.checkInDate;
+        const bOut = b.checkOutDate;
+        const nights = (bIn && bOut) ? Math.max(1, Math.ceil((new Date(bOut).getTime() - new Date(bIn).getTime()) / (1000 * 60 * 60 * 24))) : 1;
+        
+        const sources = (b.bookingSources || []).map((s: any) => {
+          const sStart = s.startDate || b.checkInDate;
+          const sEnd = s.endDate || b.checkOutDate;
+          const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
+          return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
+        });
+
+        // Calculate a reliable total
+        const sourcesSum = sources.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0);
+        const fallbackTotal = (b.nightlyRate || 0) * nights;
+        const finalTotal = b.totalAmount || sourcesSum || fallbackTotal || b.totalPaid || 0;
+
         return {
           id: b.id, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
           guestPhone: b.contactNumber, checkInDate: normalizeDateString(b.checkInDate),
           checkOutDate: normalizeDateString(b.checkOutDate),
-          sources: (b.bookingSources || [{ source: b.bookingSource as BookingSource, amount: b.totalAmount || b.totalPaid || 0, startDate: b.checkInDate, endDate: b.checkOutDate }]).map((s: any) => {
-            const sStart = s.startDate || b.checkInDate;
-            const sEnd = s.endDate || b.checkOutDate;
-            const sNights = (sStart && sEnd) ? Math.max(1, Math.ceil((new Date(sEnd).getTime() - new Date(sStart).getTime()) / (1000 * 60 * 60 * 24))) : 1;
-            return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
-          }),
+          sources: sources.length > 0 ? sources : [{ source: b.bookingSource as BookingSource, amount: finalTotal, startDate: b.checkInDate, endDate: b.checkOutDate }],
           status: b.status as BookingStatus,
           totalPaid: b.totalPaid || 0, 
-          totalAmount: b.totalAmount || 0,
+          totalAmount: finalTotal,
           advanceAmount: b.advanceAmount || 0,
-          // Use the higher of totalPaid or advanceAmount to avoid double-subtracting if they are linked
-          pendingBalance: Math.max(0, (b.totalAmount || 0) - Math.max((b.totalPaid || 0), (b.advanceAmount || 0))),
+          pendingBalance: Math.max(0, finalTotal - Math.max((b.totalPaid || 0), (b.advanceAmount || 0))),
           mealPlan: b.mealPlan, bookingPackage: b.bookingPackage
         };
       });
