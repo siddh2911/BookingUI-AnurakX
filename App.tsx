@@ -546,8 +546,10 @@ export default function App() {
             return { ...s, nightlyRate: s.nightlyRate != null ? s.nightlyRate : ((Number(s.amount) || 0) / sNights) };
           }),
           status: b.status as BookingStatus,
-          totalPaid: b.totalPaid, totalAmount: b.totalAmount, pendingBalance: b.balance,
-          advanceAmount: b.advanceAmount,
+          totalPaid: b.totalPaid || 0, 
+          totalAmount: b.totalAmount || 0,
+          advanceAmount: b.advanceAmount || 0,
+          pendingBalance: Math.max(0, (b.totalAmount || 0) - (b.totalPaid || 0) - (b.advanceAmount || 0)),
           mealPlan: b.mealPlan, bookingPackage: b.bookingPackage
         };
       });
