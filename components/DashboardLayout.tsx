@@ -272,31 +272,34 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
 
                             {/* Notification Dropdown Panel */}
                             {isNotificationOpen && (
-                                <div className={`absolute right-0 mt-3 w-80 rounded-2xl shadow-2xl border backdrop-blur-3xl overflow-hidden z-50 transform origin-top-right transition-all animate-in slide-in-from-top-2 fade-in duration-200 ${theme === 'night' ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
-                                    <div className={`p-4 border-b ${theme === 'night' ? 'border-slate-800' : 'border-slate-100'}`}>
-                                        <h3 className="font-bold text-sm tracking-wide">Recent Activity</h3>
+                                <div className={`absolute right-0 mt-3 w-80 rounded-2xl shadow-2xl border overflow-hidden z-50 transform origin-top-right transition-all animate-in slide-in-from-top-2 fade-in duration-200 ${theme === 'night' ? 'bg-slate-900 border-slate-800' : 'bg-white/95 backdrop-blur-3xl border-slate-200'}`}>
+                                    <div className={`p-4 border-b flex items-center justify-between ${theme === 'night' ? 'border-slate-800' : 'border-slate-100'}`}>
+                                        <h3 className={`font-bold text-sm tracking-wide ${theme === 'night' ? 'text-white' : 'text-slate-900'}`}>Recent Activity</h3>
+                                        {logs && logs.length > 0 && (
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${theme === 'night' ? 'bg-slate-800 text-slate-400 border border-slate-700' : 'bg-slate-100 text-slate-500'}`}>{logs.length}</span>
+                                        )}
                                     </div>
                                     <div className="max-h-80 overflow-y-auto">
                                         {logs && logs.length > 0 ? (
                                             logs.slice(0, 5).map(log => (
-                                                <div key={log.id} className={`p-4 border-b last:border-0 transition-colors ${theme === 'night' ? 'border-slate-800 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                                <div key={log.id} className={`p-4 border-b last:border-0 transition-colors ${theme === 'night' ? 'border-slate-800 hover:bg-slate-800' : 'border-slate-100 hover:bg-slate-50'}`}>
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className={`text-xs font-semibold capitalize ${theme === 'night' ? 'text-blue-400' : 'text-blue-600'}`}>{log.action.replace(/_/g, ' ').toLowerCase()}</span>
                                                         <span className={`text-[10px] ${theme === 'night' ? 'text-slate-500' : 'text-slate-400'}`}>{formatNotificationTime(log.timestamp)}</span>
                                                     </div>
                                                     <p className={`text-sm ${theme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>{log.details}</p>
-                                                    <p className={`text-[10px] mt-1.5 font-medium ${theme === 'night' ? 'text-slate-500' : 'text-slate-400'}`}>By: {log.userEmail}</p>
+                                                    <p className={`text-[10px] mt-1.5 font-medium ${theme === 'night' ? 'text-slate-600' : 'text-slate-400'}`}>By: {log.userEmail}</p>
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="p-8 text-center text-slate-500 text-sm">
+                                            <div className={`p-8 text-center text-sm ${theme === 'night' ? 'text-slate-600' : 'text-slate-400'}`}>
                                                 No recent activity.
                                             </div>
                                         )}
                                     </div>
                                     {logs && logs.length > 0 && (
-                                        <div className={`p-3 text-center border-t ${theme === 'night' ? 'border-slate-800 bg-slate-900/50' : 'border-slate-100 bg-slate-50'}`}>
-                                            <button className="text-xs font-semibold text-blue-500 hover:text-blue-600">View All Logs</button>
+                                        <div className={`p-3 text-center border-t ${theme === 'night' ? 'border-slate-800 bg-slate-950/50' : 'border-slate-100 bg-slate-50'}`}>
+                                            <button className="text-xs font-semibold text-blue-500 hover:text-blue-400">View All Logs</button>
                                         </div>
                                     )}
                                 </div>
