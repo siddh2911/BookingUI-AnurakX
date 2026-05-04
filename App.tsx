@@ -671,12 +671,15 @@ export default function App() {
 
     const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 7);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const endOfYear = new Date(now.getFullYear(), 11, 31);
+    const currentMonth = now.getMonth();
+    const fyStartYear = currentMonth < 3 ? now.getFullYear() - 1 : now.getFullYear();
+    const startOfFY = new Date(fyStartYear, 3, 1);
+    const endOfFY = new Date(fyStartYear + 1, 2, 31);
 
     const occupancyToday = calculateOccupancy(startOfDay, endOfDay);
     const occupancyWeek = calculateOccupancy(startOfWeek, endOfWeek);
     const occupancyMonth = calculateOccupancy(startOfMonth, endOfMonth);
-    const occupancyYear = calculateOccupancy(startOfYear, endOfYear);
+    const occupancyYear = calculateOccupancy(startOfFY, endOfFY);
 
 
     let occupancyAllTime = 0;
@@ -730,7 +733,7 @@ export default function App() {
     const revenueToday = calculateRevenue(startOfDay, endOfDay);
     const revenueWeek = calculateRevenue(startOfWeek, endOfWeek);
     const revenueMonth = calculateRevenue(startOfMonth, endOfMonth);
-    const revenueYear = calculateRevenue(startOfYear, endOfYear);
+    const revenueYear = calculateRevenue(startOfFY, endOfFY);
 
 
     const countCheckIns = (startDate: Date, endDate: Date) => {
@@ -744,7 +747,7 @@ export default function App() {
     const checkInsToday = countCheckIns(startOfDay, endOfDay);
     const checkInsWeek = countCheckIns(startOfWeek, endOfWeek);
     const checkInsMonth = countCheckIns(startOfMonth, endOfMonth);
-    const checkInsYear = countCheckIns(startOfYear, endOfYear);
+    const checkInsYear = countCheckIns(startOfFY, endOfFY);
     const totalCheckIns = bookings.filter(b => b.status !== BookingStatus.CANCELLED).length;
 
     return {

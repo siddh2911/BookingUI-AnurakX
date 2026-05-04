@@ -108,10 +108,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
             const now = new Date();
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+            const currentMonth = now.getMonth();
+            const fyStartYear = currentMonth < 3 ? now.getFullYear() - 1 : now.getFullYear();
+            const startOfFY = new Date(fyStartYear, 3, 1);
+            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfFY.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-            // Use YTD run-rate to smooth out start-of-month volatility
+            // Use YTD run-rate relative to FY start to smooth out volatility
             const predictedYearlyRevenue = Math.round((stats.revenueYear / daysElapsedYear) * 365);
 
             return [
@@ -127,8 +129,10 @@ const Dashboard: React.FC<DashboardProps> = ({
             trend={undefined}
             taxBadge={(() => {
               const now2 = new Date();
-              const startOfYear2 = new Date(now2.getFullYear(), 0, 1);
-              const daysElapsed2 = Math.max(1, Math.floor((now2.getTime() - startOfYear2.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+              const currentMonth2 = now2.getMonth();
+              const fyStartYear2 = currentMonth2 < 3 ? now2.getFullYear() - 1 : now2.getFullYear();
+              const startOfFY2 = new Date(fyStartYear2, 3, 1);
+              const daysElapsed2 = Math.max(1, Math.floor((now2.getTime() - startOfFY2.getTime()) / (1000 * 60 * 60 * 24)) + 1);
               const projYearly = Math.round((stats.revenueYear / daysElapsed2) * 365);
               return { label: '20% FY Est.', value: `₹${Math.round(projYearly * 0.20).toLocaleString()}` };
             })()}
@@ -178,10 +182,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
 
             const now = new Date();
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+            const currentMonth = now.getMonth();
+            const fyStartYear = currentMonth < 3 ? now.getFullYear() - 1 : now.getFullYear();
+            const startOfFY = new Date(fyStartYear, 3, 1);
+            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfFY.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-            // Use YTD run-rate to smooth out start-of-month volatility based on all prior months
+            // Use YTD run-rate relative to FY start
             const projectedYearlyCheckIns = Math.round((stats.checkInsYear / daysElapsedYear) * 365);
 
 
