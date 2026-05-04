@@ -814,6 +814,20 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            </div>
 
                            <div className="mt-8 pt-6 relative z-10">
+                              <div className="flex items-center gap-3 mb-4">
+                                 <input
+                                    type="checkbox"
+                                    id="sendWhatsApp"
+                                    checked={newBookingData.sendWhatsAppNotification !== false} // Default to true if undefined
+                                    onChange={(e) => setNewBookingData({ ...newBookingData, sendWhatsAppNotification: e.target.checked })}
+                                    disabled={readOnly}
+                                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 cursor-pointer"
+                                 />
+                                 <label htmlFor="sendWhatsApp" className="text-sm text-slate-300 cursor-pointer">
+                                    Send WhatsApp Confirmation to Guest
+                                 </label>
+                              </div>
+
                               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Internal Notes</label>
                               <textarea
                                  className="w-full bg-white/5 border border-white/10 rounded-lg text-white text-sm p-3 outline-none focus:bg-white/10 transition-colors h-24 resize-none placeholder:text-slate-600"

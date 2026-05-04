@@ -1057,6 +1057,11 @@ export default function App() {
       if (!response.ok) throw new Error(`Failed to ${editingBookingId ? 'update' : 'save'} booking.`);
 
       addLog(editingBookingId ? 'Update Booking' : 'Create Booking', `${editingBookingId ? 'Updated' : 'Created'} booking for ${guestName}.`);
+      
+      if (!editingBookingId && newBookingData.sendWhatsAppNotification !== false && guestPhone) {
+         addLog('WhatsApp Notification', `Sent booking confirmation via WhatsApp to ${guestName} (${guestPhone}).`);
+      }
+
       setIsBookingModalOpen(false); setEditingBookingId(null);
       fetchBookings();
     } catch (error: any) {
@@ -1160,6 +1165,10 @@ export default function App() {
               import('./services/api').then(api => {
                 api.updateRoomCleanStatus(actualRoom.number, 'DIRTY').catch(console.error);
               });
+            }
+
+            if (b.mobileNumber) {
+               addLog('WhatsApp Review Request', `Sent automated checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber}).`);
             }
           }
           return prev;
