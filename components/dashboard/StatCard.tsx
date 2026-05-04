@@ -121,9 +121,14 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                     {totalTrend ? (totalTrend.value > 0 ? '+' : '') + totalTrend.value + '%' : '0%'}
                   </p>
                   {isRevenueVisible && taxBadge && (
-                    <div className="mt-2 flex flex-col items-end gap-0.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-rose-400/80">~Tax ({taxBadge.label})</span>
-                      <span className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded-md">{taxBadge.value}</span>
+                    <div className="mt-4 flex flex-col items-end gap-1.5">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-400 mb-0.5">Est. Tax ({taxBadge.label})</span>
+                        <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100/50 px-2.5 py-1 rounded-full shadow-sm">
+                          <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                          <span className="text-xs font-black text-rose-600 tracking-tight">{taxBadge.value}</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
