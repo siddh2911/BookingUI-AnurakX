@@ -4,9 +4,9 @@ import HousekeepingGrid from '../rooms/HousekeepingGrid';
 import MaintenanceBoard from '../rooms/MaintenanceBoard';
 
 export default function RoomsPage({
-    rooms, bookings, housekeepingTasks, setHousekeepingTasks, maintenanceTickets, setMaintenanceTickets
+    rooms, setRooms, bookings, housekeepingTasks, setHousekeepingTasks, maintenanceTickets, setMaintenanceTickets
 }: {
-    rooms: Room[]; bookings: Booking[]; housekeepingTasks: HousekeepingTask[]; setHousekeepingTasks: any; maintenanceTickets: MaintenanceTicket[]; setMaintenanceTickets: any;
+    rooms: Room[]; setRooms: any; bookings: Booking[]; housekeepingTasks: HousekeepingTask[]; setHousekeepingTasks: any; maintenanceTickets: MaintenanceTicket[]; setMaintenanceTickets: any;
 }) {
     const [activeTab, setActiveTab] = useState<'housekeeping' | 'maintenance' | 'plans'>('housekeeping');
     
@@ -96,11 +96,18 @@ export default function RoomsPage({
                                 if (existing) return prev.map((t: any) => t.id === updatedTask.id ? updatedTask : t);
                                 return [...prev, updatedTask];
                             });
+                            
+                            // Immediately update room cleanStatus locally for UI responsiveness
+                            const cStatus = updatedTask.status === 'Clean' ? 'CLEAN' : 
+                                           updatedTask.status === 'Dirty' ? 'DIRTY' : 
+                                           updatedTask.status === 'Inspected' ? 'INSPECTED' : 'CLEAN';
+                            
+                            setRooms((prev: Room[]) => prev.map(r => r.id === updatedTask.roomId ? { ...r, cleanStatus: cStatus as any } : r));
+
                             const roomNum = rooms.find(r => r.id === updatedTask.roomId)?.number;
                             if (roomNum) {
                                 import('../../services/api').then(api => {
-                                    const cStatus = updatedTask.status.toUpperCase() as 'CLEAN' | 'DIRTY' | 'INSPECTED' | 'MAINTENANCE';
-                                    api.updateRoomCleanStatus(roomNum, cStatus).catch(console.error);
+                                    api.updateRoomCleanStatus(roomNum, cStatus as any).catch(console.error);
                                 });
                             }
                         }}

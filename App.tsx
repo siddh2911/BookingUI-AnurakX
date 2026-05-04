@@ -600,10 +600,17 @@ export default function App() {
           let hasChanged = false;
           const updated = prev.map(t => {
             const cs = cleanStatusMap.get(t.roomId);
-            const newStatus: HousekeepingStatus = cs === 'DIRTY' ? 'Dirty' : 'Clean';
-            if (cs && t.status !== newStatus) {
+            if (!cs) return t;
+            
+            const newStatus: HousekeepingStatus = 
+              cs === 'DIRTY' ? 'Dirty' : 
+              cs === 'CLEAN' ? 'Clean' : 
+              cs === 'INSPECTED' ? 'Inspected' : 
+              cs === 'MAINTENANCE' ? 'Dirty' : 'Clean';
+              
+            if (t.status !== newStatus) {
               hasChanged = true;
-              return { ...t, status: newStatus, priority: cs === 'DIRTY' ? 'High' : 'Low' };
+              return { ...t, status: newStatus, priority: cs === 'DIRTY' || cs === 'MAINTENANCE' ? 'High' : 'Low' };
             }
             return t;
           });
@@ -611,7 +618,17 @@ export default function App() {
           cleanStatusMap.forEach((cs, roomId) => {
             if (!updated.find(t => t.roomId === roomId)) {
               hasChanged = true;
-              updated.push({ id: `hk_api_${roomId}`, roomId, status: cs === 'DIRTY' ? 'Dirty' : 'Clean', priority: cs === 'DIRTY' ? 'High' : 'Low' });
+              const newStatus: HousekeepingStatus = 
+                cs === 'DIRTY' ? 'Dirty' : 
+                cs === 'CLEAN' ? 'Clean' : 
+                cs === 'INSPECTED' ? 'Inspected' : 
+                cs === 'MAINTENANCE' ? 'Dirty' : 'Clean';
+              updated.push({ 
+                id: `hk_api_${roomId}`, 
+                roomId, 
+                status: newStatus, 
+                priority: cs === 'DIRTY' || cs === 'MAINTENANCE' ? 'High' : 'Low' 
+              });
             }
           });
 
@@ -1335,7 +1352,7 @@ export default function App() {
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={renderAdminRoute(<BookingsPage bookingProps={bookingProps} />)} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
-            <Route path="rooms" element={<RoomsPage rooms={rooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
+            <Route path="rooms" element={<RoomsPage rooms={rooms} setRooms={setRooms} bookings={bookings} housekeepingTasks={housekeepingTasks} setHousekeepingTasks={setHousekeepingTasks} maintenanceTickets={maintenanceTickets} setMaintenanceTickets={setMaintenanceTickets} />} />
             <Route path="guests" element={<GuestsPage />} />
             <Route path="dining" element={<FoodPage rooms={rooms} />} />
             <Route path="marketing" element={renderAdminRoute(<MarketingPage />)} />
