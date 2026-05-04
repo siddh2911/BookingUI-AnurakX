@@ -74,6 +74,7 @@ export interface Booking {
   status: BookingStatus;
   totalPaid?: number;
   totalAmount?: number;
+  advanceAmount?: number;
   payments?: Payment[];
   pendingBalance?: number;
   additionalCharges?: { description: string; amount: number }[];

@@ -547,6 +547,7 @@ export default function App() {
           }),
           status: b.status as BookingStatus,
           totalPaid: b.totalPaid, totalAmount: b.totalAmount, pendingBalance: b.balance,
+          advanceAmount: b.advanceAmount,
           mealPlan: b.mealPlan, bookingPackage: b.bookingPackage
         };
       });
@@ -1203,10 +1204,17 @@ export default function App() {
   }, 0) : roomTotal;
   const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
-  let paidAmount = newBookingData.advance;
+  const editingBooking = editingBookingId ? bookings.find(b => b.id === editingBookingId) : null;
+  const originalAdvance = editingBooking?.advanceAmount || 0;
+  const totalPaidSoFar = editingBooking?.totalPaid || 0;
+  // Other payments are those made via the "Pay" button (Settlements, etc.)
+  const otherPaymentsTotal = Math.max(0, totalPaidSoFar - originalAdvance);
+  
+  let paidAmount = (Number(newBookingData.advance) || 0) + otherPaymentsTotal;
   let bookingPending = bookingTotal - paidAmount;
 
-  paidAmount = Math.max(0, paidAmount); bookingPending = Math.max(0, bookingPending);
+  paidAmount = Math.max(0, paidAmount);
+  bookingPending = Math.max(0, bookingPending);
 
   const handleOpenDayDetails = (date: Date) => setDayDetailsDate(date);
 
