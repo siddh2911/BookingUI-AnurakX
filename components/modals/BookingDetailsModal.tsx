@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from '../ui/Modal';
 import { Booking } from '../../types';
-import { CreditCard, Calendar, User, Clock, CheckCircle, Download } from 'lucide-react';
+import { CreditCard, Calendar, User, Clock, CheckCircle, Download, MessageCircle } from 'lucide-react';
 import { generateInvoice } from '../../services/pdfGenerator';
 import PlatformIcon from '../common/PlatformIcon';
 
@@ -10,9 +10,10 @@ interface BookingDetailsModalProps {
     onClose: () => void;
     booking: Booking;
     onAddPayment: () => void;
+    onSendReviewRequest?: (booking: Booking) => void;
 }
 
-const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, booking, onAddPayment }) => {
+const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClose, booking, onAddPayment, onSendReviewRequest }) => {
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Booking Details">
             <div className="space-y-6">
@@ -60,20 +61,34 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ isOpen, onClo
                     <span className="text-lg font-bold text-slate-900">₹{booking.totalAmount.toLocaleString()}</span>
                 </div>
 
-                <div className="flex gap-3">
-                    <button
-                        onClick={onAddPayment}
-                        className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-sm"
-                    >
-                        Add Payment
-                    </button>
-                    <button
-                        onClick={async () => await generateInvoice(booking)}
-                        className="flex-1 flex justify-center items-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm"
-                    >
-                        <Download size={18} />
-                        Receipt
-                    </button>
+                <div className="flex flex-col gap-3">
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onAddPayment}
+                            className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-sm"
+                        >
+                            Add Payment
+                        </button>
+                        <button
+                            onClick={async () => await generateInvoice(booking)}
+                            className="flex-1 flex justify-center items-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm"
+                        >
+                            <Download size={18} />
+                            Receipt
+                        </button>
+                    </div>
+                    {onSendReviewRequest && (
+                        <button
+                            onClick={() => {
+                                onSendReviewRequest(booking);
+                                onClose();
+                            }}
+                            className="w-full flex justify-center items-center gap-2 py-3 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-100 transition shadow-sm"
+                        >
+                            <MessageCircle size={18} />
+                            Send WhatsApp Review Request
+                        </button>
+                    )}
                 </div>
             </div>
         </Modal>

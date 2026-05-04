@@ -1337,6 +1337,10 @@ export default function App() {
             onClose={() => setSelectedBooking(null)}
             booking={selectedBooking}
             onAddPayment={() => { setIsPaymentModalOpen(true); }}
+            onSendReviewRequest={(b) => {
+              addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber || 'No Phone Number'}).`);
+              alert(`WhatsApp Review Request sent to ${b.guestName}`);
+            }}
           />
         )}
 
