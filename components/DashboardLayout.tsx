@@ -26,7 +26,7 @@ interface Message {
   action?: { label: string; onClick: () => void };
 }
 
-export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser, isAdmin = false, isVerifying }: DashboardLayoutProps) {
+export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser, isAdmin = false, isVerifying, logs }: DashboardLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [isThinking, setIsThinking] = useState(false);
