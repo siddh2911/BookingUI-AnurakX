@@ -3,7 +3,7 @@ import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { Outlet, Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import VoiceAssistantDrawer from './VoiceAssistantDrawer';
-import { User, Room } from '../types';
+import { User, Room, AuditLog } from '../types';
 import { MOCK_USER } from '../constants';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../hooks/useTheme';
@@ -16,6 +16,7 @@ interface DashboardLayoutProps {
     currentUser: User;
     isAdmin?: boolean;
     isVerifying?: boolean;
+    logs?: AuditLog[];
 }
 
 interface Message {
@@ -30,6 +31,8 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
     const [isListening, setIsListening] = useState(false);
     const [isThinking, setIsThinking] = useState(false);
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const notificationRef = useRef<HTMLDivElement>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [liveTranscript, setLiveTranscript] = useState('');
     const recognitionRef = useRef<any>(null);
@@ -154,6 +157,26 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
         return () => window.removeEventListener('resume-voice-assistant', handleResume);
     }, [isListening, language, theme]); // Added dependencies to ensure closures are fresh
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                setIsNotificationOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const formatNotificationTime = (timestamp: string) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.round(diffMs / 60000);
+        if (diffMins < 60) return `${diffMins}m ago`;
+        const diffHrs = Math.round(diffMins / 60);
+        if (diffHrs < 24) return `${diffHrs}h ago`;
+        return `${Math.round(diffHrs / 24)}d ago`;
+    };
 
     return (
         <div className={`flex h-screen font-sans relative overflow-hidden transition-colors duration-300 ${theme === 'night' ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -234,10 +257,51 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                         >
                             {language === 'en' ? 'HI' : 'EN'}
                         </button>
-                        <button className={`p-2 relative transition ${theme === 'night' ? 'text-slate-500 hover:text-blue-400' : 'text-slate-400 hover:text-blue-500'}`}>
-                            <Bell size={20} />
-                            <span className={`absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 ${theme === 'night' ? 'border-slate-950' : 'border-white'}`}></span>
-                        </button>
+                        
+                        {/* Notification Dropdown Container */}
+                        <div className="relative" ref={notificationRef}>
+                            <button 
+                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                className={`p-2 relative transition ${theme === 'night' ? 'text-slate-500 hover:text-blue-400' : 'text-slate-400 hover:text-blue-500'} ${isNotificationOpen ? (theme === 'night' ? 'text-blue-400' : 'text-blue-500') : ''}`}
+                            >
+                                <Bell size={20} />
+                                {logs && logs.length > 0 && (
+                                    <span className={`absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 ${theme === 'night' ? 'border-slate-950' : 'border-white'}`}></span>
+                                )}
+                            </button>
+
+                            {/* Notification Dropdown Panel */}
+                            {isNotificationOpen && (
+                                <div className={`absolute right-0 mt-3 w-80 rounded-2xl shadow-2xl border backdrop-blur-3xl overflow-hidden z-50 transform origin-top-right transition-all animate-in slide-in-from-top-2 fade-in duration-200 ${theme === 'night' ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
+                                    <div className={`p-4 border-b ${theme === 'night' ? 'border-slate-800' : 'border-slate-100'}`}>
+                                        <h3 className="font-bold text-sm tracking-wide">Recent Activity</h3>
+                                    </div>
+                                    <div className="max-h-80 overflow-y-auto">
+                                        {logs && logs.length > 0 ? (
+                                            logs.slice(0, 5).map(log => (
+                                                <div key={log.id} className={`p-4 border-b last:border-0 transition-colors ${theme === 'night' ? 'border-slate-800 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <span className={`text-xs font-semibold capitalize ${theme === 'night' ? 'text-blue-400' : 'text-blue-600'}`}>{log.action.replace(/_/g, ' ').toLowerCase()}</span>
+                                                        <span className={`text-[10px] ${theme === 'night' ? 'text-slate-500' : 'text-slate-400'}`}>{formatNotificationTime(log.timestamp)}</span>
+                                                    </div>
+                                                    <p className={`text-sm ${theme === 'night' ? 'text-slate-300' : 'text-slate-700'}`}>{log.details}</p>
+                                                    <p className={`text-[10px] mt-1.5 font-medium ${theme === 'night' ? 'text-slate-500' : 'text-slate-400'}`}>By: {log.userEmail}</p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-8 text-center text-slate-500 text-sm">
+                                                No recent activity.
+                                            </div>
+                                        )}
+                                    </div>
+                                    {logs && logs.length > 0 && (
+                                        <div className={`p-3 text-center border-t ${theme === 'night' ? 'border-slate-800 bg-slate-900/50' : 'border-slate-100 bg-slate-50'}`}>
+                                            <button className="text-xs font-semibold text-blue-500 hover:text-blue-600">View All Logs</button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </header>
 

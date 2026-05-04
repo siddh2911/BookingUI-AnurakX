@@ -1256,7 +1256,7 @@ export default function App() {
         <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} isAdmin={isAdmin} isVerifying={isVerifying} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={isAuthenticated ? <DashboardLayout onLogout={handleLogout} onDashboardClick={fetchBookings} onVoiceBooking={handleVoiceCommand} rooms={rooms} currentUser={currentUser} isAdmin={isAdmin} isVerifying={isVerifying} logs={logs} /> : <Navigate to="/login" replace />}>
             <Route index element={<DashboardPage dashboardProps={dashboardProps} />} />
             <Route path="bookings" element={renderAdminRoute(<BookingsPage bookingProps={bookingProps} />)} />
             <Route path="calendar" element={<CalendarPage calendarProps={calendarProps} />} />
