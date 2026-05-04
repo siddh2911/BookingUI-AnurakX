@@ -435,6 +435,8 @@ export default function App() {
   }, [currentUser.role, isRoleVerified, isAdmin, isAuthenticated, isAuthLoading, currentUser.id]);
 
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [originalAdvanceForEditing, setOriginalAdvanceForEditing] = useState<number>(0);
+  const [originalTotalForEditing, setOriginalTotalForEditing] = useState<number>(0);
 
   const [forecastPage, setForecastPage] = useState(0);
   const [currentBookingPayments, setCurrentBookingPayments] = useState<Payment[]>([]);
@@ -935,8 +937,10 @@ export default function App() {
       alert("Access Denied: View-only access cannot create new bookings.");
       return;
     }
-    const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     setEditingBookingId(null);
+    setOriginalAdvanceForEditing(0);
+    setOriginalTotalForEditing(0);
+    const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     setNewBookingData({
       guestName: '', guestEmail: '', guestPhone: '',
       checkIn: preSelectedDate ? formatLocalDate(preSelectedDate) : today,
@@ -971,6 +975,10 @@ export default function App() {
       }
       if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
       const fetchedBookingData = await response.json();
+      
+      setOriginalAdvanceForEditing(fetchedBookingData.advanceAmount || 0);
+      setOriginalTotalForEditing(fetchedBookingData.totalAmount || 0);
+
       setNewBookingData({
         guestName: fetchedBookingData.fullName || '',
         guestEmail: fetchedBookingData.emailId || '',
@@ -1226,10 +1234,9 @@ export default function App() {
   const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
   const editingBooking = editingBookingId ? bookings.find(b => b.id === editingBookingId) : null;
-  const originalAdvance = editingBooking?.advanceAmount || 0;
   const totalPaidSoFar = editingBooking?.totalPaid || 0;
-  // Other payments are those made via the "Pay" button (Settlements, etc.)
-  const otherPaymentsTotal = Math.max(0, totalPaidSoFar - originalAdvance);
+  // Use the reliable baseline fetched when the modal opened
+  const otherPaymentsTotal = Math.max(0, totalPaidSoFar - originalAdvanceForEditing);
   
   let paidAmount = (Number(newBookingData.advance) || 0) + otherPaymentsTotal;
   let bookingPending = bookingTotal - paidAmount;
