@@ -128,13 +128,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
             trend={undefined}
             taxBadge={(() => {
-              const now2 = new Date();
-              const currentMonth2 = now2.getMonth();
-              const fyStartYear2 = currentMonth2 < 3 ? now2.getFullYear() - 1 : now2.getFullYear();
-              const startOfFY2 = new Date(fyStartYear2, 3, 1);
-              const daysElapsed2 = Math.max(1, Math.floor((now2.getTime() - startOfFY2.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-              const projYearly = Math.round((stats.revenueYear / daysElapsed2) * 365);
-              return { label: '20% FY Est.', value: `₹${Math.round(projYearly * 0.20).toLocaleString()}` };
+              // Calculate 20% tax on the actual revenue earned so far in the current Financial Year
+              const actualTax = Math.round(stats.revenueYear * 0.20);
+              return { label: '20% FY Actual', value: `₹${actualTax.toLocaleString()}` };
             })()}
           />
         )}
