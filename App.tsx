@@ -38,6 +38,7 @@ import FoodPage from './components/pages/FoodPage';
 import ChannelManagerPage from './components/pages/ChannelManagerPage';
 import MarketingPage from './components/pages/MarketingPage';
 import HouseRulesPage from './components/pages/HouseRulesPage';
+import LogsPage from './components/pages/LogsPage';
 import NotificationSettings from './components/settings/NotificationSettings';
 import LoginPage from './components/pages/LoginPage';
 import UnauthorizedPage from './components/pages/UnauthorizedPage';
@@ -227,6 +228,20 @@ export default function App() {
                     role: parsedRole as any,
                     avatar: ''
                   });
+                  // CAPTURE LOGIN EVENT (Once per session)
+                  const sessionLogKey = `has_logged_login_${data.id || data.sub || 'user'}`;
+                  if (!sessionStorage.getItem(sessionLogKey)) {
+                    const newLog = { 
+                      id: `login_${Date.now()}`, 
+                      timestamp: new Date().toISOString(), 
+                      action: 'Login', 
+                      user: data.name || data.email || 'Admin', 
+                      details: `User logged in to the admin portal via ${data.email ? 'OAuth' : 'Session'}.` 
+                    };
+                    setLogs(prev => [newLog, ...prev]);
+                    sessionStorage.setItem(sessionLogKey, 'true');
+                  }
+
                   setIsRoleVerified(true);
                   return true;
                 }
@@ -1360,6 +1375,7 @@ export default function App() {
             <Route path="marketing" element={renderAdminRoute(<MarketingPage />)} />
             <Route path="house-rules" element={renderAdminRoute(<HouseRulesPage />)} />
             <Route path="finance" element={renderAdminRoute(<FinancePage />)} />
+            <Route path="logs" element={renderAdminRoute(<LogsPage logs={logs} />)} />
             <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
               setBookings(prev => {
                 // 1. Filter out duplicates by ID

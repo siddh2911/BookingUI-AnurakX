@@ -299,7 +299,13 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                                     </div>
                                     {logs && logs.length > 0 && (
                                         <div className={`p-3 text-center border-t ${theme === 'night' ? 'border-slate-800 bg-slate-950/50' : 'border-slate-100 bg-slate-50'}`}>
-                                            <button className="text-xs font-semibold text-blue-500 hover:text-blue-400">View All Logs</button>
+                                            <Link 
+                                                to="/logs" 
+                                                className="text-xs font-semibold text-blue-500 hover:text-blue-400"
+                                                onClick={() => setIsNotificationOpen(false)}
+                                            >
+                                                View All Logs
+                                            </Link>
                                         </div>
                                     )}
                                 </div>
