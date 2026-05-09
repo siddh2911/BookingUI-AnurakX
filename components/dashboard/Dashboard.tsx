@@ -114,11 +114,17 @@ const Dashboard: React.FC<DashboardProps> = ({
             // Use YTD run-rate to smooth out volatility
             const predictedYearlyRevenue = Math.round((stats.revenueYear / daysElapsedYear) * 365);
 
+            const calcMultiplier = (actual: number, target: number) => {
+              if (target === 0) return undefined;
+              const mult = actual / target;
+              return mult > 1 ? `${mult.toFixed(1)}x` : undefined;
+            };
+
             return [
-              { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly) },
-              { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
+              { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly), multiplier: calcMultiplier(stats.revenueWeek, targetWeekly) },
+              { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly), multiplier: calcMultiplier(stats.revenueMonth, targetMonthly) },
               { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
-              { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
+              { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly), multiplier: calcMultiplier(predictedYearlyRevenue, targetYearly) },
             ];
           })()}
           isRevenueVisible={isRevenueVisible}
