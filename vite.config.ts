@@ -12,6 +12,18 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['bookingui-anurakx.onrender.com'],
     },
     plugins: [react()],
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-utils': ['axios', 'date-fns', 'zod', 'clsx', 'tailwind-merge'],
+            'vendor-ui': ['lucide-react', 'recharts', 'jspdf', 'jspdf-autotable', 'qrcode', 'html2canvas', 'dompurify'],
+          },
+        },
+      },
+    },
     define: {
     }, resolve: {
       alias: {

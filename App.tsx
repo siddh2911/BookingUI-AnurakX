@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { getAvailabilityForecast, API_BASE_URL } from './services/api';
+import { getAvailabilityForecast, API_BASE_URL, updateRoomCleanStatus, fetchMaintenanceTickets } from './services/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';
@@ -478,10 +478,8 @@ export default function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      import('./services/api').then(api => {
-        api.fetchMaintenanceTickets().then(setMaintenanceTickets).catch(err => {
-          if (err.message !== 'AUTH_EXPIRED') console.error(err);
-        });
+      fetchMaintenanceTickets().then(setMaintenanceTickets).catch(err => {
+        if (err.message !== 'AUTH_EXPIRED') console.error(err);
       });
     }
   }, [isAuthenticated]);
@@ -1276,9 +1274,7 @@ export default function App() {
 
             const actualRoom = rooms.find(r => r.id === b.roomId);
             if (actualRoom) {
-              import('./services/api').then(api => {
-                api.updateRoomCleanStatus(actualRoom.number, 'DIRTY').catch(console.error);
-              });
+              updateRoomCleanStatus(actualRoom.number, 'DIRTY').catch(console.error);
             }
 
             if (b.mobileNumber) {
