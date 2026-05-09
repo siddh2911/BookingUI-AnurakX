@@ -194,11 +194,13 @@ export default function App() {
     }
   }, []);
 
+  /*
   useEffect(() => {
     if (isAuthenticated) {
       fetchLogs();
     }
   }, [isAuthenticated, fetchLogs]);
+  */
   const checkSession = useCallback(async (): Promise<boolean> => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
