@@ -13,16 +13,9 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     build: {
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-utils': ['axios', 'date-fns', 'zod', 'clsx', 'tailwind-merge'],
-            'vendor-charts': ['recharts'],
-            'vendor-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas', 'dompurify'],
-            'vendor-icons': ['lucide-react'],
-          },
         },
       },
     },
