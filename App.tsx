@@ -169,10 +169,7 @@ export default function App() {
   useEffect(() => { roomsRef.current = rooms; }, [rooms]);
 
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [logs, setLogs] = useState<AuditLog[]>(() => {
-    const savedLogs = localStorage.getItem('karuna_audit_logs');
-    return savedLogs ? JSON.parse(savedLogs) : [];
-  });
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [currentUser, setCurrentUser] = useState<User>({ id: 'u_1', name: 'Mock User', role: 'View' });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -181,9 +178,26 @@ export default function App() {
   const [isRoleVerified, setIsRoleVerified] = useState(false);
   const [isPostLoginRefreshing, setIsPostLoginRefreshing] = useState(false);
 
+  const fetchLogs = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/logs`);
+      // Map server response fields if they differ (e.g., userName vs user)
+      const mappedLogs = response.data.map((log: any) => ({
+        ...log,
+        user: log.userName || log.user || 'System',
+        id: String(log.id)
+      }));
+      setLogs(mappedLogs);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    localStorage.setItem('karuna_audit_logs', JSON.stringify(logs));
-  }, [logs]);
+    if (isAuthenticated) {
+      fetchLogs();
+    }
+  }, [isAuthenticated, fetchLogs]);
   const checkSession = useCallback(async (): Promise<boolean> => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
@@ -848,10 +862,23 @@ export default function App() {
   }, [isAuthenticated, stats.totalCheckIns, fetchBookings]);
 
 
-  const addLog = useCallback((action: string, details: string) => {
-    const newLog = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), action, user: currentUser.name, details };
-    setLogs(prev => [newLog, ...prev]);
-  }, [currentUser]);
+  const addLog = useCallback(async (action: string, details: string) => {
+    try {
+      const newLog = { 
+        action, 
+        userName: currentUser.name, 
+        details,
+        timestamp: new Date().toISOString()
+      };
+      await axios.post(`${API_BASE_URL}/api/logs`, newLog);
+      fetchLogs(); // Refresh logs from server
+    } catch (error) {
+      console.error('Error saving log:', error);
+      // Fallback: add locally if server fails
+      const localLog = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), action, user: currentUser.name, details };
+      setLogs(prev => [localLog, ...prev]);
+    }
+  }, [currentUser, fetchLogs]);
 
   const handleVoiceCommand = useCallback(async (transcript: string): Promise<string> => {
     try {
