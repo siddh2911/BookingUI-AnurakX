@@ -147,15 +147,7 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
     };
 
     // Listen for custom event to resume listening
-    useEffect(() => {
-        const handleResume = () => {
-            if (!isListening) {
-                toggleListening();
-            }
-        };
-        window.addEventListener('resume-voice-assistant', handleResume);
-        return () => window.removeEventListener('resume-voice-assistant', handleResume);
-    }, [isListening, language, theme]); // Added dependencies to ensure closures are fresh
+
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

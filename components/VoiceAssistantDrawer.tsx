@@ -234,12 +234,12 @@ export default function VoiceAssistantDrawer({
       {/* ─── Footer ─── */}
       <div className={`flex-shrink-0 px-4 pb-5 pt-3 border-t ${night ? 'border-slate-800/50' : 'border-slate-200/50'}`}>
         {/* Quick queries — show always at the bottom */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4 max-h-[80px] overflow-y-auto custom-scrollbar">
           {QUICK_QUERIES.map((q) => (
             <button
               key={q}
               onClick={() => onQuickQuery(q)}
-              className={`text-xs font-medium px-3 py-1.5 rounded-full transition-all duration-200 border
+              className={`text-[10px] font-medium px-3 py-1.5 rounded-full transition-all duration-200 border
                 ${night
                   ? 'bg-slate-800/60 border-slate-700 text-slate-400 hover:bg-indigo-500/15 hover:text-cyan-400 hover:border-indigo-500/40'
                   : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300'}
@@ -250,12 +250,38 @@ export default function VoiceAssistantDrawer({
           ))}
         </div>
 
-        {/* Mic button row */}
-        <div className="flex items-center justify-center">
+        {/* Input area */}
+        <div className="flex items-center gap-3">
+          <div className={`flex-1 relative flex items-center rounded-2xl border transition-all duration-300 ${night ? 'bg-slate-900 border-slate-800 focus-within:border-indigo-500/50' : 'bg-slate-50 border-slate-200 focus-within:border-indigo-400/50 focus-within:bg-white'}`}>
+             <input 
+                type="text"
+                placeholder="Type a message..."
+                className={`w-full bg-transparent border-none outline-none py-3.5 pl-4 pr-12 text-sm font-medium ${night ? 'text-slate-200 placeholder:text-slate-600' : 'text-slate-900 placeholder:text-slate-400'}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                    onQuickQuery(e.currentTarget.value);
+                    e.currentTarget.value = '';
+                  }
+                }}
+             />
+             <button 
+                onClick={(e) => {
+                  const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                  if (input.value.trim()) {
+                    onQuickQuery(input.value);
+                    input.value = '';
+                  }
+                }}
+                className={`absolute right-2 p-2 rounded-xl transition-all ${night ? 'text-indigo-400 hover:bg-slate-800' : 'text-indigo-600 hover:bg-slate-200'}`}
+             >
+                <Sparkles size={18} />
+             </button>
+          </div>
+
           <button
             onClick={onToggleListening}
             className={`
-              relative w-14 h-14 rounded-2xl flex items-center justify-center
+              relative w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0
               transition-all duration-300 ease-out active:scale-90 hover:scale-105
               shadow-lg
               ${isListening
@@ -266,13 +292,9 @@ export default function VoiceAssistantDrawer({
             {isListening && (
               <div className="absolute inset-0 rounded-2xl bg-red-400/20 animate-ping" />
             )}
-            {isListening ? <Mic size={24} className="text-white relative z-10" /> : <Sparkles size={24} className="text-white relative z-10" />}
+            {isListening ? <Mic size={20} className="text-white relative z-10" /> : <Mic size={20} className="text-white relative z-10" />}
           </button>
         </div>
-
-        <p className={`text-center text-[10px] mt-2 tracking-wide ${night ? 'text-slate-600' : 'text-slate-400'}`}>
-          {isListening ? 'Speaking… stops automatically when done' : 'Tap to speak'}
-        </p>
       </div>
     </div>
   );
