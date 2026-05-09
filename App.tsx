@@ -841,11 +841,18 @@ export default function App() {
 
     const totalRevenue = bookings.filter(b => b.status !== BookingStatus.CANCELLED).reduce((sum, b) => sum + (b.totalAmount || b.totalPaid || 0), 0);
     const revenueToday = calculateRevenue(startOfDay, endOfDay);
-    const revenueWeek = calculateRevenue(startOfWeek, endOfWeekToDate);
+    const revenueWeek = calculateRevenue(startOfWeek, endOfWeek); // Full current week revenue
+    const weekProjection = currentWeekDailyAverage * 7;
     const previousWeekToDateRevenue = calculateRevenue(startOfPreviousWeekToDate, endOfPreviousWeekToDate);
     const revenueMonth = calculateRevenue(startOfMonth, endOfMonth);
     const revenueYear = calculateRevenue(startOfYear, endOfYear);
     const revenueFY = calculateRevenue(startOfFY, endOfFY);
+    
+    // Yearly Growth Multiplier vs Normal Rent
+    const roomCount = rooms.length;
+    const targetYearly = 12000 * 12 * roomCount;
+    const yearlyGrowthMultiplier = targetYearly > 0 ? (revenueYear / targetYearly) : 0;
+
     const currentWeekDailyAverage = revenueWeek / weekElapsedDays;
     const previousWeekDailyAverage = previousWeekToDateRevenue / weekElapsedDays;
     const revenueWeekGrowthRatio = previousWeekToDateRevenue > 0
@@ -873,7 +880,7 @@ export default function App() {
     return {
       occupancyToday, occupancyWeek, occupancyMonth, occupancyYear, occupancyAllTime,
       revenueToday, revenueWeek, revenueMonth, revenueYear, totalRevenue, revenueFY,
-      weekElapsedDays, averageRevenueGrowth, revenueWeekGrowthRatio,
+      weekElapsedDays, averageRevenueGrowth, revenueWeekGrowthRatio, yearlyGrowthMultiplier, weekProjection,
       checkInsToday, checkInsWeek, checkInsMonth, checkInsYear, totalCheckIns
     };
   }, [bookings, rooms, today]);

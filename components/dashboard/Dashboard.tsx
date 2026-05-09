@@ -125,11 +125,19 @@ const Dashboard: React.FC<DashboardProps> = ({
 	                trend: {
 	                  value: Math.round(((stats.revenueWeekGrowthRatio || 0) - 1) * 100),
 	                  positive: (stats.revenueWeekGrowthRatio || 0) >= 1,
-	                  display: formatMultiple(stats.revenueWeekGrowthRatio || 0)
+	                  display: `${(stats.revenueWeekGrowthRatio || 0).toFixed(2)}x`
 	                }
 	              },
 	              { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
-	              { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
+	              { 
+                    label: 'Year', 
+                    value: `₹${stats.revenueYear.toLocaleString()}`, 
+                    trend: {
+                        value: Math.round(((stats.yearlyGrowthMultiplier || 0) - 1) * 100),
+                        positive: (stats.yearlyGrowthMultiplier || 0) >= 1,
+                        display: `${(stats.yearlyGrowthMultiplier || 0).toFixed(2)}x`
+                    } 
+                  },
 	              { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
 	              ];
 	            })()}
@@ -138,9 +146,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 	            hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
 	            trend={{
 	              value: stats.averageRevenueGrowth || 0,
-	              label: 'Avg Growth',
-	              positive: (stats.revenueWeekGrowthRatio || 0) >= 1,
-	              display: formatMultiple(stats.revenueWeekGrowthRatio || 0)
+	              label: 'Growth',
+	              positive: (stats.yearlyGrowthMultiplier || 0) >= 1,
+	              display: `${(stats.yearlyGrowthMultiplier || 0).toFixed(2)}x`
 	            }}
 	            taxBadge={(() => {
               // Calculate 20% tax on the actual revenue earned so far in the current Financial Year (since April 1st)
