@@ -735,6 +735,11 @@ export default function App() {
       const [y, m, d] = dateStr.split('-').map(Number);
       return new Date(y, m - 1, d);
     };
+    const addDays = (date: Date, days: number) => {
+      const next = new Date(date);
+      next.setDate(next.getDate() + days);
+      return next;
+    };
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay()); startOfWeek.setHours(0, 0, 0, 0);
@@ -770,6 +775,10 @@ export default function App() {
 
 
     const endOfWeek = new Date(startOfWeek); endOfWeek.setDate(endOfWeek.getDate() + 7);
+    const endOfWeekToDate = endOfDay;
+    const weekElapsedDays = Math.max(1, Math.ceil((endOfWeekToDate.getTime() - startOfWeek.getTime()) / (1000 * 60 * 60 * 24)));
+    const startOfPreviousWeekToDate = addDays(startOfWeek, -7);
+    const endOfPreviousWeekToDate = addDays(startOfPreviousWeekToDate, weekElapsedDays);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const endOfYear = new Date(now.getFullYear(), 11, 31);
     const currentMonth = now.getMonth();
@@ -832,10 +841,16 @@ export default function App() {
 
     const totalRevenue = bookings.filter(b => b.status !== BookingStatus.CANCELLED).reduce((sum, b) => sum + (b.totalAmount || b.totalPaid || 0), 0);
     const revenueToday = calculateRevenue(startOfDay, endOfDay);
-    const revenueWeek = calculateRevenue(startOfWeek, endOfWeek);
+    const revenueWeek = calculateRevenue(startOfWeek, endOfWeekToDate);
+    const previousWeekToDateRevenue = calculateRevenue(startOfPreviousWeekToDate, endOfPreviousWeekToDate);
     const revenueMonth = calculateRevenue(startOfMonth, endOfMonth);
     const revenueYear = calculateRevenue(startOfYear, endOfYear);
     const revenueFY = calculateRevenue(startOfFY, endOfFY);
+    const currentWeekDailyAverage = revenueWeek / weekElapsedDays;
+    const previousWeekDailyAverage = previousWeekToDateRevenue / weekElapsedDays;
+    const averageRevenueGrowth = previousWeekDailyAverage > 0
+      ? Math.round(((currentWeekDailyAverage - previousWeekDailyAverage) / previousWeekDailyAverage) * 100)
+      : currentWeekDailyAverage > 0 ? 100 : 0;
 
 
     const countCheckIns = (startDate: Date, endDate: Date) => {
@@ -855,6 +870,7 @@ export default function App() {
     return {
       occupancyToday, occupancyWeek, occupancyMonth, occupancyYear, occupancyAllTime,
       revenueToday, revenueWeek, revenueMonth, revenueYear, totalRevenue, revenueFY,
+      weekElapsedDays, averageRevenueGrowth,
       checkInsToday, checkInsWeek, checkInsMonth, checkInsYear, totalCheckIns
     };
   }, [bookings, rooms, today]);

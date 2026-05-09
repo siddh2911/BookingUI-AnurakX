@@ -79,53 +79,57 @@ const Dashboard: React.FC<DashboardProps> = ({
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {isAdmin && (
-          <StatCard
-            title={t('totalRevenue')}
-          comparatorLabel="% change vs Normal Rental"
-          value={`₹${stats.revenueToday.toLocaleString()}`}
-          total={`₹${stats.totalRevenue.toLocaleString()}`}
-          icon={<CreditCard size={20} />}
-          onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
-          details={(() => {
-            const roomCount = rooms?.length || 0;
-            const dailyRate = 400;
-            const monthlyRate = 12000;
+	        {isAdmin && (
+	          <StatCard
+	            title={t('totalRevenue')}
+	            comparatorLabel="% change vs Normal Rental"
+	            value={`₹${stats.revenueToday.toLocaleString()}`}
+	            total={`₹${stats.totalRevenue.toLocaleString()}`}
+	            icon={<CreditCard size={20} />}
+	            onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
+	            details={(() => {
+	              const roomCount = rooms?.length || 0;
+	              const dailyRate = 400;
+	              const monthlyRate = 12000;
 
 
-            const targetWeekly = dailyRate * 7 * roomCount;
-            const targetMonthly = monthlyRate * roomCount;
-            const targetYearly = monthlyRate * 12 * roomCount;
+	              const targetWeekly = dailyRate * (stats.weekElapsedDays || 7) * roomCount;
+	              const targetMonthly = monthlyRate * roomCount;
+	              const targetYearly = monthlyRate * 12 * roomCount;
 
 
-            const calcTrend = (actual: number, target: number) => {
-              if (target === 0) return undefined;
-              return {
-                value: Math.round(((actual - target) / target) * 100),
-                positive: actual >= target
-              };
-            };
+	              const calcTrend = (actual: number, target: number) => {
+	                if (target === 0) return undefined;
+	                return {
+	                  value: Math.round(((actual - target) / target) * 100),
+	                  positive: actual >= target
+	                };
+	              };
 
 
-            const now = new Date();
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+	              const now = new Date();
+	              const startOfYear = new Date(now.getFullYear(), 0, 1);
+	              const daysElapsedYear = Math.max(1, Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-            // Use YTD run-rate to smooth out volatility
-            const predictedYearlyRevenue = Math.round((stats.revenueYear / daysElapsedYear) * 365);
+	              // Use YTD run-rate to smooth out volatility
+	              const predictedYearlyRevenue = Math.round((stats.revenueYear / daysElapsedYear) * 365);
 
-            return [
-              { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly) },
-              { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
-              { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
-              { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
-            ];
-          })()}
-          isRevenueVisible={isRevenueVisible}
-          setIsRevenueVisible={setIsRevenueVisible}
-            hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
-            trend={undefined}
-            taxBadge={(() => {
+	              return [
+	                { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly) },
+	                { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
+	                { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
+	                { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
+	              ];
+	            })()}
+	            isRevenueVisible={isRevenueVisible}
+	            setIsRevenueVisible={setIsRevenueVisible}
+	            hoverContent={<BookingStats bookings={bookings} mode="revenue" compact />}
+	            trend={{
+	              value: stats.averageRevenueGrowth || 0,
+	              label: 'Avg Growth',
+	              positive: (stats.averageRevenueGrowth || 0) >= 0
+	            }}
+	            taxBadge={(() => {
               // Calculate 20% tax on the actual revenue earned so far in the current Financial Year (since April 1st)
               const actualTax = Math.round((stats.revenueFY || 0) * 0.20);
               return { label: '20% FY Actual', value: `₹${actualTax.toLocaleString()}` };
