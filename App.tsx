@@ -48,7 +48,6 @@ import NewBookingModal from './components/modals/NewBookingModal';
 import BookingDetailsModal from './components/modals/BookingDetailsModal';
 import DayDetailsModal from './components/modals/DayDetailsModal';
 import PaymentModal from './components/modals/PaymentModal';
-import SecurityModal from './components/modals/SecurityModal';
 import DeleteConfirmationModal from './components/modals/DeleteConfirmationModal';
 
 const ADMIN_AUTH_TOKENS = new Set([
@@ -510,7 +509,6 @@ export default function App() {
   const [forecastPage, setForecastPage] = useState(0);
   const [currentBookingPayments, setCurrentBookingPayments] = useState<Payment[]>([]);
   const [isRevenueVisible, setIsRevenueVisible] = useState(false);
-  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [dayDetailsDate, setDayDetailsDate] = useState<Date | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
   const [housekeepingTasks, setHousekeepingTasks] = useState<HousekeepingTask[]>([]);
@@ -527,8 +525,11 @@ export default function App() {
   }, [isAuthenticated]);
   const handleToggleRevenue = (visible: boolean) => {
     if (visible) {
-
-      setIsSecurityModalOpen(true);
+      if (!isAdmin) {
+        alert('Access Denied: You do not have permission to view revenue details.');
+        return;
+      }
+      setIsRevenueVisible(true);
     } else {
 
       setIsRevenueVisible(false);
@@ -1502,14 +1503,6 @@ export default function App() {
           onProcessPayment={handleAddPayment}
         />
 
-        <SecurityModal
-          isOpen={isSecurityModalOpen}
-          onClose={() => setIsSecurityModalOpen(false)}
-          onAuthenticated={() => {
-            setIsRevenueVisible(true);
-            setIsSecurityModalOpen(false);
-          }}
-        />
         <DayDetailsModal
           isOpen={!!dayDetailsDate}
           onClose={() => setDayDetailsDate(null)}

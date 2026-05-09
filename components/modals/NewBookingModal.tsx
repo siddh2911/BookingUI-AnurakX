@@ -539,7 +539,12 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  disabled={true}
                               />
                            ) : (
-                              <div className="w-full border-b border-slate-200 py-2 md:py-3 flex items-center justify-between text-slate-400 cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setIsSecurityModalOpen(true)}>
+                              <div
+                                 className={`w-full border-b border-slate-200 py-2 md:py-3 flex items-center justify-between text-slate-400 transition-colors ${readOnly ? '' : 'cursor-pointer hover:bg-slate-50'}`}
+                                 onClick={() => {
+                                    if (!readOnly) setIsSecurityModalOpen(true);
+                                 }}
+                              >
                                  <span className="text-sm italic">Hidden</span>
                                  <Lock size={14} />
                               </div>
@@ -668,16 +673,18 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            <div>
                               <h3 className="text-xl font-bold text-white mb-2">Financials Locked</h3>
                               <p className="text-slate-400 text-sm max-w-[200px] mx-auto">
-                                 Payment summary is hidden. Authenticate to view details.
+                                 Payment summary is hidden for restricted access.
                               </p>
                            </div>
-                           <button
-                              type="button"
-                              onClick={() => setIsSecurityModalOpen(true)}
-                              className="px-6 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-slate-100 transition shadow-lg"
-                           >
-                              Unlock Details
-                           </button>
+                           {!readOnly && (
+                              <button
+                                 type="button"
+                                 onClick={() => setIsSecurityModalOpen(true)}
+                                 className="px-6 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-slate-100 transition shadow-lg"
+                              >
+                                 Unlock Details
+                              </button>
+                           )}
                         </div>
                      ) : (
                         <>
@@ -888,9 +895,12 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
             isOpen={isSecurityModalOpen}
             onClose={() => setIsSecurityModalOpen(false)}
             onAuthenticated={() => {
+               if (readOnly) return;
                setIsFinancialsVisible(true);
                setIsSecurityModalOpen(false);
             }}
+            message="Financial details are available only while editing with administrator access."
+            confirmLabel="Unlock Details"
          />
       </Modal >
    );

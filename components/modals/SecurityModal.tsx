@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Modal from '../ui/Modal';
 import { ShieldCheck, Lock } from 'lucide-react';
 
@@ -6,25 +6,21 @@ interface SecurityModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAuthenticated: () => void;
+    message?: string;
+    confirmLabel?: string;
 }
 
-export default function SecurityModal({ isOpen, onClose, onAuthenticated }: SecurityModalProps) {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-
+export default function SecurityModal({
+    isOpen,
+    onClose,
+    onAuthenticated,
+    message = 'This data is sensitive and is only available to authenticated administrators.',
+    confirmLabel = 'Continue'
+}: SecurityModalProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (username === 'Admin' && password === 'VaranasiKarunaVilla') {
-            onAuthenticated();
-            onClose();
-            setUsername('');
-            setPassword('');
-            setError('');
-        } else {
-            setError('Invalid credentials. Access denied.');
-        }
+        onAuthenticated();
+        onClose();
     };
 
     return (
@@ -35,35 +31,10 @@ export default function SecurityModal({ isOpen, onClose, onAuthenticated }: Secu
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">Restricted Access</h3>
                 <p className="text-slate-500 text-center mb-6 text-sm">
-                    This data is sensitive. Please enter your administrator credentials to view revenue details.
+                    {message}
                 </p>
 
                 <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="Username"
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
-                    </div>
-                    <div>
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="text-red-500 text-xs font-medium text-center bg-red-50 py-2 rounded-lg">
-                            {error}
-                        </div>
-                    )}
-
                     <div className="flex gap-3 pt-2">
                         <button
                             type="button"
@@ -76,7 +47,7 @@ export default function SecurityModal({ isOpen, onClose, onAuthenticated }: Secu
                             type="submit"
                             className="flex-1 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold text-sm shadow-lg shadow-slate-900/10 flex items-center justify-center gap-2"
                         >
-                            <Lock size={16} /> Authenticate
+                            <Lock size={16} /> {confirmLabel}
                         </button>
                     </div>
                 </form>

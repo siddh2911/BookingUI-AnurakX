@@ -109,23 +109,19 @@ export default function HouseRulesPage() {
   };
 
   const handlePrint = () => {
-    const printContent = printRef.current?.innerHTML;
+    const printContent = printRef.current?.cloneNode(true);
     if (!printContent) return;
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`
-      <html>
-        <head>
-          <title>${hotelName} – House Rules</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Georgia', serif; color: #1e293b; background: #fff; padding: 48px; }
-          </style>
-        </head>
-        <body>${printContent}</body>
-      </html>
-    `);
-    w.document.close();
+    const title = w.document.createElement('title');
+    title.textContent = `${hotelName} - House Rules`;
+    const style = w.document.createElement('style');
+    style.textContent = `
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Georgia', serif; color: #1e293b; background: #fff; padding: 48px; }
+    `;
+    w.document.head.replaceChildren(title, style);
+    w.document.body.replaceChildren(printContent);
     w.focus();
     setTimeout(() => { w.print(); w.close(); }, 400);
   };
