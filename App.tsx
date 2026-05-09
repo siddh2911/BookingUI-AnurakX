@@ -842,7 +842,6 @@ export default function App() {
     const totalRevenue = bookings.filter(b => b.status !== BookingStatus.CANCELLED).reduce((sum, b) => sum + (b.totalAmount || b.totalPaid || 0), 0);
     const revenueToday = calculateRevenue(startOfDay, endOfDay);
     const revenueWeek = calculateRevenue(startOfWeek, endOfWeek); // Full current week revenue
-    const weekProjection = currentWeekDailyAverage * 7;
     const previousWeekToDateRevenue = calculateRevenue(startOfPreviousWeekToDate, endOfPreviousWeekToDate);
     const revenueMonth = calculateRevenue(startOfMonth, endOfMonth);
     const revenueYear = calculateRevenue(startOfYear, endOfYear);
@@ -853,8 +852,9 @@ export default function App() {
     const targetYearly = 12000 * 12 * roomCount;
     const yearlyGrowthMultiplier = targetYearly > 0 ? (revenueYear / targetYearly) : 0;
 
-    const currentWeekDailyAverage = revenueWeek / weekElapsedDays;
-    const previousWeekDailyAverage = previousWeekToDateRevenue / weekElapsedDays;
+    const currentWeekDailyAverage = revenueWeek / (weekElapsedDays || 1);
+    const weekProjection = currentWeekDailyAverage * 7;
+    const previousWeekDailyAverage = previousWeekToDateRevenue / (weekElapsedDays || 1);
     const revenueWeekGrowthRatio = previousWeekToDateRevenue > 0
       ? revenueWeek / previousWeekToDateRevenue
       : revenueWeek > 0 ? 1 : 0;
