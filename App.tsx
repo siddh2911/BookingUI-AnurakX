@@ -305,6 +305,24 @@ export default function App() {
       setIsAuthLoading(false);
     }
   }, [checkSession]);
+
+  const addLog = useCallback(async (action: string, details: string) => {
+    try {
+      const newLog = {
+        action,
+        userName: currentUser.name,
+        details,
+        timestamp: new Date().toISOString()
+      };
+      await axios.post(`${API_BASE_URL}/api/logs`, newLog);
+      fetchLogs();
+    } catch (error) {
+      console.error('Error saving log:', error);
+      const localLog = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), action, user: currentUser.name, details };
+      setLogs(prev => [localLog, ...prev]);
+    }
+  }, [currentUser, fetchLogs]);
+
   const handleLogout = useCallback(async () => {
     try {
       // Log the logout event before session is destroyed
@@ -871,24 +889,6 @@ export default function App() {
     }
   }, [isAuthenticated, stats.totalCheckIns, fetchBookings]);
 
-
-  const addLog = useCallback(async (action: string, details: string) => {
-    try {
-      const newLog = { 
-        action, 
-        userName: currentUser.name, 
-        details,
-        timestamp: new Date().toISOString()
-      };
-      await axios.post(`${API_BASE_URL}/api/logs`, newLog);
-      fetchLogs(); // Refresh logs from server
-    } catch (error) {
-      console.error('Error saving log:', error);
-      // Fallback: add locally if server fails
-      const localLog = { id: Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString(), action, user: currentUser.name, details };
-      setLogs(prev => [localLog, ...prev]);
-    }
-  }, [currentUser, fetchLogs]);
 
   const handleVoiceCommand = useCallback(async (transcript: string): Promise<string> => {
     try {
