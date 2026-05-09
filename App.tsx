@@ -848,6 +848,9 @@ export default function App() {
     const revenueFY = calculateRevenue(startOfFY, endOfFY);
     const currentWeekDailyAverage = revenueWeek / weekElapsedDays;
     const previousWeekDailyAverage = previousWeekToDateRevenue / weekElapsedDays;
+    const revenueWeekGrowthRatio = previousWeekToDateRevenue > 0
+      ? revenueWeek / previousWeekToDateRevenue
+      : revenueWeek > 0 ? 1 : 0;
     const averageRevenueGrowth = previousWeekDailyAverage > 0
       ? Math.round(((currentWeekDailyAverage - previousWeekDailyAverage) / previousWeekDailyAverage) * 100)
       : currentWeekDailyAverage > 0 ? 100 : 0;
@@ -870,7 +873,7 @@ export default function App() {
     return {
       occupancyToday, occupancyWeek, occupancyMonth, occupancyYear, occupancyAllTime,
       revenueToday, revenueWeek, revenueMonth, revenueYear, totalRevenue, revenueFY,
-      weekElapsedDays, averageRevenueGrowth,
+      weekElapsedDays, averageRevenueGrowth, revenueWeekGrowthRatio,
       checkInsToday, checkInsWeek, checkInsMonth, checkInsYear, totalCheckIns
     };
   }, [bookings, rooms, today]);

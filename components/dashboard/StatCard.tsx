@@ -9,7 +9,7 @@ interface StatCardProps {
   totalTrend?: { value: number; positive: boolean };
   icon: React.ReactNode;
   onClick?: () => void;
-  details: { label: string; value: string | number; trend?: { value: number; positive: boolean } }[];
+  details: { label: string; value: string | number; trend?: { value: number; positive: boolean; display?: string } }[];
   comparatorLabel?: string;
   isRevenueVisible?: boolean;
   setIsRevenueVisible?: (visible: boolean) => void;
@@ -19,6 +19,7 @@ interface StatCardProps {
     value: number;
     label: string;
     positive?: boolean;
+    display?: string;
   };
 }
 
@@ -108,7 +109,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                     {isRevenueVisible ? value : <span className="text-slate-300">••••••</span>}
                   </p>
                   <div className={`flex items-center gap-1 mt-1 text-xs font-bold ${trend?.positive ? 'text-emerald-500' : 'text-slate-400'} ${isRevenueVisible && trend ? '' : 'invisible'}`}>
-                    <span>{trend ? (trend.value > 0 ? '+' : '') + trend.value + '%' : '0%'}</span>
+                    <span>{trend?.display || (trend ? (trend.value > 0 ? '+' : '') + trend.value + '%' : '0%')}</span>
                     <span className="text-slate-400 font-medium uppercase text-[9px] tracking-wide">{trend?.label || 'Target'}</span>
                   </div>
                 </div>
@@ -146,7 +147,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                     <div className={`h-3 flex items-center justify-center w-full ${isRevenueVisible && detail.trend ? '' : 'invisible'}`}>
                       {detail.trend && (
                         <span className={`text-[10px] md:text-[8px] font-bold ${detail.trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {detail.trend.value > 0 ? '+' : ''}{detail.trend.value}%
+                          {detail.trend.display || `${detail.trend.value > 0 ? '+' : ''}${detail.trend.value}%`}
                         </span>
                       )}
                     </div>

@@ -59,6 +59,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   handleSendReviewRequest,
 }) => {
   const { t } = useLanguage();
+  const formatMultiple = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return '0x';
+    return `${value >= 10 ? value.toFixed(0) : value.toFixed(1).replace(/\.0$/, '')}x`;
+  };
 
   return (
     <div className="space-y-6">
@@ -86,14 +90,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 	            value={`₹${stats.revenueToday.toLocaleString()}`}
 	            total={`₹${stats.totalRevenue.toLocaleString()}`}
 	            icon={<CreditCard size={20} />}
-	            onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
-	            details={(() => {
-	              const roomCount = rooms?.length || 0;
-	              const dailyRate = 400;
-	              const monthlyRate = 12000;
+	          onClick={() => handleDashboardFilter({ type: 'pending', label: 'Pending Payments' })}
+	          details={(() => {
+	            const roomCount = rooms?.length || 0;
+	            const dailyRate = 400;
+	            const monthlyRate = 12000;
 
 
-	              const targetWeekly = dailyRate * (stats.weekElapsedDays || 7) * roomCount;
+	            const targetWeekly = dailyRate * (stats.weekElapsedDays || 7) * roomCount;
 	              const targetMonthly = monthlyRate * roomCount;
 	              const targetYearly = monthlyRate * 12 * roomCount;
 
@@ -114,11 +118,19 @@ const Dashboard: React.FC<DashboardProps> = ({
 	              // Use YTD run-rate to smooth out volatility
 	              const predictedYearlyRevenue = Math.round((stats.revenueYear / daysElapsedYear) * 365);
 
-	              return [
-	                { label: 'Week', value: `₹${stats.revenueWeek.toLocaleString()}`, trend: calcTrend(stats.revenueWeek, targetWeekly) },
-	                { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
-	                { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
-	                { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
+	            return [
+	              {
+	                label: 'Week',
+	                value: `₹${stats.revenueWeek.toLocaleString()}`,
+	                trend: {
+	                  value: Math.round(((stats.revenueWeekGrowthRatio || 0) - 1) * 100),
+	                  positive: (stats.revenueWeekGrowthRatio || 0) >= 1,
+	                  display: formatMultiple(stats.revenueWeekGrowthRatio || 0)
+	                }
+	              },
+	              { label: 'Month', value: `₹${stats.revenueMonth.toLocaleString()}`, trend: calcTrend(stats.revenueMonth, targetMonthly) },
+	              { label: 'Year', value: `₹${stats.revenueYear.toLocaleString()}`, trend: undefined },
+	              { label: 'Year (Proj.)', value: `₹${predictedYearlyRevenue.toLocaleString()}`, trend: calcTrend(predictedYearlyRevenue, targetYearly) },
 	              ];
 	            })()}
 	            isRevenueVisible={isRevenueVisible}
@@ -127,7 +139,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 	            trend={{
 	              value: stats.averageRevenueGrowth || 0,
 	              label: 'Avg Growth',
-	              positive: (stats.averageRevenueGrowth || 0) >= 0
+	              positive: (stats.revenueWeekGrowthRatio || 0) >= 1,
+	              display: formatMultiple(stats.revenueWeekGrowthRatio || 0)
 	            }}
 	            taxBadge={(() => {
               // Calculate 20% tax on the actual revenue earned so far in the current Financial Year (since April 1st)
