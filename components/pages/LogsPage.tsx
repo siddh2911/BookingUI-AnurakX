@@ -85,20 +85,34 @@ export default function LogsPage({ logs }: LogsPageProps) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                log.action.includes('Login') || log.action.includes('Success') ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                log.action.includes('Delete') || log.action.includes('Cancel') ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                                                'bg-blue-50 text-blue-600 border border-blue-100'
-                                            }`}>
-                                                {log.action}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-block ${
+                                                    log.severity === 'WARNING' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                                    log.severity === 'CRITICAL' || log.action.includes('Delete') ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                                                    'bg-blue-50 text-blue-600 border border-blue-100'
+                                                }`}>
+                                                    {log.action}
+                                                </span>
+                                                {log.severity && (
+                                                    <span className={`text-[8px] font-bold mt-1 ml-1 ${
+                                                        log.severity === 'WARNING' ? 'text-amber-500' : 
+                                                        log.severity === 'CRITICAL' ? 'text-rose-500' : 
+                                                        'text-slate-400'
+                                                    }`}>
+                                                        {log.severity}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                                                     {(log.user || 'S').charAt(0).toUpperCase()}
                                                 </div>
-                                                <span className="text-sm font-bold text-slate-700">{log.user || 'System'}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-700">{log.user || 'System'}</span>
+                                                    {log.ipAddress && <span className="text-[9px] text-slate-400 font-medium font-mono">{log.ipAddress}</span>}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
