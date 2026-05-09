@@ -10,12 +10,15 @@ import { RoomSchema } from './schemas';
 
 
 export const getAvailableRooms = async (
-  options: { startDate: string, endDate: string }
+  options: { startDate: string, endDate: string, hotelId?: number }
 ): Promise<Room[]> => {
-  const { startDate, endDate } = options;
+  const { startDate, endDate, hotelId } = options;
   const url = new URL(`${API_BASE_URL}/available-rooms`);
   url.searchParams.append('startDate', startDate);
   url.searchParams.append('endDate', endDate);
+  if (hotelId != null) {
+    url.searchParams.append('hotelId', String(hotelId));
+  }
 
   console.log(`Fetching available rooms from ${url.toString()}`);
 
@@ -37,6 +40,7 @@ export const getAvailableRooms = async (
 
   const mappedData: Room[] = data.map((room: any) => ({
     ...room,
+    hotelId: room.hotelId ?? room.hotel?.id,
     number: room.roomNumber,
   }));
   return mappedData;

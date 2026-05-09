@@ -64,6 +64,7 @@ export interface BookingSourceDetail {
 
 export interface Booking {
   id: string;
+  hotelId?: number;
   roomId: number;
   guestName: string;
   guestEmail?: string;
@@ -86,6 +87,7 @@ export interface Booking {
 
 export interface Room {
   id: number;
+  hotelId?: number;
   number: string;
   type: RoomType;
   pricePerNight: number;

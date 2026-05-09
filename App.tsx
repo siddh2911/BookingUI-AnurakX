@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { getAvailabilityForecast } from './services/api';
-import { API_BASE_URL } from './constants/api';
+import { API_BASE_URL, DEFAULT_HOTEL_ID } from './constants/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';
@@ -548,7 +548,7 @@ export default function App() {
   const today = formatLocalDate(new Date());
 
   const [newBookingData, setNewBookingData] = useState({
-    guestName: '', guestEmail: '', guestPhone: '',
+    guestName: '', guestEmail: '', guestPhone: '', hotelId: DEFAULT_HOTEL_ID,
     checkIn: today,
     checkOut: formatLocalDate(new Date(Date.now() + 86400000)),
     roomId: '', advance: 0, roomRate: 0,
@@ -624,7 +624,7 @@ export default function App() {
         const finalTotal = b.totalAmount || sourcesSum || fallbackTotal || b.totalPaid || 0;
 
         return {
-          id: b.id, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
+          id: b.id, hotelId: b.hotelId ?? b.hotel?.id ?? DEFAULT_HOTEL_ID, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
           guestPhone: b.contactNumber, checkInDate: normalizeDateString(b.checkInDate),
           checkOutDate: normalizeDateString(b.checkOutDate),
           sources: sources.length > 0 ? sources : [{ source: b.bookingSource as BookingSource, amount: finalTotal, startDate: b.checkInDate, endDate: b.checkOutDate }],
@@ -995,7 +995,7 @@ export default function App() {
     
     setEditingBookingId(null);
     setNewBookingData({
-      guestName: parsed.guestName || '', guestEmail: '', guestPhone: '',
+      guestName: parsed.guestName || '', guestEmail: '', guestPhone: '', hotelId: DEFAULT_HOTEL_ID,
       checkIn: parsed.checkIn || today,
       checkOut: parsed.checkOut || formatLocalDate(new Date(Date.now() + 86400000)),
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
@@ -1039,7 +1039,7 @@ export default function App() {
     setOriginalTotalForEditing(0);
     const defaultRoom = rooms.find(r => r.status === RoomStatus.AVAILABLE);
     setNewBookingData({
-      guestName: '', guestEmail: '', guestPhone: '',
+      guestName: '', guestEmail: '', guestPhone: '', hotelId: DEFAULT_HOTEL_ID,
       checkIn: preSelectedDate ? formatLocalDate(preSelectedDate) : today,
       checkOut: preSelectedDate ? formatLocalDate(new Date(preSelectedDate.getTime() + 86400000)) : formatLocalDate(new Date(Date.now() + 86400000)),
       roomId: defaultRoom?.id || '', advance: 0, roomRate: defaultRoom?.pricePerNight || 0,
@@ -1080,6 +1080,7 @@ export default function App() {
         guestName: fetchedBookingData.fullName || '',
         guestEmail: fetchedBookingData.emailId || '',
         guestPhone: fetchedBookingData.mobileNumber || '',
+        hotelId: fetchedBookingData.hotelId ?? fetchedBookingData.hotel?.id ?? DEFAULT_HOTEL_ID,
         checkIn: fetchedBookingData.checkInDate ? normalizeDateString(fetchedBookingData.checkInDate) : '',
         checkOut: fetchedBookingData.checkOutDate ? normalizeDateString(fetchedBookingData.checkOutDate) : '',
         roomId: rooms.find(r => r.number === fetchedBookingData.roomNo)?.id || -1,
@@ -1144,7 +1145,7 @@ export default function App() {
       alert("Access Denied: You do not have permission to modify bookings.");
       return;
     }
-    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, sources, notes, guestEmail, guestPhone, additionalCharges, mealPlan, bookingPackage } = newBookingData;
+    const { checkIn, checkOut, guestName, roomRate, advance, paymentMethod, sources, notes, guestEmail, guestPhone, additionalCharges, mealPlan, bookingPackage, hotelId } = newBookingData;
     const room = selectedRoom;
     if (!room) { alert("Selected room not found."); return; }
     if (new Date(checkOut) <= new Date(checkIn)) { alert("Check-out date must be after check-in date."); return; }
@@ -1165,7 +1166,7 @@ export default function App() {
     const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
 
     const bookingPayload = {
-      fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, checkInDate: checkIn, checkOutDate: checkOut,
+      fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, hotelId: hotelId ?? DEFAULT_HOTEL_ID, checkInDate: checkIn, checkOutDate: checkOut,
       roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: formattedSources, advanceAmount: advance,
       paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges,
       mealPlan, bookingPackage

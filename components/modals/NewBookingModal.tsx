@@ -7,6 +7,7 @@ import { getAvailableRooms, getRoomDetails } from "../../services/api";
 import CustomSelect, { SelectOption } from '../ui/CustomSelect';
 import PlatformIcon from '../common/PlatformIcon';
 import DatePicker from '../ui/DatePicker';
+import { DEFAULT_HOTEL_ID } from '../../constants/api';
 
 
 
@@ -180,6 +181,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
             const fetchedRooms = await getAvailableRooms({
                startDate: newBookingData.checkIn,
                endDate: newBookingData.checkOut,
+               hotelId: newBookingData.hotelId ?? DEFAULT_HOTEL_ID,
             });
             roomsToFilter = fetchedRooms;
          } catch (error: any) {
@@ -224,6 +226,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                }
                return {
                   ...prev,
+                  hotelId: validRooms[0].hotelId ?? prev.hotelId ?? DEFAULT_HOTEL_ID,
                   roomId: validRooms[0].id,
                   roomRate: defaultRate,
                   sources: newSources
@@ -513,6 +516,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
                                        return {
                                           ...prev,
+                                          hotelId: r?.hotelId ?? prev.hotelId ?? DEFAULT_HOTEL_ID,
                                           roomId: roomId,
                                           roomRate: newRoomRate,
                                           sources: newSources
