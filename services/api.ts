@@ -1,5 +1,6 @@
 import { Room, Booking, BookingStatus } from '../types';
 import { API_BASE_URL } from '../constants/api';
+import { csrfHeaders } from './csrf';
 
 
 
@@ -123,9 +124,9 @@ export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' 
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
+    headers: csrfHeaders({
       'Content-Type': 'application/json'
-    },
+    }),
     redirect: 'manual',
     credentials: 'include'
   });
@@ -165,7 +166,7 @@ export const createMaintenanceTicket = async (ticket: any): Promise<any> => {
   };
   const response = await fetch(`${API_BASE_URL}/maintenance`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
     redirect: 'manual',
     credentials: 'include'
@@ -183,6 +184,7 @@ export const updateMaintenanceTicketStatus = async (id: string, status: string):
   const payloadStatus = status === 'In Progress' ? 'IN_PROGRESS' : status === 'Resolved' ? 'RESOLVED' : 'OPEN';
   const response = await fetch(`${API_BASE_URL}/maintenance/${id}/status?status=${payloadStatus}`, { 
     method: 'PUT',
+    headers: csrfHeaders(),
     redirect: 'manual',
     credentials: 'include'
   });
@@ -197,6 +199,7 @@ export const updateMaintenanceTicketStatus = async (id: string, status: string):
 export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/maintenance/${id}`, { 
     method: 'DELETE',
+    headers: csrfHeaders(),
     redirect: 'manual',
     credentials: 'include'
   });

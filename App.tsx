@@ -6,9 +6,24 @@ import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';
 import { parseVoiceCommandWithAI } from './services/aiVoiceService';
+import { csrfHeaders, getCsrfToken } from './services/csrf';
 import { APP_VERSION, DASHBOARD_RELOAD_KEY, GOOGLE_LOGIN_STARTED_KEY } from './appVersion';
 
 axios.defaults.withCredentials = true;
+axios.defaults.xsrfCookieName = 'XSRF-TOKEN';
+axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN';
+
+axios.interceptors.request.use((config) => {
+  const method = config.method?.toUpperCase();
+  if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const token = getCsrfToken();
+    if (token) {
+      config.headers = config.headers || {};
+      (config.headers as any)['X-XSRF-TOKEN'] = token;
+    }
+  }
+  return config;
+});
 
 // GLOBAL AUTH INTERCEPTOR
 axios.interceptors.response.use(
@@ -342,7 +357,7 @@ export default function App() {
       
       // Clear session on backend
       await axios.post(`${API_BASE_URL}/logout`, {}, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        headers: csrfHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' })
       });
     } catch (err) {
       console.error('Backend logout failed', err);
@@ -1180,7 +1195,7 @@ export default function App() {
 
       response = await fetch(url, { 
         method: method, 
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: csrfHeaders({ 'Content-Type': 'application/json' }), 
         body: JSON.stringify(bookingPayload),
         redirect: 'manual',
         credentials: 'include'
@@ -1219,7 +1234,7 @@ export default function App() {
   const confirmDeleteBooking = useCallback(() => {
     if (bookingToDelete) {
       const url = `${API_BASE_URL}/bookings/${bookingToDelete}`;
-      fetch(url, { method: 'DELETE', redirect: 'manual', credentials: 'include' })
+      fetch(url, { method: 'DELETE', headers: csrfHeaders(), redirect: 'manual', credentials: 'include' })
         .then(response => { 
           if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
             setIsAuthenticated(false);
@@ -1250,7 +1265,7 @@ export default function App() {
 
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${selectedBooking.id}/payments`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: csrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ bookingId: selectedBooking.id, amount, method, type, bookingSource, date: new Date().toISOString() }),
         redirect: 'manual',
         credentials: 'include'
@@ -1277,7 +1292,7 @@ export default function App() {
     }
     try {
       const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/status`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+        method: 'PUT', headers: csrfHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ status }),
         redirect: 'manual',
         credentials: 'include'
       });
