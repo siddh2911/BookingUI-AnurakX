@@ -197,7 +197,6 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/logs`, {
         method: 'GET',
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         redirect: 'manual',
         credentials: 'include'
       });
@@ -601,7 +600,6 @@ export default function App() {
   const fetchBookings = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/allBooking?t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' },
         redirect: 'manual',
         credentials: 'include'
       });
