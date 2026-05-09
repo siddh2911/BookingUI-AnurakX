@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Room, HousekeepingTask, MaintenanceTicket, Booking } from '../../types';
 import HousekeepingGrid from '../rooms/HousekeepingGrid';
 import MaintenanceBoard from '../rooms/MaintenanceBoard';
-import { updateRoomCleanStatus, createMaintenanceTicket, updateMaintenanceTicketStatus, deleteMaintenanceTicket } from '../../services/api';
 
 export default function RoomsPage({
     rooms, setRooms, bookings, housekeepingTasks, setHousekeepingTasks, maintenanceTickets, setMaintenanceTickets
@@ -107,7 +106,9 @@ export default function RoomsPage({
 
                             const roomNum = rooms.find(r => r.id === updatedTask.roomId)?.number;
                             if (roomNum) {
-                                updateRoomCleanStatus(roomNum, cStatus as any).catch(console.error);
+                                import('../../services/api').then(api => {
+                                    api.updateRoomCleanStatus(roomNum, cStatus as any).catch(console.error);
+                                });
                             }
                         }}
                     />
@@ -122,6 +123,7 @@ export default function RoomsPage({
                                 return [...prev, updatedTicket];
                             });
                             try {
+                                const { createMaintenanceTicket, updateMaintenanceTicketStatus } = await import('../../services/api');
                                 if (updatedTicket.id.startsWith('mt_')) {
                                     const created = await createMaintenanceTicket(updatedTicket);
                                     setMaintenanceTickets((prev: any) => prev.map((t: any) => t.id === updatedTicket.id ? { ...updatedTicket, id: created.id.toString() } : t));
