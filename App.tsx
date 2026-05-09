@@ -194,13 +194,12 @@ export default function App() {
     }
   }, []);
 
-  /*
   useEffect(() => {
     if (isAuthenticated) {
       fetchLogs();
     }
   }, [isAuthenticated, fetchLogs]);
-  */
+
   const checkSession = useCallback(async (): Promise<boolean> => {
       try {
         const response = await axios.get('https://api.karunavillas.com/api/user', {
@@ -343,7 +342,6 @@ export default function App() {
     } finally {
       setIsAuthenticated(false);
       setIsRoleVerified(false);
-      setLogs([]); // Clear logs from memory for security
       localStorage.removeItem(DASHBOARD_RELOAD_KEY);
       localStorage.removeItem(GOOGLE_LOGIN_STARTED_KEY);
       setIsUnauthorized(false);
