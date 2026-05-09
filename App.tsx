@@ -304,6 +304,9 @@ export default function App() {
   }, [checkSession]);
   const handleLogout = useCallback(async () => {
     try {
+      // Log the logout event before session is destroyed
+      await addLog('Logout', `${currentUser.name} logged out from the system`);
+      
       // Clear session on backend
       await axios.post(`${API_BASE_URL}/logout`, {}, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
@@ -318,12 +321,16 @@ export default function App() {
       }
     } finally {
       setIsAuthenticated(false);
+      setIsRoleVerified(false);
+      setLogs([]); // Clear logs from memory for security
+      localStorage.removeItem(DASHBOARD_RELOAD_KEY);
+      localStorage.removeItem(GOOGLE_LOGIN_STARTED_KEY);
       setIsUnauthorized(false);
       setLoginError(null);
       // Force reload to clear any sensitive memory/state and ensure a fresh start
       window.location.href = 'https://admin.karunavillas.com/login';
     }
-  }, []);
+  }, [addLog, currentUser]);
 
 
 
