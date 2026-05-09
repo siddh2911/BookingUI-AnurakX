@@ -181,9 +181,23 @@ export default function App() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/logs`);
+      const response = await fetch(`${API_BASE_URL}/api/logs`, {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        redirect: 'manual',
+        credentials: 'include'
+      });
+
+      if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
+        setIsAuthenticated(false);
+        setIsUnauthorized(true);
+        return;
+      }
+
+      if (!response.ok) throw new Error(`Failed to fetch logs: ${response.statusText}`);
+      const data = await response.json();
       // Map server response fields if they differ (e.g., userName vs user)
-      const mappedLogs = response.data.map((log: any) => ({
+      const mappedLogs = data.map((log: any) => ({
         ...log,
         user: log.userName || log.user || 'System',
         id: String(log.id)
