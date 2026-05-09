@@ -1,6 +1,5 @@
 import { Room, Booking, BookingStatus } from '../types';
-
-export const API_BASE_URL = 'https://api.karunavillas.com';
+import { API_BASE_URL } from '../constants/api';
 
 
 

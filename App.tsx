@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { getAvailabilityForecast, API_BASE_URL } from './services/api';
+import { getAvailabilityForecast } from './services/api';
+import { API_BASE_URL } from './constants/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
 import { parseVoiceCommand } from './services/voiceParser';

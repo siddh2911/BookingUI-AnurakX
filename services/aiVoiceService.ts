@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './api';
+import { API_BASE_URL } from '../constants/api';
 import { BookingSource } from '../types';
 import { ParsedVoiceCommand, VoiceIntent } from './voiceParser';
 import axios from 'axios';
