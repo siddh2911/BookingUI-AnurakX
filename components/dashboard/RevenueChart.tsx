@@ -174,6 +174,12 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ bookings, rooms }) => {
                               <span className={`${night ? 'text-slate-400' : 'text-slate-500'} font-medium mr-4`}>Normal Rent</span>
                               <span className={`font-bold ${night ? 'text-slate-300' : 'text-slate-700'}`}>₹{normalRent.toLocaleString()}</span>
                             </div>
+                            <div className="flex justify-between items-center text-sm mb-1">
+                              <span className={`${night ? 'text-slate-400' : 'text-slate-500'} font-medium mr-4`}>Growth</span>
+                              <span className={`font-black ${(revenue / normalRent) >= 1 ? 'text-blue-500' : 'text-slate-400'}`}>
+                                {(revenue / normalRent).toFixed(1)}x
+                              </span>
+                            </div>
                             <div className={`flex justify-between items-center text-sm border-t pt-1 mt-1 ${night ? 'border-slate-700' : 'border-slate-100'}`}>
                               <span className={`${night ? 'text-slate-400' : 'text-slate-500'} font-medium mr-4`}>Increment</span>
                               <span className={`font-bold ${hasIncrement ? 'text-green-500' : 'text-red-500'}`}>

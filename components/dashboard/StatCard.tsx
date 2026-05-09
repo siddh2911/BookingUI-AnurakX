@@ -9,7 +9,7 @@ interface StatCardProps {
   totalTrend?: { value: number; positive: boolean };
   icon: React.ReactNode;
   onClick?: () => void;
-  details: { label: string; value: string | number; trend?: { value: number; positive: boolean }; multiplier?: string }[];
+  details: { label: string; value: string | number; trend?: { value: number; positive: boolean } }[];
   comparatorLabel?: string;
   isRevenueVisible?: boolean;
   setIsRevenueVisible?: (visible: boolean) => void;
@@ -145,16 +145,9 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, total, totalTr
                     </p>
                     <div className={`h-3 flex items-center justify-center w-full ${isRevenueVisible && detail.trend ? '' : 'invisible'}`}>
                       {detail.trend && (
-                        <div className="flex items-center gap-1">
-                          <span className={`text-[10px] md:text-[8px] font-bold ${detail.trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {detail.trend.value > 0 ? '+' : ''}{detail.trend.value}%
-                          </span>
-                          {detail.multiplier && (
-                            <span className="text-[10px] md:text-[8px] font-black text-blue-500 bg-blue-50 px-1 rounded-sm border border-blue-100/50">
-                              {detail.multiplier}
-                            </span>
-                          )}
-                        </div>
+                        <span className={`text-[10px] md:text-[8px] font-bold ${detail.trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {detail.trend.value > 0 ? '+' : ''}{detail.trend.value}%
+                        </span>
                       )}
                     </div>
                   </div>
