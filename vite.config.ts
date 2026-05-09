@@ -19,9 +19,8 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-utils': ['axios', 'date-fns', 'zod', 'clsx', 'tailwind-merge'],
-            'vendor-recharts': ['recharts'],
-            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-            'vendor-dom': ['html2canvas', 'dompurify', 'qrcode'],
+            'vendor-charts': ['recharts'],
+            'vendor-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas', 'dompurify'],
             'vendor-icons': ['lucide-react'],
           },
         },
