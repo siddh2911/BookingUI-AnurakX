@@ -33,16 +33,16 @@ export default function DashboardPage({ dashboardProps }: { dashboardProps: any 
                         ? (night ? 'bg-emerald-950/60 border-emerald-800/60 shadow-lg shadow-emerald-950/30' : 'bg-emerald-50/80 border-emerald-100 shadow-sm') :
                     marketingStatus === 'rejected' 
                         ? (night ? 'bg-red-950/60 border-red-800/60 shadow-lg shadow-red-950/30' : 'bg-red-50/80 border-red-100 shadow-sm') :
-                    (night ? 'bg-slate-900 border-slate-800 shadow-lg' : 'bg-white border-blue-100 shadow-[0_10px_40px_-10px_rgba(59,130,246,0.1)]')
+                    (night ? 'bg-gradient-to-br from-slate-900 to-slate-950 border-blue-900/50 shadow-lg shadow-blue-900/20' : 'bg-white border-blue-100 shadow-[0_10px_40px_-10px_rgba(59,130,246,0.1)]')
                 }`}>
                     {/* Background Decorative Blur */}
-                    <div className={`absolute top-0 right-0 w-64 h-64 blur-3xl opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 ${night ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
+                    <div className={`absolute top-0 right-0 w-64 h-64 blur-3xl opacity-[0.15] rounded-full -translate-y-1/2 translate-x-1/2 ${night ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
                     
                     <div className="flex items-center gap-6 w-full md:w-auto relative z-10">
                         <div className={`flex items-center justify-center w-14 h-14 rounded-2xl shadow-lg transition-transform duration-500 group-hover:scale-110 ${
                             marketingStatus === 'scheduled' || marketingStatus === 'published' ? (night ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30' : 'bg-emerald-600 text-white') :
                             marketingStatus === 'rejected' ? (night ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30' : 'bg-red-600 text-white') :
-                            (night ? 'bg-blue-600 text-white shadow-blue-500/20' : 'bg-blue-600 text-white shadow-blue-500/20 animate-pulse')
+                            'bg-blue-600 text-white shadow-blue-500/20 animate-pulse'
                         }`}>
                             {marketingStatus === 'scheduled' || marketingStatus === 'published' ? <CheckCircle size={28} /> :
                              marketingStatus === 'rejected' ? <XCircle size={28} /> :
@@ -56,14 +56,14 @@ export default function DashboardPage({ dashboardProps }: { dashboardProps: any 
                                 <span className={`text-[10px] px-2.5 py-1 rounded-lg font-black uppercase tracking-wider ${
                                     marketingStatus === 'scheduled' || marketingStatus === 'published' ? (night ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30' : 'bg-emerald-100 text-emerald-700') :
                                     marketingStatus === 'rejected' ? (night ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30' : 'bg-red-100 text-red-700') :
-                                    (night ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30' : 'bg-blue-600 text-white')
+                                    (night ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/40' : 'bg-blue-600 text-white')
                                 }`}>
                                     {marketingStatus === 'scheduled' || marketingStatus === 'published' ? 'Scheduled' :
                                      marketingStatus === 'rejected' ? 'Needs Attention' :
                                      'Action Required'}
                                 </span>
                             </div>
-                            <p className={`text-sm font-medium leading-relaxed ${night ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <p className={`text-sm font-medium leading-relaxed ${night ? 'text-slate-300' : 'text-slate-500'}`}>
                                 {marketingStatus === 'scheduled' || marketingStatus === 'published' ? "Today's Instagram post is ready to go." :
                                  marketingStatus === 'rejected' ? "You discarded the draft. Generate a new one?" :
                                  "Your daily Instagram post has been drafted and is awaiting your approval."}
