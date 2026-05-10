@@ -104,7 +104,7 @@ export default function MarketingPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-2xl ${night ? 'bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'bg-purple-100 text-purple-600'}`}>
+                        <div className={`p-2.5 rounded-2xl ${night ? 'bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-400 ring-1 ring-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'bg-purple-100 text-purple-600'}`}>
                             <Sparkles size={24} />
                         </div>
                         <h2 className={`text-3xl font-black tracking-tight flex items-center gap-3 ${night ? 'text-white' : 'text-slate-900'}`}>
@@ -123,8 +123,8 @@ export default function MarketingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Post Preview Card */}
                 <div className="lg:col-span-8">
-                    <div className={`rounded-3xl shadow-2xl border overflow-hidden transition-all duration-700 ${night ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className={`p-5 border-b flex items-center justify-between ${night ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className={`rounded-3xl shadow-2xl border overflow-hidden transition-all duration-700 ${night ? 'bg-slate-900 border-slate-800 shadow-blue-900/10' : 'bg-white border-slate-200'}`}>
+                        <div className={`p-5 border-b flex items-center justify-between ${night ? 'bg-gradient-to-r from-slate-900 to-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                             <div className={`flex items-center gap-3 font-bold ${night ? 'text-slate-200' : 'text-slate-800'}`}>
                                 <div className={`p-1.5 rounded-lg ${night ? 'bg-slate-800' : 'bg-white shadow-sm'}`}>
                                     <Instagram size={18} className={night ? 'text-blue-400' : 'text-pink-600'} />
@@ -149,7 +149,7 @@ export default function MarketingPage() {
                             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Image Preview Area */}
                                 <div className="space-y-5">
-                                    <div className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-6 text-center border-2 border-dashed relative overflow-hidden group transition-all duration-700 ${night ? 'bg-slate-900/30 border-slate-800 hover:border-blue-500/40' : 'bg-slate-50 border-slate-200'}`}>
+                                    <div className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-6 text-center border-2 border-dashed relative overflow-hidden group transition-all duration-700 ${night ? 'bg-slate-900/50 border-slate-700 hover:border-blue-500/50 hover:bg-slate-800/50' : 'bg-slate-50 border-slate-200'}`}>
                                         {currentPost.imageUrl && !isGeneratingImage ? (
                                             <img src={currentPost.imageUrl} alt="Generated Preview" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                         ) : (
@@ -176,7 +176,7 @@ export default function MarketingPage() {
                                         )}
                                         
                                         {!isGeneratingImage && (
-                                            <div className={`absolute inset-x-0 bottom-0 p-4 backdrop-blur-xl border-t transition-transform duration-700 ${currentPost.imageUrl ? 'translate-y-full group-hover:translate-y-0' : ''} ${night ? 'bg-slate-950/80 border-slate-800' : 'bg-white/80 border-slate-200'}`}>
+                                            <div className={`absolute inset-x-0 bottom-0 p-4 backdrop-blur-xl border-t transition-transform duration-700 ${currentPost.imageUrl ? 'translate-y-full group-hover:translate-y-0' : ''} ${night ? 'bg-slate-900/90 border-slate-700 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]' : 'bg-white/80 border-slate-200'}`}>
                                                 <button 
                                                     onClick={handleGenerateImage}
                                                     className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl hover:shadow-blue-500/30 transition-all active:scale-95"
@@ -217,7 +217,7 @@ export default function MarketingPage() {
                                     <div className="space-y-6">
                                         <div>
                                             <label className={`text-[10px] font-black uppercase tracking-[0.2em] mb-3 block ${night ? 'text-slate-600' : 'text-slate-500'}`}>Caption</label>
-                                            <div className={`border rounded-2xl p-5 text-sm whitespace-pre-wrap transition-colors leading-relaxed ${night ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-800 shadow-inner'}`}>
+                                            <div className={`border rounded-2xl p-5 text-sm whitespace-pre-wrap transition-colors leading-relaxed ${night ? 'bg-slate-800/50 border-slate-700 text-slate-300 shadow-inner' : 'bg-slate-50 border-slate-200 text-slate-800 shadow-inner'}`}>
                                                 {currentPost.caption}
                                             </div>
                                         </div>
@@ -249,7 +249,7 @@ export default function MarketingPage() {
 
                         {/* Action Bar */}
                         {!isGenerating && currentPost && (
-                            <div className={`p-5 border-t flex flex-col sm:flex-row items-center justify-between gap-5 transition-colors ${night ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                            <div className={`p-5 border-t flex flex-col sm:flex-row items-center justify-between gap-5 transition-colors ${night ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                                 <button 
                                     onClick={generateNewPost}
                                     className={`px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 w-full sm:w-auto justify-center ${night ? 'text-slate-400 hover:text-white hover:bg-slate-900 border border-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 border border-slate-200'}`}
@@ -297,7 +297,7 @@ export default function MarketingPage() {
 
                 {/* Workflow Status */}
                 <div className="lg:col-span-4 space-y-8">
-                    <div className={`rounded-3xl shadow-2xl border p-8 transition-all duration-700 ${night ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <div className={`rounded-3xl shadow-2xl border p-8 transition-all duration-700 ${night ? 'bg-slate-900 border-slate-800 shadow-blue-900/10' : 'bg-white border-slate-200'}`}>
                         <h3 className={`text-xl font-black mb-6 flex items-center gap-3 ${night ? 'text-white' : 'text-slate-900'}`}>
                             <div className={`p-1.5 rounded-lg ${night ? 'bg-slate-900' : 'bg-slate-50'}`}>
                                 <Send size={18} className="text-blue-500" />
@@ -318,20 +318,20 @@ export default function MarketingPage() {
                             </div>
 
                             <div className="relative flex items-center gap-6 group">
-                                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-xl shrink-0 z-10 transition-all duration-500 ${postStatus === 'scheduled' || postStatus === 'published' ? 'bg-blue-600 text-white border-slate-950' : postStatus === 'rejected' ? 'bg-red-600 text-white border-slate-950' : night ? 'border-slate-950 bg-slate-900 text-slate-700' : 'border-white bg-slate-200 text-slate-400'}`}>
+                                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-xl shrink-0 z-10 transition-all duration-500 ${postStatus === 'scheduled' || postStatus === 'published' ? 'bg-blue-600 text-white border-slate-950' : postStatus === 'rejected' ? 'bg-red-600 text-white border-slate-950' : night ? 'border-slate-800 bg-slate-800 text-slate-500' : 'border-white bg-slate-200 text-slate-400'}`}>
                                     {postStatus === 'rejected' ? <XCircle size={16} /> : <CheckCircle size={16} />}
                                 </div>
-                                <div className={`flex-1 p-4 rounded-2xl border transition-all duration-500 ${postStatus === 'scheduled' || postStatus === 'published' ? 'border-blue-500/20 bg-blue-500/5' : postStatus === 'rejected' ? 'border-red-500/20 bg-red-500/5' : night ? 'border-slate-900 bg-slate-900/50' : 'border-slate-100 bg-white'}`}>
+                                <div className={`flex-1 p-4 rounded-2xl border transition-all duration-500 ${postStatus === 'scheduled' || postStatus === 'published' ? 'border-blue-500/20 bg-blue-500/5' : postStatus === 'rejected' ? 'border-red-500/20 bg-red-500/5' : night ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-white'}`}>
                                     <h4 className={`text-sm font-black ${postStatus === 'scheduled' || postStatus === 'published' ? (night ? 'text-slate-100' : 'text-slate-900') : postStatus === 'rejected' ? (night ? 'text-red-400' : 'text-red-700') : (night ? 'text-slate-600' : 'text-slate-500')}`}>Admin Review</h4>
                                     <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${night ? 'text-slate-600' : 'text-slate-500'}`}>{postStatus === 'scheduled' || postStatus === 'published' ? 'Approved by Admin' : postStatus === 'rejected' ? 'Draft Discarded' : 'Awaiting Final Approval'}</p>
                                 </div>
                             </div>
 
                             <div className="relative flex items-center gap-6 group">
-                                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-xl shrink-0 z-10 transition-all duration-500 ${postStatus === 'published' ? 'bg-emerald-600 text-white border-slate-950' : night ? 'border-slate-950 bg-slate-900 text-slate-700' : 'border-white bg-slate-200 text-slate-400'}`}>
+                                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-xl shrink-0 z-10 transition-all duration-500 ${postStatus === 'published' ? 'bg-emerald-600 text-white border-slate-950' : night ? 'border-slate-800 bg-slate-800 text-slate-500' : 'border-white bg-slate-200 text-slate-400'}`}>
                                     <Send size={16} />
                                 </div>
-                                <div className={`flex-1 p-4 rounded-2xl border transition-all duration-500 ${postStatus === 'published' ? 'border-emerald-500/20 bg-emerald-500/5' : night ? 'border-slate-900 bg-slate-900/50' : 'border-slate-100 bg-white'}`}>
+                                <div className={`flex-1 p-4 rounded-2xl border transition-all duration-500 ${postStatus === 'published' ? 'border-emerald-500/20 bg-emerald-500/5' : night ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-white'}`}>
                                     <h4 className={`text-sm font-black ${postStatus === 'published' ? (night ? 'text-slate-100' : 'text-slate-900') : (night ? 'text-slate-600' : 'text-slate-500')}`}>Publish to IG</h4>
                                     <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${night ? 'text-slate-600' : 'text-slate-500'}`}>Target: Today 12:00 PM</p>
                                 </div>
@@ -340,7 +340,7 @@ export default function MarketingPage() {
                         </div>
                     </div>
 
-                    <div className={`rounded-3xl border p-6 flex items-start gap-4 ${night ? 'bg-slate-950 border-slate-800' : 'bg-slate-900 text-white'}`}>
+                    <div className={`rounded-3xl border p-6 flex items-start gap-4 ${night ? 'bg-gradient-to-br from-blue-950/40 to-indigo-950/40 border-blue-900/50 shadow-lg shadow-blue-900/20 text-white' : 'bg-slate-900 text-white'}`}>
                         <div className="p-2 bg-blue-500 rounded-xl text-white">
                             <Clock size={20} />
                         </div>
