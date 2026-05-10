@@ -33,7 +33,7 @@ export default function DashboardPage({ dashboardProps }: { dashboardProps: any 
                         ? (night ? 'bg-emerald-950/60 border-emerald-800/60 shadow-lg shadow-emerald-950/30' : 'bg-emerald-50/80 border-emerald-100 shadow-sm') :
                     marketingStatus === 'rejected' 
                         ? (night ? 'bg-red-950/60 border-red-800/60 shadow-lg shadow-red-950/30' : 'bg-red-50/80 border-red-100 shadow-sm') :
-                    (night ? 'bg-gradient-to-br from-slate-900 to-slate-950 border-blue-900/50 shadow-lg shadow-blue-900/20' : 'bg-white border-blue-100 shadow-[0_10px_40px_-10px_rgba(59,130,246,0.1)]')
+                    (night ? 'bg-slate-800 border-slate-700 shadow-xl shadow-blue-900/20' : 'bg-white border-blue-100 shadow-[0_10px_40px_-10px_rgba(59,130,246,0.1)]')
                 }`}>
                     {/* Background Decorative Blur */}
                     <div className={`absolute top-0 right-0 w-64 h-64 blur-3xl opacity-[0.15] rounded-full -translate-y-1/2 translate-x-1/2 ${night ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
