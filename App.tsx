@@ -877,10 +877,21 @@ export default function App() {
     const checkInsYear = countCheckIns(startOfYear, endOfYear);
     const totalCheckIns = bookings.filter(b => b.status !== BookingStatus.CANCELLED).length;
 
+    let allTimeGrowthMultiplier = 0;
+    if (validBookings.length > 0) {
+      const dates = validBookings.flatMap(b => [parseDate(b.checkInDate).getTime(), parseDate(b.checkOutDate).getTime()]);
+      const minDate = new Date(Math.min(...dates));
+      const todayDate = new Date();
+      const daysSinceStart = Math.max(1, Math.ceil((todayDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const targetDaily = (12000 * 12 * rooms.length) / 365;
+      const targetTotal = targetDaily * daysSinceStart;
+      allTimeGrowthMultiplier = targetTotal > 0 ? (totalRevenue / targetTotal) : 0;
+    }
+
     return {
       occupancyToday, occupancyWeek, occupancyMonth, occupancyYear, occupancyAllTime,
       revenueToday, revenueWeek, revenueMonth, revenueYear, totalRevenue, revenueFY,
-      weekElapsedDays, averageRevenueGrowth, revenueWeekGrowthRatio, yearlyGrowthMultiplier, weekProjection,
+      weekElapsedDays, averageRevenueGrowth, revenueWeekGrowthRatio, yearlyGrowthMultiplier, allTimeGrowthMultiplier, weekProjection,
       checkInsToday, checkInsWeek, checkInsMonth, checkInsYear, totalCheckIns
     };
   }, [bookings, rooms, today]);

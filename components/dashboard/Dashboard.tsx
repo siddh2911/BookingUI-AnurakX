@@ -147,8 +147,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 	            trend={{
 	              value: stats.averageRevenueGrowth || 0,
 	              label: 'Growth',
-	              positive: (stats.yearlyGrowthMultiplier || 0) >= 1,
-	              display: `${(stats.yearlyGrowthMultiplier || 0).toFixed(2)}x`
+	              positive: (stats.allTimeGrowthMultiplier || 0) >= 1,
+	              display: `${(stats.allTimeGrowthMultiplier || 0).toFixed(2)}x`
 	            }}
 	            taxBadge={(() => {
               // Calculate 20% tax on the actual revenue earned so far in the current Financial Year (since April 1st)
