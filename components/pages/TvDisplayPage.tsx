@@ -900,11 +900,28 @@ const TvDisplayPage: React.FC = () => {
             <div style={{ position: 'absolute', width: 720, height: 720, left: -180, top: -240, borderRadius: '50%', filter: 'blur(32px)', background: 'radial-gradient(circle, rgba(232,197,148,0.20), rgba(233,114,84,0.08) 45%, transparent 68%)' }} />
             <div style={{ position: 'absolute', width: 780, height: 780, right: -220, bottom: -300, borderRadius: '50%', filter: 'blur(32px)', background: 'radial-gradient(circle, rgba(138,146,226,0.22), transparent 68%)' }} />
 
-            <div style={{ position: 'relative', width: 140, height: 140, display: 'grid', placeItems: 'center' }}>
-              <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(232,197,148,0.32)', animation: 'tvRing 3.6s ease-out infinite' }} />
-              <span style={{ position: 'absolute', inset: 14, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,247,235,0.14), rgba(255,247,235,0.03) 72%)', border: '1px solid rgba(255,247,235,0.16)' }} />
-              <div className="tv-serif" style={{ position: 'relative', fontSize: 42, color: '#faf7f2', letterSpacing: '0.04em', textShadow: '0 4px 20px rgba(232,197,148,0.45)' }}>
-                KV
+            <div style={{ position: 'relative', width: 148, height: 148, display: 'grid', placeItems: 'center' }}>
+              <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(232,197,148,0.36)', animation: 'tvRing 3.6s ease-out infinite' }} />
+              <div
+                style={{
+                  position: 'relative',
+                  width: 118,
+                  height: 118,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(145deg, #fffdf9, #f5ede0)',
+                  padding: 4,
+                  border: '2px solid rgba(232,197,148,0.65)',
+                  boxShadow: '0 20px 44px -12px rgba(0,0,0,0.75), 0 0 32px -8px rgba(232,197,148,0.4)',
+                  overflow: 'hidden',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <img
+                  src="/logo.png"
+                  alt="Karuna Villa"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                />
               </div>
             </div>
 
@@ -992,23 +1009,25 @@ const TvDisplayPage: React.FC = () => {
             <div style={{ position: 'absolute', left: 64, right: 64, top: 36, display: 'flex', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                 <span
-                  className="tv-serif"
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 17,
+                    width: 64,
+                    height: 64,
+                    borderRadius: '50%',
                     display: 'grid',
                     placeItems: 'center',
-                    fontSize: 23,
-                    letterSpacing: '0.03em',
-                    color: '#faf7f2',
-                    background: 'linear-gradient(145deg, rgba(232,197,148,0.26), rgba(233,114,84,0.22) 60%, rgba(22,19,28,0.58))',
-                    border: '1px solid rgba(255,244,226,0.30)',
-                    boxShadow: '0 12px 28px -10px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,250,240,0.35)',
-                    backdropFilter: 'blur(18px)',
+                    padding: 2,
+                    background: 'linear-gradient(145deg, #fffdf9, #f3eadb)',
+                    border: '1.5px solid rgba(232,197,148,0.68)',
+                    boxShadow: '0 14px 30px -10px rgba(0,0,0,0.72), 0 0 22px -6px rgba(232,197,148,0.35)',
+                    overflow: 'hidden',
+                    flex: 'none',
                   }}
                 >
-                  KV
+                  <img
+                    src="/logo.png"
+                    alt="Karuna Villa"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                  />
                 </span>
                 <div>
                   <div className="tv-serif" style={{ fontSize: 30, lineHeight: 1.06, color: '#faf7f2', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}>
