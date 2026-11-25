@@ -669,7 +669,7 @@ const TvDisplayPage: React.FC = () => {
       const iframeEl = document.createElement('iframe');
       iframeEl.width = '200';
       iframeEl.height = '200';
-      iframeEl.allow = 'autoplay; encrypted-media';
+      iframeEl.allow = "autoplay; encrypted-media; picture-in-picture 'none'";
       iframeEl.style.border = '0';
 
       const qs = new URLSearchParams({
@@ -1443,7 +1443,7 @@ const TvDisplayPage: React.FC = () => {
         )}
       </div>
 
-      {/* Hidden 200x200 YouTube IFrame Player behind the TV stage (audio only, no PiP) */}
+      {/* Hidden 200x200 YouTube IFrame Player behind the TV stage (0 visible pixels, audio only, PiP blocked) */}
       <div
         ref={ytHostRef}
         style={{
@@ -1452,7 +1452,8 @@ const TvDisplayPage: React.FC = () => {
           height: 200,
           left: 0,
           bottom: 0,
-          opacity: 0.01,
+          opacity: 0,
+          clipPath: 'inset(50%)',
           pointerEvents: 'none',
           zIndex: -1,
           overflow: 'hidden',
