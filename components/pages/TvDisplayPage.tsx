@@ -297,6 +297,18 @@ const TvDisplayPage: React.FC = () => {
   const lastPayloadJsonRef = useRef<string>('');
   const mountedRef = useRef<boolean>(true);
 
+  // Track mount lifecycle FIRST so StrictMode remount sets mountedRef.current = true before player creation
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      try { ytPlayerRef.current?.destroy?.(); } catch { /* ignore */ }
+      ytPlayerRef.current = null;
+      ytReadyRef.current = false;
+      loadedTrackKeyRef.current = '';
+    };
+  }, []);
+
   // Responsive 1280x720 stage scaling for 720p / 1080p / 4K TVs
   useEffect(() => {
     const fit = () => {
@@ -651,36 +663,41 @@ const TvDisplayPage: React.FC = () => {
       loadedTrackKeyRef.current = trackKey;
       setMusicError('');
 
-      // Create an unmanaged child node inside ytHostRef so React never fights YT.Player DOM replacement
+      // Create an explicit <iframe> with allow="autoplay; encrypted-media" BEFORE attaching YT.Player
+      // so Chrome's Feature Policy permits audio playback from millisecond 0.
       ytHostRef.current.innerHTML = '';
-      const mountEl = document.createElement('div');
-      ytHostRef.current.appendChild(mountEl);
+      const iframeEl = document.createElement('iframe');
+      iframeEl.width = '200';
+      iframeEl.height = '200';
+      iframeEl.allow = 'autoplay; encrypted-media; picture-in-picture';
+      iframeEl.style.border = '0';
 
-      const playerVars: Record<string, any> = {
-        autoplay: 1,
-        controls: 0,
-        disablekb: 1,
-        enablejsapi: 1,
-        fs: 0,
-        iv_load_policy: 3,
-        modestbranding: 1,
+      const qs = new URLSearchParams({
+        enablejsapi: '1',
+        autoplay: '1',
+        controls: '0',
+        disablekb: '1',
+        fs: '0',
+        iv_load_policy: '3',
+        modestbranding: '1',
+        playsinline: '1',
+        rel: '0',
+        loop: '1',
         origin: window.location.origin,
-        playsinline: 1,
-        rel: 0,
-        loop: 1,
-      };
+      });
       if (desired.listId) {
-        playerVars.listType = 'playlist';
-        playerVars.list = desired.listId;
+        qs.set('listType', 'playlist');
+        qs.set('list', desired.listId);
       } else if (desired.videoId) {
-        playerVars.playlist = desired.videoId;
+        qs.set('playlist', desired.videoId);
       }
+      const basePath = desired.videoId
+        ? `https://www.youtube.com/embed/${encodeURIComponent(desired.videoId)}`
+        : 'https://www.youtube.com/embed/videoseries';
+      iframeEl.src = `${basePath}?${qs.toString()}`;
+      ytHostRef.current.appendChild(iframeEl);
 
-      ytPlayerRef.current = new w.YT.Player(mountEl, {
-        height: '200',
-        width: '200',
-        videoId: desired.videoId || undefined,
-        playerVars,
+      ytPlayerRef.current = new w.YT.Player(iframeEl, {
         events: {
           onReady: (e: any) => {
             if (!mountedRef.current) {
@@ -689,8 +706,6 @@ const TvDisplayPage: React.FC = () => {
             }
             ytReadyRef.current = true;
             try {
-              const iframe = e.target?.getIframe?.();
-              if (iframe) iframe.setAttribute('allow', 'autoplay; encrypted-media');
               const vd = e.target?.getVideoData?.();
               if (vd?.title) {
                 setMusicMeta({ title: vd.title, author: vd.author || '', videoId: vd.video_id || desired.videoId });
@@ -810,18 +825,6 @@ const TvDisplayPage: React.FC = () => {
       .catch(() => { /* fallback to YT.Player getVideoData */ });
     return () => { active = false; };
   }, [parsedMusic.videoId]);
-
-  // Cleanup YouTube player on unmount
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      try { ytPlayerRef.current?.destroy?.(); } catch { /* ignore */ }
-      ytPlayerRef.current = null;
-      ytReadyRef.current = false;
-      loadedTrackKeyRef.current = '';
-    };
-  }, []);
 
   return (
     <div
