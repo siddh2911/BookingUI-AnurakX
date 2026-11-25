@@ -31,7 +31,8 @@ axios.interceptors.response.use(
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 302)) {
       const isHandlingAuth = window.location.pathname.startsWith('/login') || 
-                             window.location.pathname.startsWith('/unauthorized');
+                             window.location.pathname.startsWith('/unauthorized') ||
+                             window.location.pathname.startsWith('/tv');
       if (!isHandlingAuth) {
         window.location.href = 'https://admin.karunavillas.com/login?error=unauthorized';
       }
@@ -58,6 +59,7 @@ import LogsPage from './components/pages/LogsPage';
 import NotificationSettings from './components/settings/NotificationSettings';
 import LoginPage from './components/pages/LoginPage';
 import UnauthorizedPage from './components/pages/UnauthorizedPage';
+import TvDisplayPage from './components/pages/TvDisplayPage';
 
 import NewBookingModal from './components/modals/NewBookingModal';
 import BookingDetailsModal from './components/modals/BookingDetailsModal';
@@ -1461,6 +1463,10 @@ export default function App() {
     return isAdmin ? element : <Navigate to="/unauthorized" replace />;
   };
 
+  if (window.location.pathname.startsWith('/tv')) {
+    return <TvDisplayPage />;
+  }
+
   if (showLoading && window.location.pathname !== '/login') {
     return (
       <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[10000]">
@@ -1481,6 +1487,7 @@ export default function App() {
     <LanguageProvider>
       <>
         <Routes>
+        <Route path="/tv" element={<TvDisplayPage />} />
         <Route path="/login" element={!isAuthenticated ? <LoginPage onLogin={handleLogin} isUnauthorized={isUnauthorized || loginError === 'unauthorized'} errorCode={loginError} /> : <Navigate to="/" replace />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
