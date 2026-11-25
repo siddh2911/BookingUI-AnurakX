@@ -697,11 +697,10 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                         value={form.musicUrl}
                                         onChange={(e) => {
                                             const next = e.target.value;
-                                            const shouldAutoEnable = !form.musicUrl.trim() && next.trim().length > 0;
                                             setForm({
                                                 ...form,
                                                 musicUrl: next,
-                                                musicEnabled: shouldAutoEnable ? true : form.musicEnabled,
+                                                musicEnabled: next.trim().length > 0,
                                             });
                                         }}
                                         placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
