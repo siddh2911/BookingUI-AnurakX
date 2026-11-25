@@ -210,3 +210,139 @@ export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
 
   if (!response.ok) throw new Error('Failed to delete ticket');
 };
+
+export const syncRoomTv = async (options: {
+  roomNumber: string;
+  hotelId?: number;
+  welcomeMessage?: string;
+}): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/tv/sync`, {
+    method: 'POST',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      roomNumber: options.roomNumber,
+      hotelId: options.hotelId,
+      welcomeMessage: options.welcomeMessage?.trim() || undefined,
+    }),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Failed to sync room TV' }));
+    throw new Error(errorData.error || errorData.message || 'Failed to sync room TV');
+  }
+
+  return response.json();
+};
+
+export interface LinkedTv {
+  id: string;
+  name: string;
+  deviceName?: string;
+  roomNumber: string;
+  roomName?: string;
+  linkedAt?: string;
+}
+
+export const listLinkedTvs = async (): Promise<LinkedTv[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/tvs`, {
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  if (!response.ok) throw new Error('Failed to load linked TVs');
+  return response.json();
+};
+
+export const linkRoomTv = async (roomNumber: string, code: string, name?: string): Promise<LinkedTv> => {
+  const response = await fetch(`${API_BASE_URL}/api/rooms/${encodeURIComponent(roomNumber)}/tvs`, {
+    method: 'POST',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ code: code.trim().toUpperCase(), name: name?.trim() || undefined }),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: 'Failed to pair TV' }));
+    if (err.error === 'code_not_found') {
+      throw new Error('No TV is showing that pairing code right now. Check the 6-character code on the TV screen.');
+    }
+    throw new Error(err.error || err.message || 'Failed to pair TV');
+  }
+  return response.json();
+};
+
+export const unlinkRoomTv = async (tvId: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/tvs/${encodeURIComponent(tvId)}`, {
+    method: 'DELETE',
+    headers: csrfHeaders(),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  if (!response.ok) throw new Error('Failed to unlink TV');
+};
+
+export interface TvSettings {
+  area?: string;
+  hostFirstName?: string;
+  whatsapp?: string;
+  template?: string;
+  timeZone?: string;
+  tagline?: string;
+  wifiName?: string;
+  wifiPassword?: string;
+  wifiSecurity?: string;
+  checkInTime?: string;
+  checkoutTime?: string;
+  quietHoursFrom?: string;
+  quietHoursTo?: string;
+  welcomeMessage?: string;
+  checkoutMessage?: string;
+  betweenStaysMessage?: string;
+  contactNote?: string;
+  amenities?: string[];
+  houseRules?: string[];
+  checkoutSteps?: string[];
+}
+
+export const getTvSettings = async (roomNumber?: string): Promise<TvSettings> => {
+  const qs = roomNumber ? `?roomNumber=${encodeURIComponent(roomNumber)}` : '';
+  const response = await fetch(`${API_BASE_URL}/api/tv/settings${qs}`, {
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  if (!response.ok) throw new Error('Failed to load TV settings');
+  return response.json();
+};
+
+export const saveTvSettings = async (settings: TvSettings, roomNumber?: string): Promise<TvSettings> => {
+  const qs = roomNumber ? `?roomNumber=${encodeURIComponent(roomNumber)}` : '';
+  const response = await fetch(`${API_BASE_URL}/api/tv/settings${qs}`, {
+    method: 'PUT',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(settings),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  if (!response.ok) throw new Error('Failed to save TV settings');
+  return response.json();
+};

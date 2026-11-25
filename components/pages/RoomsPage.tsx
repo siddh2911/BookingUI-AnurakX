@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Room, HousekeepingTask, MaintenanceTicket, Booking } from '../../types';
 import HousekeepingGrid from '../rooms/HousekeepingGrid';
 import MaintenanceBoard from '../rooms/MaintenanceBoard';
+import RoomTvManager from '../rooms/RoomTvManager';
 
 export default function RoomsPage({
     rooms, setRooms, bookings, housekeepingTasks, setHousekeepingTasks, maintenanceTickets, setMaintenanceTickets
 }: {
     rooms: Room[]; setRooms: any; bookings: Booking[]; housekeepingTasks: HousekeepingTask[]; setHousekeepingTasks: any; maintenanceTickets: MaintenanceTicket[]; setMaintenanceTickets: any;
 }) {
-    const [activeTab, setActiveTab] = useState<'housekeeping' | 'maintenance' | 'plans'>('housekeeping');
+    const [activeTab, setActiveTab] = useState<'housekeeping' | 'maintenance' | 'plans' | 'tvs'>('housekeeping');
     
     // Mock state for room plans (persisted to localStorage for now)
     const [packages, setPackages] = useState<string[]>(() => {
@@ -80,6 +81,15 @@ export default function RoomsPage({
                     >
                         Rate Plans
                     </button>
+                    <button
+                        onClick={() => setActiveTab('tvs')}
+                        className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeTab === 'tvs'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                            }`}
+                    >
+                        Room TVs
+                    </button>
                 </div>
             </div>
 
@@ -139,6 +149,8 @@ export default function RoomsPage({
                             } catch (e) { console.error(e); }
                         }}
                     />
+                ) : activeTab === 'tvs' ? (
+                    <RoomTvManager rooms={rooms} />
                 ) : activeTab === 'plans' ? (
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">

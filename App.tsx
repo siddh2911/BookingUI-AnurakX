@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { getAvailabilityForecast } from './services/api';
+import { getAvailabilityForecast, syncRoomTv } from './services/api';
 import { API_BASE_URL, DEFAULT_HOTEL_ID } from './constants/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
 import axios from 'axios';
@@ -1243,6 +1243,19 @@ export default function App() {
       if (!response.ok) throw new Error(`Failed to ${editingBookingId ? 'update' : 'save'} booking.`);
 
       addLog(editingBookingId ? 'Update Booking' : 'Create Booking', `${editingBookingId ? 'Updated' : 'Created'} booking for ${guestName}.`);
+
+      if (newBookingData.updateRoomTv !== false && room?.number) {
+        try {
+          await syncRoomTv({
+            roomNumber: room.number,
+            hotelId: hotelId ?? DEFAULT_HOTEL_ID,
+            welcomeMessage: newBookingData.tvWelcomeMessage,
+          });
+          addLog('Room TV Sync', `Updated Room ${room.number} TV for ${guestName} (${checkIn} to ${checkOut}).`);
+        } catch (tvErr: any) {
+          console.warn('Room TV sync skipped/failed:', tvErr?.message || tvErr);
+        }
+      }
       
       if (!editingBookingId && newBookingData.sendWhatsAppNotification !== false && guestPhone) {
          if (window.confirm(`Are you sure you want to send a WhatsApp booking confirmation to ${guestName}?`)) {
@@ -1268,6 +1281,8 @@ export default function App() {
 
   const confirmDeleteBooking = useCallback(() => {
     if (bookingToDelete) {
+      const deletingBooking = bookings.find(b => String(b.id) === String(bookingToDelete));
+      const deletingRoom = deletingBooking ? rooms.find(r => String(r.id) === String(deletingBooking.roomId)) : undefined;
       const url = `${API_BASE_URL}/bookings/${bookingToDelete}`;
       fetch(url, { method: 'DELETE', headers: csrfHeaders(), redirect: 'manual', credentials: 'include' })
         .then(response => { 
@@ -1277,6 +1292,9 @@ export default function App() {
             return;
           }
           if (!response.ok) throw new Error('Failed'); 
+          if (deletingRoom?.number) {
+            syncRoomTv({ roomNumber: deletingRoom.number, hotelId: deletingRoom.hotelId ?? DEFAULT_HOTEL_ID }).catch(console.warn);
+          }
           fetchBookings(); 
         })
         .catch(error => {
@@ -1284,7 +1302,7 @@ export default function App() {
         })
         .finally(() => setBookingToDelete(null));
     }
-  }, [bookingToDelete, fetchBookings]);
+  }, [bookingToDelete, bookings, rooms, fetchBookings]);
 
   const handleAddPayment = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); if (!selectedBooking) return;

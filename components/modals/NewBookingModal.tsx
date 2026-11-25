@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import SecurityModal from './SecurityModal';
 import { Room, BookingSource, PaymentMethod, Booking } from '../../types';
-import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock, X, Receipt, RotateCcw } from 'lucide-react';
+import { User, Calendar, CreditCard, ChevronDown, Sparkles, MapPin, Lock, X, Receipt, RotateCcw, Tv } from 'lucide-react';
 import { getAvailableRooms, getRoomDetails } from "../../services/api";
 import CustomSelect, { SelectOption } from '../ui/CustomSelect';
 import PlatformIcon from '../common/PlatformIcon';
@@ -828,7 +828,7 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                            </div>
 
                            <div className="mt-8 pt-6 relative z-10">
-                              <div className="flex items-center gap-3 mb-4">
+                              <div className="flex items-center gap-3 mb-3">
                                  <input
                                     type="checkbox"
                                     id="sendWhatsApp"
@@ -840,6 +840,44 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  <label htmlFor="sendWhatsApp" className="text-sm text-slate-300 cursor-pointer">
                                     Send WhatsApp Confirmation to Guest
                                  </label>
+                              </div>
+
+                              <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10 space-y-2.5">
+                                 <div className="flex items-center gap-3">
+                                    <input
+                                       type="checkbox"
+                                       id="updateRoomTv"
+                                       checked={newBookingData.updateRoomTv !== false}
+                                       onChange={(e) => setNewBookingData({ ...newBookingData, updateRoomTv: e.target.checked })}
+                                       disabled={readOnly}
+                                       className="w-4 h-4 rounded border-white/20 bg-white/5 text-amber-400 focus:ring-amber-400 focus:ring-offset-slate-900 cursor-pointer"
+                                    />
+                                    <label htmlFor="updateRoomTv" className="text-sm text-slate-200 font-medium cursor-pointer flex items-center gap-2">
+                                       <Tv size={15} className="text-amber-300" />
+                                       Update Room TV Welcome Screen
+                                    </label>
+                                 </div>
+                                 {newBookingData.updateRoomTv !== false && (() => {
+                                    const activeRoom = apiAvailableRooms.find(r => Number(r.id) === Number(newBookingData.roomId)) || rooms.find(r => Number(r.id) === Number(newBookingData.roomId));
+                                    const firstName = (newBookingData.guestName || '').trim().split(/\s+/)[0] || 'Guest';
+                                    return (
+                                       <div className="pl-7 space-y-2">
+                                          <p className="text-xs text-slate-400">
+                                             {activeRoom ? `Room ${activeRoom.number} TV` : 'Selected room TV'} will greet <span className="text-amber-200 font-medium">{firstName}</span>
+                                             {newBookingData.checkIn && newBookingData.checkOut ? ` (${newBookingData.checkIn} → ${newBookingData.checkOut})` : ''}.
+                                          </p>
+                                          {!readOnly && (
+                                             <input
+                                                type="text"
+                                                className="w-full bg-white/5 border border-white/10 rounded-lg text-white text-xs px-2.5 py-1.5 outline-none focus:border-amber-300/60 placeholder:text-slate-500"
+                                                placeholder="Optional custom TV greeting (use {name} for guest name)"
+                                                value={newBookingData.tvWelcomeMessage || ''}
+                                                onChange={(e) => setNewBookingData({ ...newBookingData, tvWelcomeMessage: e.target.value })}
+                                             />
+                                          )}
+                                       </div>
+                                    );
+                                 })()}
                               </div>
 
                               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Internal Notes</label>
