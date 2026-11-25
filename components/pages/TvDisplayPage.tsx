@@ -244,72 +244,6 @@ function resolvePhotoUrl(payload: TvPayload, mode: ScreenMode): string {
   return `/tv-bg/bg_${tpl}_${mode}.jpg`;
 }
 
-const KarunaCrestLogo: React.FC<{ size?: number }> = ({ size = 76 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 200 200"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{
-      display: 'block',
-      flex: 'none',
-      filter: 'drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 18px rgba(232, 197, 148, 0.28))',
-    }}
-    aria-label="Karuna Villa Logo"
-  >
-    <defs>
-      <radialGradient id="kvMedallionBg" cx="35%" cy="28%" r="76%">
-        <stop offset="0%" stopColor="#261f30" stopOpacity="0.94" />
-        <stop offset="60%" stopColor="#14111b" stopOpacity="0.96" />
-        <stop offset="100%" stopColor="#0a080f" stopOpacity="0.98" />
-      </radialGradient>
-      <linearGradient id="kvGold" x1="28" y1="20" x2="172" y2="180" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#fff7e6" />
-        <stop offset="35%" stopColor="#f0cfa0" />
-        <stop offset="70%" stopColor="#d9a468" />
-        <stop offset="100%" stopColor="#faebd0" />
-      </linearGradient>
-    </defs>
-
-    {/* Dark Obsidian Medallion */}
-    <circle cx="100" cy="100" r="95" fill="url(#kvMedallionBg)" />
-
-    {/* Exact Karuna Villa Double-Ring Border */}
-    <circle cx="100" cy="100" r="94" stroke="url(#kvGold)" strokeWidth="4.2" />
-    <circle cx="100" cy="100" r="87" stroke="url(#kvGold)" strokeWidth="1.9" opacity="0.88" />
-
-    {/* Exact Signature Calligraphic 'K' from Karuna Villa Logo */}
-    <path
-      d="M84 48 C81.5 68 78 92 73 114"
-      stroke="url(#kvGold)"
-      strokeWidth="4.4"
-      strokeLinecap="round"
-    />
-    <path
-      d="M124 49 C104 62 84 78 73 95 C70.5 99 72 103.5 79 104 C91 105 104 103.5 117 99"
-      stroke="url(#kvGold)"
-      strokeWidth="4.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-
-    {/* Crisp 'KARUNA VILLA' Wordmark */}
-    <text
-      x="100"
-      y="141"
-      textAnchor="middle"
-      fill="url(#kvGold)"
-      fontSize="15.5"
-      fontWeight="600"
-      letterSpacing="3.4"
-      style={{ fontFamily: "'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif" }}
-    >
-      KARUNA VILLA
-    </text>
-  </svg>
-);
-
 const TvDisplayPage: React.FC = () => {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const directRoom = params.get('room') || params.get('roomNumber') || '';
@@ -966,9 +900,12 @@ const TvDisplayPage: React.FC = () => {
             <div style={{ position: 'absolute', width: 720, height: 720, left: -180, top: -240, borderRadius: '50%', filter: 'blur(32px)', background: 'radial-gradient(circle, rgba(232,197,148,0.20), rgba(233,114,84,0.08) 45%, transparent 68%)' }} />
             <div style={{ position: 'absolute', width: 780, height: 780, right: -220, bottom: -300, borderRadius: '50%', filter: 'blur(32px)', background: 'radial-gradient(circle, rgba(138,146,226,0.22), transparent 68%)' }} />
 
-            <div style={{ position: 'relative', width: 158, height: 158, display: 'grid', placeItems: 'center' }}>
-              <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(232,197,148,0.36)', animation: 'tvRing 3.6s ease-out infinite' }} />
-              <KarunaCrestLogo size={132} />
+            <div style={{ position: 'relative', width: 140, height: 140, display: 'grid', placeItems: 'center' }}>
+              <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(232,197,148,0.32)', animation: 'tvRing 3.6s ease-out infinite' }} />
+              <span style={{ position: 'absolute', inset: 14, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,247,235,0.14), rgba(255,247,235,0.03) 72%)', border: '1px solid rgba(255,247,235,0.16)' }} />
+              <div className="tv-serif" style={{ position: 'relative', fontSize: 42, color: '#faf7f2', letterSpacing: '0.04em', textShadow: '0 4px 20px rgba(232,197,148,0.45)' }}>
+                KV
+              </div>
             </div>
 
             <div style={{ marginTop: 20, fontSize: 12, fontWeight: 800, letterSpacing: '0.26em', textTransform: 'uppercase', color: '#e8c594' }}>
@@ -1054,7 +991,25 @@ const TvDisplayPage: React.FC = () => {
             {/* Top Bar */}
             <div style={{ position: 'absolute', left: 64, right: 64, top: 36, display: 'flex', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <KarunaCrestLogo size={76} />
+                <span
+                  className="tv-serif"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 17,
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontSize: 23,
+                    letterSpacing: '0.03em',
+                    color: '#faf7f2',
+                    background: 'linear-gradient(145deg, rgba(232,197,148,0.26), rgba(233,114,84,0.22) 60%, rgba(22,19,28,0.58))',
+                    border: '1px solid rgba(255,244,226,0.30)',
+                    boxShadow: '0 12px 28px -10px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,250,240,0.35)',
+                    backdropFilter: 'blur(18px)',
+                  }}
+                >
+                  KV
+                </span>
                 <div>
                   <div className="tv-serif" style={{ fontSize: 30, lineHeight: 1.06, color: '#faf7f2', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}>
                     {cleanPropertyTitle(payload.property?.name)}
