@@ -640,17 +640,18 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                 <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                                     <Music size={15} className="text-rose-500" /> Ambient Room Music (YouTube)
                                 </h4>
-                                <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.musicEnabled}
-                                        onChange={(e) => setForm({ ...form, musicEnabled: e.target.checked })}
-                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                    />
-                                    <span className="text-xs font-bold text-slate-700">
-                                        {form.musicEnabled ? 'Playing on Room TV' : 'Music Paused / Off'}
-                                    </span>
-                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setForm({ ...form, musicEnabled: !form.musicEnabled })}
+                                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer select-none ${
+                                        form.musicEnabled
+                                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm hover:bg-emerald-700'
+                                            : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${form.musicEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                                    {form.musicEnabled ? 'Playing on Room TV' : 'Music Paused — Click to Play'}
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
@@ -659,7 +660,15 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                     <input
                                         type="url"
                                         value={form.musicUrl}
-                                        onChange={(e) => setForm({ ...form, musicUrl: e.target.value })}
+                                        onChange={(e) => {
+                                            const next = e.target.value;
+                                            const shouldAutoEnable = !form.musicUrl.trim() && next.trim().length > 0;
+                                            setForm({
+                                                ...form,
+                                                musicUrl: next,
+                                                musicEnabled: shouldAutoEnable ? true : form.musicEnabled,
+                                            });
+                                        }}
                                         placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
                                         className={inputCls}
                                     />

@@ -192,7 +192,9 @@ function parseYouTube(url?: string): { videoId: string; listId: string } {
   if (!raw) return { videoId: '', listId: '' };
   try {
     const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
-    const listId = u.searchParams.get('list') || '';
+    const rawList = u.searchParams.get('list') || '';
+    // Ignore auto-generated YouTube Radio/Mix lists (RD...) which fail in IFrame playlist mode
+    const listId = /^(RD|LL|WL)/i.test(rawList) ? '' : rawList;
     if (u.hostname.includes('youtu.be')) {
       return { videoId: u.pathname.replace(/^\//, '').split('/')[0] || '', listId };
     }
@@ -273,6 +275,8 @@ const TvDisplayPage: React.FC = () => {
   const [ytApiReady, setYtApiReady] = useState<boolean>(() => Boolean((window as any).YT?.Player));
   const [musicPlaying, setMusicPlaying] = useState<boolean>(false);
   const [musicNeedsUnlock, setMusicNeedsUnlock] = useState<boolean>(false);
+  const [musicError, setMusicError] = useState<string>('');
+  const ytHostRef = useRef<HTMLDivElement | null>(null);
   const ytPlayerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
   const loadedTrackKeyRef = useRef<string>('');
@@ -624,17 +628,25 @@ const TvDisplayPage: React.FC = () => {
 
     if (!ytPlayerRef.current && desired.enabled) {
       const w = window as any;
-      if (!w.YT?.Player) return;
+      if (!w.YT?.Player || !ytHostRef.current) return;
       const trackKey = `${desired.videoId}|${desired.listId}`;
       loadedTrackKeyRef.current = trackKey;
+      setMusicError('');
+
+      // Create an unmanaged child node inside ytHostRef so React never fights YT.Player DOM replacement
+      ytHostRef.current.innerHTML = '';
+      const mountEl = document.createElement('div');
+      ytHostRef.current.appendChild(mountEl);
 
       const playerVars: Record<string, any> = {
         autoplay: 1,
         controls: 0,
         disablekb: 1,
+        enablejsapi: 1,
         fs: 0,
         iv_load_policy: 3,
         modestbranding: 1,
+        origin: window.location.origin,
         playsinline: 1,
         rel: 0,
         loop: 1,
@@ -646,20 +658,25 @@ const TvDisplayPage: React.FC = () => {
         playerVars.playlist = desired.videoId;
       }
 
-      ytPlayerRef.current = new w.YT.Player('tv-yt-player', {
-        height: '1',
-        width: '1',
+      ytPlayerRef.current = new w.YT.Player(mountEl, {
+        height: '200',
+        width: '200',
         videoId: desired.videoId || undefined,
         playerVars,
         events: {
           onReady: (e: any) => {
             ytReadyRef.current = true;
+            try {
+              const iframe = e.target?.getIframe?.();
+              if (iframe) iframe.setAttribute('allow', 'autoplay; encrypted-media');
+            } catch { /* ignore */ }
             applyPlayerState(e.target, desiredMusicRef.current);
           },
           onStateChange: (e: any) => {
             const st = e.data;
             if (st === 1) {
               // PLAYING
+              setMusicError('');
               setMusicPlaying(true);
               setMusicNeedsUnlock(false);
             } else if (st === 0) {
@@ -674,9 +691,20 @@ const TvDisplayPage: React.FC = () => {
               setMusicPlaying(false);
             }
           },
+          onError: (e: any) => {
+            const code = e?.data;
+            if (code === 101 || code === 150) {
+              setMusicError('YouTube blocked embed — try another link');
+            } else {
+              setMusicError(`Music error (${code || 'load'})`);
+            }
+            setMusicPlaying(false);
+            setMusicNeedsUnlock(false);
+          },
         },
       });
     } else if (ytPlayerRef.current && ytReadyRef.current) {
+      setMusicError('');
       applyPlayerState(ytPlayerRef.current, desired);
     }
   }, [ytApiReady, musicEnabled, hasMusicTrack, musicVolume, parsedMusic.videoId, parsedMusic.listId]);
@@ -969,11 +997,13 @@ const TvDisplayPage: React.FC = () => {
                       <Music size={15} color="#e8c594" />
                     )}
                     <span>
-                      {musicNeedsUnlock
-                        ? 'Press OK / Click to start music'
-                        : musicVolume <= 0
-                          ? 'Room Music · Muted'
-                          : `Room Music · ${musicVolume}%`}
+                      {musicError
+                        ? musicError
+                        : musicNeedsUnlock
+                          ? 'Press OK / Click to start music'
+                          : musicVolume <= 0
+                            ? 'Room Music · Muted'
+                            : `Room Music · ${musicVolume}%`}
                     </span>
                   </button>
                 )}
@@ -1205,17 +1235,19 @@ const TvDisplayPage: React.FC = () => {
         )}
       </div>
 
-      {/* Hidden YouTube IFrame Player for ambient room music */}
+      {/* Hidden 200x200 YouTube IFrame Player (kept >=200px & in-viewport at 0.01 opacity so browsers don't throttle audio) */}
       <div
-        id="tv-yt-player"
+        ref={ytHostRef}
         style={{
           position: 'fixed',
-          width: 1,
-          height: 1,
-          left: -9999,
-          top: -9999,
-          opacity: 0,
+          width: 200,
+          height: 200,
+          left: 0,
+          bottom: 0,
+          opacity: 0.01,
           pointerEvents: 'none',
+          zIndex: 0,
+          overflow: 'hidden',
         }}
       />
 
