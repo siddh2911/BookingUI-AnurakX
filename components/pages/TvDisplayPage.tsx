@@ -276,6 +276,11 @@ const TvDisplayPage: React.FC = () => {
   const [musicPlaying, setMusicPlaying] = useState<boolean>(false);
   const [musicNeedsUnlock, setMusicNeedsUnlock] = useState<boolean>(false);
   const [musicError, setMusicError] = useState<string>('');
+  const [musicMeta, setMusicMeta] = useState<{ title: string; author: string; videoId: string }>({
+    title: '',
+    author: '',
+    videoId: '',
+  });
   const ytHostRef = useRef<HTMLDivElement | null>(null);
   const ytPlayerRef = useRef<any>(null);
   const ytReadyRef = useRef<boolean>(false);
@@ -669,11 +674,21 @@ const TvDisplayPage: React.FC = () => {
             try {
               const iframe = e.target?.getIframe?.();
               if (iframe) iframe.setAttribute('allow', 'autoplay; encrypted-media');
+              const vd = e.target?.getVideoData?.();
+              if (vd?.title) {
+                setMusicMeta({ title: vd.title, author: vd.author || '', videoId: vd.video_id || desired.videoId });
+              }
             } catch { /* ignore */ }
             applyPlayerState(e.target, desiredMusicRef.current);
           },
           onStateChange: (e: any) => {
             const st = e.data;
+            try {
+              const vd = e.target?.getVideoData?.();
+              if (vd?.title) {
+                setMusicMeta({ title: vd.title, author: vd.author || '', videoId: vd.video_id || desiredMusicRef.current.videoId });
+              }
+            } catch { /* ignore */ }
             if (st === 1) {
               // PLAYING
               setMusicError('');
@@ -760,6 +775,25 @@ const TvDisplayPage: React.FC = () => {
     };
   }, [musicNeedsUnlock]);
 
+  // Fetch YouTube title/artist via oEmbed immediately when videoId changes
+  useEffect(() => {
+    const vid = parsedMusic.videoId;
+    if (!vid) {
+      setMusicMeta({ title: '', author: '', videoId: '' });
+      return;
+    }
+    let active = true;
+    fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${vid}`)}&format=json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d?.title) {
+          setMusicMeta({ title: String(d.title), author: String(d.author_name || ''), videoId: vid });
+        }
+      })
+      .catch(() => { /* fallback to YT.Player getVideoData */ });
+    return () => { active = false; };
+  }, [parsedMusic.videoId]);
+
   // Cleanup YouTube player on unmount
   useEffect(() => {
     return () => {
@@ -797,6 +831,31 @@ const TvDisplayPage: React.FC = () => {
         @keyframes tvFadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes tvSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes tvMarquee {
+          0% { transform: translateX(0%); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes tvEqBar {
+          0%, 100% { transform: scaleY(0.28); }
+          50% { transform: scaleY(1); }
+        }
+        .tv-marquee-track {
+          display: inline-flex;
+          white-space: nowrap;
+          will-change: transform;
+          animation: tvMarquee 16s linear infinite;
+        }
+        .tv-eq-bar {
+          width: 2.5px;
+          height: 11px;
+          border-radius: 2px;
+          transform-origin: bottom center;
+          animation: tvEqBar 0.85s ease-in-out infinite;
         }
         .tv-serif { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; letter-spacing: -0.02em; }
         .tv-glass {
@@ -969,44 +1028,170 @@ const TvDisplayPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Music Status + Clock */}
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-                {musicEnabled && hasMusicTrack && (
-                  <button
-                    type="button"
-                    onClick={unlockRoomMusic}
-                    className="tv-glass"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 9,
-                      padding: '10px 16px',
-                      borderRadius: 999,
-                      color: '#faf7f2',
-                      fontSize: 13.5,
-                      fontWeight: 700,
-                      cursor: musicNeedsUnlock ? 'pointer' : 'default',
-                      borderColor: musicNeedsUnlock ? 'rgba(232,197,148,0.65)' : undefined,
-                    }}
-                  >
-                    {musicVolume <= 0 ? (
-                      <VolumeX size={15} color="#e8c594" />
-                    ) : musicPlaying ? (
-                      <Volume2 size={15} color="#9cdbb5" />
-                    ) : (
-                      <Music size={15} color="#e8c594" />
-                    )}
-                    <span>
-                      {musicError
-                        ? musicError
-                        : musicNeedsUnlock
-                          ? 'Press OK / Click to start music'
-                          : musicVolume <= 0
-                            ? 'Room Music · Muted'
-                            : `Room Music · ${musicVolume}%`}
-                    </span>
-                  </button>
-                )}
+              {/* Spotify-style Now Playing Widget + Clock */}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+                {musicEnabled && hasMusicTrack && (() => {
+                  const activeVid = musicMeta.videoId || parsedMusic.videoId;
+                  const thumbUrl = activeVid ? `https://i.ytimg.com/vi/${activeVid}/hqdefault.jpg` : '';
+                  const trackTitle = musicError
+                    ? musicError
+                    : musicNeedsUnlock
+                      ? 'Tap or Press OK to start room music'
+                      : musicMeta.title || 'Ambient Room Music';
+                  const isActivelySpinning = musicPlaying && musicVolume > 0 && !musicError;
+                  return (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        unlockRoomMusic();
+                      }}
+                      className="tv-glass"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 13,
+                        padding: '10px 18px 10px 12px',
+                        borderRadius: 22,
+                        color: '#faf7f2',
+                        textAlign: 'left',
+                        cursor: musicNeedsUnlock ? 'pointer' : 'default',
+                        borderColor: musicNeedsUnlock
+                          ? 'rgba(232,197,148,0.72)'
+                          : isActivelySpinning
+                            ? 'rgba(156,219,181,0.30)'
+                            : undefined,
+                        boxShadow: musicNeedsUnlock
+                          ? '0 0 28px -6px rgba(232,197,148,0.45), inset 0 1px 0 rgba(255,250,242,0.25)'
+                          : undefined,
+                      }}
+                    >
+                      {/* Spinning Vinyl Album Art */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          flex: 'none',
+                          overflow: 'hidden',
+                          background: 'linear-gradient(145deg, rgba(232,197,148,0.28), rgba(22,19,28,0.9))',
+                          border: '2px solid rgba(255,247,235,0.24)',
+                          boxShadow: isActivelySpinning
+                            ? '0 0 18px rgba(156,219,181,0.32), inset 0 0 10px rgba(0,0,0,0.6)'
+                            : '0 6px 16px rgba(0,0,0,0.45)',
+                          animation: 'tvSpin 14s linear infinite',
+                          animationPlayState: isActivelySpinning ? 'running' : 'paused',
+                          display: 'grid',
+                          placeItems: 'center',
+                        }}
+                      >
+                        {thumbUrl ? (
+                          <img
+                            src={thumbUrl}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.35)' }}
+                          />
+                        ) : (
+                          <Music size={18} color="#e8c594" />
+                        )}
+                        {/* Vinyl spindle center dot */}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: '#121018',
+                            border: '2px solid rgba(232,197,148,0.75)',
+                            boxShadow: '0 0 4px rgba(0,0,0,0.7)',
+                          }}
+                        />
+                      </div>
+
+                      {/* Rolling Marquee Info */}
+                      <div style={{ width: 205, minWidth: 0 }}>
+                        {/* Top status row: live equalizer + label + volume */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            {isActivelySpinning ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 2, height: 11 }}>
+                                <span className="tv-eq-bar" style={{ background: '#1db954', animationDelay: '0s' }} />
+                                <span className="tv-eq-bar" style={{ background: '#9cdbb5', animationDelay: '0.22s' }} />
+                                <span className="tv-eq-bar" style={{ background: '#1db954', animationDelay: '0.45s' }} />
+                                <span className="tv-eq-bar" style={{ background: '#e8c594', animationDelay: '0.15s' }} />
+                              </span>
+                            ) : musicVolume <= 0 ? (
+                              <VolumeX size={12} color="#e8c594" />
+                            ) : (
+                              <Music size={12} color="#e8c594" />
+                            )}
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                letterSpacing: '0.14em',
+                                textTransform: 'uppercase',
+                                color: isActivelySpinning ? '#9cdbb5' : '#e8c594',
+                              }}
+                            >
+                              {musicError
+                                ? 'Music Error'
+                                : musicNeedsUnlock
+                                  ? 'Tap to Play'
+                                  : musicVolume <= 0
+                                    ? 'Muted'
+                                    : 'Now Playing'}
+                            </span>
+                          </div>
+
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: 'rgba(243,237,229,0.72)', fontVariantNumeric: 'tabular-nums' }}>
+                            <Volume2 size={11} color="#e8c594" />
+                            {musicVolume}%
+                          </span>
+                        </div>
+
+                        {/* Rolling Track Title Marquee */}
+                        <div
+                          style={{
+                            overflow: 'hidden',
+                            WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 6%, #000 92%, transparent)',
+                            maskImage: 'linear-gradient(90deg, transparent, #000 6%, #000 92%, transparent)',
+                          }}
+                        >
+                          <div
+                            className="tv-marquee-track"
+                            style={{
+                              fontSize: 14.5,
+                              fontWeight: 700,
+                              color: '#faf7f2',
+                              lineHeight: 1.25,
+                              animationPlayState: musicError ? 'paused' : 'running',
+                            }}
+                          >
+                            <span style={{ paddingRight: 36 }}>{trackTitle}</span>
+                            <span style={{ paddingRight: 36 }}>{trackTitle}</span>
+                          </div>
+                        </div>
+
+                        {/* Artist / Channel Subtitle */}
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            fontWeight: 500,
+                            color: 'rgba(243,237,229,0.68)',
+                            marginTop: 2,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {musicMeta.author || 'Karuna Villa · Ambient Audio'}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
 
                 <div className="tv-glass" style={{ textAlign: 'right', padding: '12px 22px 13px 24px', borderRadius: 22 }}>
                   <div className="tv-serif" style={{ fontSize: 40, lineHeight: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', fontVariantNumeric: 'tabular-nums' }}>
