@@ -301,6 +301,7 @@ export interface TvSettings {
   whatsapp?: string;
   template?: string;
   timeZone?: string;
+  guestNameOverride?: string;
   tagline?: string;
   wifiName?: string;
   wifiPassword?: string;
