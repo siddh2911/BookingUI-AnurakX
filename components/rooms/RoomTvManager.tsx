@@ -39,6 +39,7 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
         area: '',
         tagline: '',
         template: 'villa',
+        propertyNameOverride: '',
         guestNameOverride: '',
         welcomeMessage: '',
         checkoutMessage: '',
@@ -85,6 +86,7 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                 area: data.area || '',
                 tagline: data.tagline || '',
                 template: data.template || 'villa',
+                propertyNameOverride: data.propertyNameOverride || '',
                 guestNameOverride: data.guestNameOverride || '',
                 welcomeMessage: data.welcomeMessage || '',
                 checkoutMessage: data.checkoutMessage || '',
@@ -174,6 +176,7 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                 area: form.area,
                 tagline: form.tagline,
                 template: form.template,
+                propertyNameOverride: form.propertyNameOverride,
                 guestNameOverride: form.guestNameOverride,
                 welcomeMessage: form.welcomeMessage,
                 checkoutMessage: form.checkoutMessage,
@@ -406,20 +409,27 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                                 <Sparkles size={15} className="text-amber-500" /> Greeting &amp; Property
                             </h4>
-                            <div>
-                                <div className="flex items-center justify-between gap-2 mb-1.5">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                                        Guest Name (Optional Override)
-                                    </label>
-                                    <span className="text-[11px] text-slate-400">Leave blank to auto-pick from booking DB</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <div>
+                                    <label className={labelCls}>Property Name Override</label>
+                                    <input
+                                        type="text"
+                                        value={form.propertyNameOverride}
+                                        onChange={(e) => setForm({ ...form, propertyNameOverride: e.target.value })}
+                                        placeholder="Auto from Hotel & Room (or type custom)"
+                                        className={inputCls}
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    value={form.guestNameOverride}
-                                    onChange={(e) => setForm({ ...form, guestNameOverride: e.target.value })}
-                                    placeholder="Auto from active booking (or type a manual guest name)"
-                                    className={inputCls}
-                                />
+                                <div>
+                                    <label className={labelCls}>Guest Name Override</label>
+                                    <input
+                                        type="text"
+                                        value={form.guestNameOverride}
+                                        onChange={(e) => setForm({ ...form, guestNameOverride: e.target.value })}
+                                        placeholder="Auto from active booking (or type custom)"
+                                        className={inputCls}
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <div className="flex items-center justify-between gap-2 mb-1.5">
