@@ -244,73 +244,69 @@ function resolvePhotoUrl(payload: TvPayload, mode: ScreenMode): string {
   return `/tv-bg/bg_${tpl}_${mode}.jpg`;
 }
 
-const KarunaCrestLogo: React.FC<{ size?: number }> = ({ size = 64 }) => (
+const KarunaCrestLogo: React.FC<{ size?: number }> = ({ size = 76 }) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 120 120"
+    viewBox="0 0 200 200"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     style={{
       display: 'block',
       flex: 'none',
-      filter: 'drop-shadow(0 10px 22px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 14px rgba(232, 197, 148, 0.25))',
+      filter: 'drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 18px rgba(232, 197, 148, 0.28))',
     }}
-    aria-label="Karuna Villa Crest"
+    aria-label="Karuna Villa Logo"
   >
     <defs>
-      <radialGradient id="kvMedallionBg" cx="35%" cy="28%" r="78%">
-        <stop offset="0%" stopColor="#2c2434" />
-        <stop offset="55%" stopColor="#16121d" />
-        <stop offset="100%" stopColor="#0c0a11" />
+      <radialGradient id="kvMedallionBg" cx="35%" cy="28%" r="76%">
+        <stop offset="0%" stopColor="#261f30" stopOpacity="0.94" />
+        <stop offset="60%" stopColor="#14111b" stopOpacity="0.96" />
+        <stop offset="100%" stopColor="#0a080f" stopOpacity="0.98" />
       </radialGradient>
-      <linearGradient id="kvGold" x1="18" y1="14" x2="102" y2="106" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#fff2d6" />
-        <stop offset="38%" stopColor="#e8c594" />
-        <stop offset="72%" stopColor="#d49c64" />
-        <stop offset="100%" stopColor="#f5ddb5" />
-      </linearGradient>
-      <linearGradient id="kvGoldSoft" x1="20" y1="20" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#f8e3be" stopOpacity="0.65" />
-        <stop offset="50%" stopColor="#d9a56c" stopOpacity="0.28" />
-        <stop offset="100%" stopColor="#f8e3be" stopOpacity="0.65" />
+      <linearGradient id="kvGold" x1="28" y1="20" x2="172" y2="180" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#fff7e6" />
+        <stop offset="35%" stopColor="#f0cfa0" />
+        <stop offset="70%" stopColor="#d9a468" />
+        <stop offset="100%" stopColor="#faebd0" />
       </linearGradient>
     </defs>
 
-    {/* Obsidian Medallion Base */}
-    <circle cx="60" cy="60" r="56" fill="url(#kvMedallionBg)" />
+    {/* Dark Obsidian Medallion */}
+    <circle cx="100" cy="100" r="95" fill="url(#kvMedallionBg)" />
 
-    {/* Brushed Gold Double Ring */}
-    <circle cx="60" cy="60" r="55" stroke="url(#kvGold)" strokeWidth="2.2" />
-    <circle cx="60" cy="60" r="49" stroke="url(#kvGoldSoft)" strokeWidth="1" />
+    {/* Exact Karuna Villa Double-Ring Border */}
+    <circle cx="100" cy="100" r="94" stroke="url(#kvGold)" strokeWidth="4.2" />
+    <circle cx="100" cy="100" r="87" stroke="url(#kvGold)" strokeWidth="1.9" opacity="0.88" />
 
-    {/* Subtle Lotus Crown Accent */}
+    {/* Exact Signature Calligraphic 'K' from Karuna Villa Logo */}
     <path
-      d="M60 19 C62 24 65 26 68 27 C64 28 62 30 60 33 C58 30 56 28 52 27 C55 26 58 24 60 19 Z"
+      d="M84 48 C81.5 68 78 92 73 114"
+      stroke="url(#kvGold)"
+      strokeWidth="4.4"
+      strokeLinecap="round"
+    />
+    <path
+      d="M124 49 C104 62 84 78 73 95 C70.5 99 72 103.5 79 104 C91 105 104 103.5 117 99"
+      stroke="url(#kvGold)"
+      strokeWidth="4.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+
+    {/* Crisp 'KARUNA VILLA' Wordmark */}
+    <text
+      x="100"
+      y="141"
+      textAnchor="middle"
       fill="url(#kvGold)"
-      opacity="0.92"
-    />
-
-    {/* Signature Calligraphic K + V Monogram */}
-    <path
-      d="M36 42 L36 78 M36 60 L55 43 M42 56 L57 78"
-      stroke="url(#kvGold)"
-      strokeWidth="3.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M64 43 L75.5 77 L87 43"
-      stroke="url(#kvGold)"
-      strokeWidth="3.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-
-    {/* Elegant Underline Flourish & Diamond */}
-    <line x1="39" y1="88" x2="54" y2="88" stroke="url(#kvGold)" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
-    <path d="M60 85 L63 88 L60 91 L57 88 Z" fill="url(#kvGold)" />
-    <line x1="66" y1="88" x2="81" y2="88" stroke="url(#kvGold)" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+      fontSize="15.5"
+      fontWeight="600"
+      letterSpacing="3.4"
+      style={{ fontFamily: "'Manrope', 'Plus Jakarta Sans', system-ui, sans-serif" }}
+    >
+      KARUNA VILLA
+    </text>
   </svg>
 );
 
@@ -970,9 +966,9 @@ const TvDisplayPage: React.FC = () => {
             <div style={{ position: 'absolute', width: 720, height: 720, left: -180, top: -240, borderRadius: '50%', filter: 'blur(32px)', background: 'radial-gradient(circle, rgba(232,197,148,0.20), rgba(233,114,84,0.08) 45%, transparent 68%)' }} />
             <div style={{ position: 'absolute', width: 780, height: 780, right: -220, bottom: -300, borderRadius: '50%', filter: 'blur(32px)', background: 'radial-gradient(circle, rgba(138,146,226,0.22), transparent 68%)' }} />
 
-            <div style={{ position: 'relative', width: 152, height: 152, display: 'grid', placeItems: 'center' }}>
+            <div style={{ position: 'relative', width: 158, height: 158, display: 'grid', placeItems: 'center' }}>
               <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(232,197,148,0.36)', animation: 'tvRing 3.6s ease-out infinite' }} />
-              <KarunaCrestLogo size={124} />
+              <KarunaCrestLogo size={132} />
             </div>
 
             <div style={{ marginTop: 20, fontSize: 12, fontWeight: 800, letterSpacing: '0.26em', textTransform: 'uppercase', color: '#e8c594' }}>
@@ -1058,7 +1054,7 @@ const TvDisplayPage: React.FC = () => {
             {/* Top Bar */}
             <div style={{ position: 'absolute', left: 64, right: 64, top: 36, display: 'flex', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <KarunaCrestLogo size={64} />
+                <KarunaCrestLogo size={76} />
                 <div>
                   <div className="tv-serif" style={{ fontSize: 30, lineHeight: 1.06, color: '#faf7f2', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}>
                     {cleanPropertyTitle(payload.property?.name)}
