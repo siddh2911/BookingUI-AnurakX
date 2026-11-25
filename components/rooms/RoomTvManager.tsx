@@ -493,11 +493,34 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                 </div>
                                 <div className="mt-3">
                                     <label className={labelCls}>Background Photo Theme</label>
-                                    <select value={form.template} onChange={(e) => setForm({ ...form, template: e.target.value })} className={inputCls}>
-                                        <option value="villa">Villa (Coastal / Pool Terrace)</option>
-                                        <option value="room">Hotel Suite (Warm Oak &amp; Linen)</option>
-                                        <option value="apartment">Boutique Apartment (Mediterranean Loft)</option>
-                                    </select>
+                                    <div className="grid grid-cols-3 gap-2.5">
+                                        {[
+                                            { id: 'villa', label: 'Villa', sub: 'Coastal Pool', img: '/tv-bg/bg_villa_stay.jpg' },
+                                            { id: 'room', label: 'Hotel Suite', sub: 'Oak & Linen', img: '/tv-bg/bg_room_stay.jpg' },
+                                            { id: 'apartment', label: 'Apartment', sub: 'Boutique Loft', img: '/tv-bg/bg_apartment_stay.jpg' },
+                                        ].map((opt) => {
+                                            const active = form.template === opt.id;
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => setForm({ ...form, template: opt.id })}
+                                                    className={`relative rounded-xl overflow-hidden border-2 text-left transition-all ${
+                                                        active ? 'border-blue-600 ring-2 ring-blue-500/30 shadow-md' : 'border-slate-200 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <img src={opt.img} alt={opt.label} className="w-full h-16 object-cover" />
+                                                    <div className="p-2 bg-white">
+                                                        <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                                                            <span>{opt.label}</span>
+                                                            {active && <CheckCircle2 size={13} className="text-blue-600" />}
+                                                        </div>
+                                                        <div className="text-[10px] text-slate-500">{opt.sub}</div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>

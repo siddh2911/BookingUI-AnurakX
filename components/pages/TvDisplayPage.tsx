@@ -384,7 +384,7 @@ const TvDisplayPage: React.FC = () => {
         } else if (token) {
           headers.Authorization = `Bearer ${token}`;
         }
-        const res = await fetch(url, { headers });
+        const res = await fetch(url, { headers, cache: 'no-store' });
         if ((res.status === 401 || res.status === 403) && !directRoom) {
           localStorage.removeItem(LS_TOKEN);
           localStorage.removeItem(LS_CACHE);
