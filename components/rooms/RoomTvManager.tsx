@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Room } from '../../types';
-import { Tv, Link2, RefreshCw, Unlink, CheckCircle2, AlertCircle, Wifi, Clock, User, Sparkles, Shield, Save, ExternalLink } from 'lucide-react';
+import { Tv, Link2, RefreshCw, Unlink, CheckCircle2, AlertCircle, Wifi, Clock, User, Sparkles, Shield, Save, ExternalLink, Music, Volume2 } from 'lucide-react';
 import {
     listLinkedTvs,
     linkRoomTv,
@@ -57,6 +57,9 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
         amenitiesText: '',
         houseRulesText: '',
         checkoutStepsText: '',
+        musicUrl: '',
+        musicEnabled: false,
+        musicVolume: 35,
     });
 
     useEffect(() => {
@@ -104,6 +107,9 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                 amenitiesText: toLines(data.amenities),
                 houseRulesText: toLines(data.houseRules),
                 checkoutStepsText: toLines(data.checkoutSteps),
+                musicUrl: data.musicUrl || '',
+                musicEnabled: Boolean(data.musicEnabled),
+                musicVolume: typeof data.musicVolume === 'number' ? data.musicVolume : 35,
             });
         } catch (err: any) {
             setSettingsFeedback({ type: 'error', text: err?.message || 'Failed to load TV settings.' });
@@ -194,6 +200,9 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                 amenities: fromLines(form.amenitiesText),
                 houseRules: fromLines(form.houseRulesText),
                 checkoutSteps: fromLines(form.checkoutStepsText),
+                musicUrl: form.musicUrl,
+                musicEnabled: form.musicEnabled,
+                musicVolume: form.musicVolume,
             }, settingsScope || undefined);
             setSettingsFeedback({
                 type: 'success',
@@ -623,6 +632,77 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                     className={inputCls}
                                 />
                             </div>
+                        </div>
+
+                        {/* Ambient Room Music (YouTube) */}
+                        <div className="lg:col-span-2 space-y-4 p-5 rounded-xl bg-slate-50/70 border border-slate-200/70">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <Music size={15} className="text-rose-500" /> Ambient Room Music (YouTube)
+                                </h4>
+                                <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.musicEnabled}
+                                        onChange={(e) => setForm({ ...form, musicEnabled: e.target.checked })}
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <span className="text-xs font-bold text-slate-700">
+                                        {form.musicEnabled ? 'Playing on Room TV' : 'Music Paused / Off'}
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                                <div className="md:col-span-7">
+                                    <label className={labelCls}>YouTube Video or Playlist Link</label>
+                                    <input
+                                        type="url"
+                                        value={form.musicUrl}
+                                        onChange={(e) => setForm({ ...form, musicUrl: e.target.value })}
+                                        placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                                        className={inputCls}
+                                    />
+                                </div>
+                                <div className="md:col-span-5">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                            <Volume2 size={13} className="text-slate-500" /> Volume
+                                        </label>
+                                        <span className="text-xs font-bold text-blue-600 tabular-nums">{form.musicVolume}%</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            step={5}
+                                            value={form.musicVolume}
+                                            onChange={(e) => setForm({ ...form, musicVolume: Number(e.target.value) })}
+                                            className="w-full accent-blue-600 cursor-pointer"
+                                        />
+                                        <div className="flex gap-1 shrink-0">
+                                            {[0, 30, 60].map((v) => (
+                                                <button
+                                                    key={v}
+                                                    type="button"
+                                                    onClick={() => setForm({ ...form, musicVolume: v })}
+                                                    className={`px-2 py-1 rounded text-[11px] font-semibold border ${
+                                                        form.musicVolume === v
+                                                            ? 'bg-blue-600 text-white border-blue-600'
+                                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {v === 0 ? 'Mute' : `${v}%`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                                Tip: Pick a specific room from the dropdown above (e.g. <b>Room 101 Override</b>) to control music and volume for that individual room, or use <b>All Rooms</b>.
+                            </p>
                         </div>
                     </div>
                 )}

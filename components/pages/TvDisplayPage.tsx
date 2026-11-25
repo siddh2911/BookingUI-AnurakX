@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { API_BASE_URL } from '../../constants/api';
-import { Calendar, Clock, KeyRound, MapPin, Sparkles, ShieldCheck, MessageCircle, Lock, Check, Wifi, Maximize2 } from 'lucide-react';
+import { Calendar, Clock, KeyRound, MapPin, Sparkles, ShieldCheck, MessageCircle, Lock, Check, Wifi, Maximize2, Music, Volume2, VolumeX } from 'lucide-react';
 
 interface TvBooking {
   id: string;
@@ -35,6 +35,9 @@ interface TvPayload {
     houseRules: string[];
     checkoutSteps: string[];
     contactNote: string;
+    musicUrl?: string;
+    musicEnabled?: boolean;
+    musicVolume?: number;
   };
   photos?: {
     stay?: string | null;
@@ -184,6 +187,25 @@ function wifiEscape(s: string): string {
   return (s || '').replace(/([\\;,:"])/g, '\\$1');
 }
 
+function parseYouTube(url?: string): { videoId: string; listId: string } {
+  const raw = (url || '').trim();
+  if (!raw) return { videoId: '', listId: '' };
+  try {
+    const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    const listId = u.searchParams.get('list') || '';
+    if (u.hostname.includes('youtu.be')) {
+      return { videoId: u.pathname.replace(/^\//, '').split('/')[0] || '', listId };
+    }
+    const v = u.searchParams.get('v');
+    if (v) return { videoId: v, listId };
+    const m = u.pathname.match(/\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{6,})/);
+    if (m) return { videoId: m[1], listId };
+    return { videoId: '', listId };
+  } catch {
+    return { videoId: '', listId: '' };
+  }
+}
+
 function selectScreen(payload: TvPayload, now: Date): { mode: ScreenMode; booking?: TvBooking } {
   const tz = payload.property?.timeZone || 'Asia/Kolkata';
   const today = todayYmd(now, tz);
@@ -246,6 +268,20 @@ const TvDisplayPage: React.FC = () => {
   });
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [cursorIdle, setCursorIdle] = useState(false);
+
+  // Ambient YouTube Music state & refs
+  const [ytApiReady, setYtApiReady] = useState<boolean>(() => Boolean((window as any).YT?.Player));
+  const [musicPlaying, setMusicPlaying] = useState<boolean>(false);
+  const [musicNeedsUnlock, setMusicNeedsUnlock] = useState<boolean>(false);
+  const ytPlayerRef = useRef<any>(null);
+  const ytReadyRef = useRef<boolean>(false);
+  const loadedTrackKeyRef = useRef<string>('');
+  const desiredMusicRef = useRef<{ enabled: boolean; volume: number; videoId: string; listId: string }>({
+    enabled: false,
+    volume: 35,
+    videoId: '',
+    listId: '',
+  });
 
   const pairingIdRef = useRef<string | null>(null);
   const pairingExpRef = useRef<number>(0);
@@ -501,6 +537,210 @@ const TvDisplayPage: React.FC = () => {
     else document.exitFullscreen?.().catch(() => {});
   };
 
+  // Load YouTube IFrame Player API once when a music URL is present
+  const musicUrl = (payload.screen?.musicUrl || '').trim();
+  const musicEnabled = Boolean(payload.screen?.musicEnabled) && view === 'welcome';
+  const musicVolume = typeof payload.screen?.musicVolume === 'number'
+    ? Math.max(0, Math.min(100, Math.round(payload.screen.musicVolume)))
+    : 35;
+  const parsedMusic = useMemo(() => parseYouTube(musicUrl), [musicUrl]);
+  const hasMusicTrack = Boolean(parsedMusic.videoId || parsedMusic.listId);
+
+  useEffect(() => {
+    desiredMusicRef.current = {
+      enabled: musicEnabled && hasMusicTrack,
+      volume: musicVolume,
+      videoId: parsedMusic.videoId,
+      listId: parsedMusic.listId,
+    };
+  }, [musicEnabled, hasMusicTrack, musicVolume, parsedMusic.videoId, parsedMusic.listId]);
+
+  useEffect(() => {
+    if (!hasMusicTrack) return;
+    const w = window as any;
+    if (w.YT && w.YT.Player) {
+      setYtApiReady(true);
+      return;
+    }
+    const prev = w.onYouTubeIframeAPIReady;
+    w.onYouTubeIframeAPIReady = () => {
+      if (typeof prev === 'function') prev();
+      setYtApiReady(true);
+    };
+    if (!document.getElementById('yt-iframe-api-script')) {
+      const s = document.createElement('script');
+      s.id = 'yt-iframe-api-script';
+      s.src = 'https://www.youtube.com/iframe_api';
+      s.async = true;
+      document.head.appendChild(s);
+    }
+  }, [hasMusicTrack]);
+
+  const applyPlayerState = (player: any, desired: { enabled: boolean; volume: number; videoId: string; listId: string }) => {
+    if (!player) return;
+    try {
+      const trackKey = `${desired.videoId}|${desired.listId}`;
+      if (!desired.enabled || (!desired.videoId && !desired.listId)) {
+        if (typeof player.pauseVideo === 'function') player.pauseVideo();
+        setMusicPlaying(false);
+        setMusicNeedsUnlock(false);
+        return;
+      }
+
+      if (loadedTrackKeyRef.current !== trackKey) {
+        loadedTrackKeyRef.current = trackKey;
+        if (desired.listId && !desired.videoId) {
+          player.loadPlaylist?.({ list: desired.listId, listType: 'playlist', index: 0 });
+        } else if (desired.listId && desired.videoId) {
+          player.loadPlaylist?.({ list: desired.listId, listType: 'playlist' });
+          player.loadVideoById?.({ videoId: desired.videoId });
+        } else {
+          player.loadVideoById?.({ videoId: desired.videoId });
+        }
+      }
+
+      if (desired.volume <= 0) {
+        player.mute?.();
+        player.setVolume?.(0);
+      } else {
+        player.unMute?.();
+        player.setVolume?.(desired.volume);
+      }
+      player.playVideo?.();
+    } catch {
+      /* ignore transient YT player errors */
+    }
+  };
+
+  // Create/sync hidden YouTube IFrame player whenever track, enabled, or volume changes
+  useEffect(() => {
+    if (!ytApiReady) return;
+    const desired = {
+      enabled: musicEnabled && hasMusicTrack,
+      volume: musicVolume,
+      videoId: parsedMusic.videoId,
+      listId: parsedMusic.listId,
+    };
+
+    if (!ytPlayerRef.current && desired.enabled) {
+      const w = window as any;
+      if (!w.YT?.Player) return;
+      const trackKey = `${desired.videoId}|${desired.listId}`;
+      loadedTrackKeyRef.current = trackKey;
+
+      const playerVars: Record<string, any> = {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        iv_load_policy: 3,
+        modestbranding: 1,
+        playsinline: 1,
+        rel: 0,
+        loop: 1,
+      };
+      if (desired.listId) {
+        playerVars.listType = 'playlist';
+        playerVars.list = desired.listId;
+      } else if (desired.videoId) {
+        playerVars.playlist = desired.videoId;
+      }
+
+      ytPlayerRef.current = new w.YT.Player('tv-yt-player', {
+        height: '1',
+        width: '1',
+        videoId: desired.videoId || undefined,
+        playerVars,
+        events: {
+          onReady: (e: any) => {
+            ytReadyRef.current = true;
+            applyPlayerState(e.target, desiredMusicRef.current);
+          },
+          onStateChange: (e: any) => {
+            const st = e.data;
+            if (st === 1) {
+              // PLAYING
+              setMusicPlaying(true);
+              setMusicNeedsUnlock(false);
+            } else if (st === 0) {
+              // ENDED -> loop smoothly
+              if (desiredMusicRef.current.enabled) {
+                e.target.playVideo?.();
+              } else {
+                setMusicPlaying(false);
+              }
+            } else if (st === 2) {
+              // PAUSED
+              setMusicPlaying(false);
+            }
+          },
+        },
+      });
+    } else if (ytPlayerRef.current && ytReadyRef.current) {
+      applyPlayerState(ytPlayerRef.current, desired);
+    }
+  }, [ytApiReady, musicEnabled, hasMusicTrack, musicVolume, parsedMusic.videoId, parsedMusic.listId]);
+
+  // Detect browser autoplay block if enabled for >2s without entering PLAYING state
+  useEffect(() => {
+    if (!musicEnabled || !hasMusicTrack || musicPlaying) {
+      setMusicNeedsUnlock(false);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      try {
+        const st = ytPlayerRef.current?.getPlayerState?.();
+        if (st !== 1 && st !== 3) {
+          setMusicNeedsUnlock(true);
+        }
+      } catch {
+        setMusicNeedsUnlock(true);
+      }
+    }, 2200);
+    return () => window.clearTimeout(t);
+  }, [musicEnabled, hasMusicTrack, musicPlaying, parsedMusic.videoId, parsedMusic.listId]);
+
+  const unlockRoomMusic = () => {
+    const p = ytPlayerRef.current;
+    if (!p) return;
+    try {
+      const vol = desiredMusicRef.current.volume;
+      if (vol <= 0) {
+        p.mute?.();
+        p.setVolume?.(0);
+      } else {
+        p.unMute?.();
+        p.setVolume?.(vol);
+      }
+      p.playVideo?.();
+      setMusicNeedsUnlock(false);
+    } catch { /* ignore */ }
+  };
+
+  // Allow TV remote OK/Enter or any click to unlock audio if browser blocked autoplay
+  useEffect(() => {
+    if (!musicNeedsUnlock) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'OK') unlockRoomMusic();
+    };
+    const onClick = () => unlockRoomMusic();
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('click', onClick, { once: true });
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('click', onClick);
+    };
+  }, [musicNeedsUnlock]);
+
+  // Cleanup YouTube player on unmount
+  useEffect(() => {
+    return () => {
+      try { ytPlayerRef.current?.destroy?.(); } catch { /* ignore */ }
+      ytPlayerRef.current = null;
+      ytReadyRef.current = false;
+    };
+  }, []);
+
   return (
     <div
       style={{
@@ -701,18 +941,55 @@ const TvDisplayPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Clock */}
-              <div className="tv-glass" style={{ marginLeft: 'auto', textAlign: 'right', padding: '12px 22px 13px 24px', borderRadius: 22 }}>
-                <div className="tv-serif" style={{ fontSize: 40, lineHeight: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', fontVariantNumeric: 'tabular-nums' }}>
-                  <span>{timeParts.digits}</span>
-                  {timeParts.ap && (
-                    <span style={{ fontFamily: 'inherit', fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', color: '#e8c594', marginLeft: 5 }}>
-                      {timeParts.ap}
+              {/* Music Status + Clock */}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+                {musicEnabled && hasMusicTrack && (
+                  <button
+                    type="button"
+                    onClick={unlockRoomMusic}
+                    className="tv-glass"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 9,
+                      padding: '10px 16px',
+                      borderRadius: 999,
+                      color: '#faf7f2',
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: musicNeedsUnlock ? 'pointer' : 'default',
+                      borderColor: musicNeedsUnlock ? 'rgba(232,197,148,0.65)' : undefined,
+                    }}
+                  >
+                    {musicVolume <= 0 ? (
+                      <VolumeX size={15} color="#e8c594" />
+                    ) : musicPlaying ? (
+                      <Volume2 size={15} color="#9cdbb5" />
+                    ) : (
+                      <Music size={15} color="#e8c594" />
+                    )}
+                    <span>
+                      {musicNeedsUnlock
+                        ? 'Press OK / Click to start music'
+                        : musicVolume <= 0
+                          ? 'Room Music · Muted'
+                          : `Room Music · ${musicVolume}%`}
                     </span>
-                  )}
-                </div>
-                <div style={{ fontSize: 14, color: 'rgba(243,237,229,0.74)', marginTop: 7, fontWeight: 600 }}>
-                  {dateText}
+                  </button>
+                )}
+
+                <div className="tv-glass" style={{ textAlign: 'right', padding: '12px 22px 13px 24px', borderRadius: 22 }}>
+                  <div className="tv-serif" style={{ fontSize: 40, lineHeight: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', fontVariantNumeric: 'tabular-nums' }}>
+                    <span>{timeParts.digits}</span>
+                    {timeParts.ap && (
+                      <span style={{ fontFamily: 'inherit', fontSize: 15, fontWeight: 700, letterSpacing: '0.08em', color: '#e8c594', marginLeft: 5 }}>
+                        {timeParts.ap}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 14, color: 'rgba(243,237,229,0.74)', marginTop: 7, fontWeight: 600 }}>
+                    {dateText}
+                  </div>
                 </div>
               </div>
             </div>
@@ -927,6 +1204,20 @@ const TvDisplayPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Hidden YouTube IFrame Player for ambient room music */}
+      <div
+        id="tv-yt-player"
+        style={{
+          position: 'fixed',
+          width: 1,
+          height: 1,
+          left: -9999,
+          top: -9999,
+          opacity: 0,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Subtle Fullscreen button (only visible when cursor moves) */}
       {!cursorIdle && (

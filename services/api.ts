@@ -318,6 +318,9 @@ export interface TvSettings {
   amenities?: string[];
   houseRules?: string[];
   checkoutSteps?: string[];
+  musicUrl?: string;
+  musicEnabled?: boolean;
+  musicVolume?: number;
 }
 
 export const getTvSettings = async (roomNumber?: string): Promise<TvSettings> => {
