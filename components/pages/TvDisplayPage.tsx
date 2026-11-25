@@ -294,6 +294,8 @@ const TvDisplayPage: React.FC = () => {
 
   const pairingIdRef = useRef<string | null>(null);
   const pairingExpRef = useRef<number>(0);
+  const lastPayloadJsonRef = useRef<string>('');
+  const mountedRef = useRef<boolean>(true);
 
   // Responsive 1280x720 stage scaling for 720p / 1080p / 4K TVs
   useEffect(() => {
@@ -306,9 +308,9 @@ const TvDisplayPage: React.FC = () => {
     return () => window.removeEventListener('resize', fit);
   }, []);
 
-  // Clock tick every second
+  // Clock tick every 15 seconds (display shows HH:MM only — avoids unnecessary 1s re-renders)
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
+    const id = window.setInterval(() => setNow(new Date()), 15000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -455,9 +457,13 @@ const TvDisplayPage: React.FC = () => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: TvPayload = await res.json();
         if (cancelled) return;
-        setPayload(data);
-        setView('welcome');
-        try { localStorage.setItem(LS_CACHE, JSON.stringify(data)); } catch { /* ignore */ }
+        const nextJson = JSON.stringify(data);
+        if (nextJson !== lastPayloadJsonRef.current) {
+          lastPayloadJsonRef.current = nextJson;
+          setPayload(data);
+          try { localStorage.setItem(LS_CACHE, nextJson); } catch { /* ignore */ }
+        }
+        setView((prev) => (prev === 'welcome' ? prev : 'welcome'));
         schedule(fetchScreen, 5000);
       } catch {
         // Offline: keep showing cached or default welcome screen and retry silently
@@ -596,7 +602,9 @@ const TvDisplayPage: React.FC = () => {
         return;
       }
 
+      let trackChanged = false;
       if (loadedTrackKeyRef.current !== trackKey) {
+        trackChanged = true;
         loadedTrackKeyRef.current = trackKey;
         if (desired.listId && !desired.videoId) {
           player.loadPlaylist?.({ list: desired.listId, listType: 'playlist', index: 0 });
@@ -615,7 +623,12 @@ const TvDisplayPage: React.FC = () => {
         player.unMute?.();
         player.setVolume?.(desired.volume);
       }
-      player.playVideo?.();
+
+      // Only call playVideo() if track changed or player is not already playing/buffering
+      const state = typeof player.getPlayerState === 'function' ? player.getPlayerState() : -1;
+      if (trackChanged || (state !== 1 && state !== 3)) {
+        player.playVideo?.();
+      }
     } catch {
       /* ignore transient YT player errors */
     }
@@ -670,6 +683,10 @@ const TvDisplayPage: React.FC = () => {
         playerVars,
         events: {
           onReady: (e: any) => {
+            if (!mountedRef.current) {
+              try { e.target?.destroy?.(); } catch { /* ignore */ }
+              return;
+            }
             ytReadyRef.current = true;
             try {
               const iframe = e.target?.getIframe?.();
@@ -796,10 +813,13 @@ const TvDisplayPage: React.FC = () => {
 
   // Cleanup YouTube player on unmount
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       try { ytPlayerRef.current?.destroy?.(); } catch { /* ignore */ }
       ytPlayerRef.current = null;
       ytReadyRef.current = false;
+      loadedTrackKeyRef.current = '';
     };
   }, []);
 
