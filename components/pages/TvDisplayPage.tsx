@@ -151,14 +151,28 @@ function nightsBetween(a: string, b: string): number {
   return Math.max(1, Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000));
 }
 
+function cleanPropertyTitle(raw?: string): string {
+  const s = (raw || '').trim();
+  if (!s) return 'Karuna Villa';
+  const idx = s.indexOf(' · ');
+  if (idx > 0) {
+    const left = s.slice(0, idx).trim();
+    const right = s.slice(idx + 3).trim();
+    if (left && right && right.toLowerCase().includes(left.toLowerCase())) {
+      return right;
+    }
+  }
+  return s;
+}
+
 function applyName(template: string, guestFirstName: string): { headline: string; body: string } {
   const name = (guestFirstName || '').trim();
   const filled = name
     ? template.replace(/\{name\}/gi, name)
     : template
         .replace(/,\s*\{name\}/gi, '')
-        .replace(/\s+\{name\}/gi, '')
-        .replace(/\{name\}/gi, '');
+        .replace(/\s*\{name\}/gi, '')
+        .replace(/\s+([!.,?])/g, '$1');
   const lines = filled.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   return {
     headline: lines[0] || 'Welcome!',
@@ -671,7 +685,7 @@ const TvDisplayPage: React.FC = () => {
                 </span>
                 <div>
                   <div className="tv-serif" style={{ fontSize: 30, lineHeight: 1.06, color: '#faf7f2', textShadow: '0 2px 18px rgba(0,0,0,0.35)' }}>
-                    {payload.property?.name || 'Karuna Villa'}
+                    {cleanPropertyTitle(payload.property?.name)}
                   </div>
                   {payload.screen?.tagline && (
                     <div style={{ fontSize: 16.5, color: 'rgba(248,244,238,0.88)', marginTop: 4, fontWeight: 500 }}>
