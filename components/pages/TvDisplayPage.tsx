@@ -154,11 +154,11 @@ function nightsBetween(a: string, b: string): number {
 function applyName(template: string, guestFirstName: string): { headline: string; body: string } {
   const name = (guestFirstName || '').trim();
   const filled = name
-    ? template.replace(/\{name\}/g, name)
+    ? template.replace(/\{name\}/gi, name)
     : template
-        .replace(/,\s*\{name\}/g, '')
-        .replace(/\s+\{name\}/g, '')
-        .replace(/\{name\}/g, '');
+        .replace(/,\s*\{name\}/gi, '')
+        .replace(/\s+\{name\}/gi, '')
+        .replace(/\{name\}/gi, '');
   const lines = filled.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   return {
     headline: lines[0] || 'Welcome!',

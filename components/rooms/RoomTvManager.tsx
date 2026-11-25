@@ -399,38 +399,48 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Greeting & Property Info */}
-                        <div className="space-y-4 p-4 rounded-xl bg-slate-50/70 border border-slate-200/70">
+                        <div className="space-y-4 p-5 rounded-xl bg-slate-50/70 border border-slate-200/70">
                             <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                                 <Sparkles size={15} className="text-amber-500" /> Greeting &amp; Property
                             </h4>
                             <div>
-                                <label className={labelCls}>Welcome Greeting (use {'{name}'} for guest name)</label>
+                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                        Welcome Greeting
+                                    </label>
+                                    <span className="text-[11px] text-slate-500">
+                                        Use <code className="px-1.5 py-0.5 rounded bg-amber-100/80 text-amber-800 font-mono font-semibold">{'{name}'}</code> for guest name
+                                    </span>
+                                </div>
                                 <textarea
                                     rows={3}
                                     value={form.welcomeMessage}
                                     onChange={(e) => setForm({ ...form, welcomeMessage: e.target.value })}
                                     placeholder={'Welcome, {name}!\nWe are delighted to host you.'}
-                                    className={inputCls}
+                                    className={`${inputCls} leading-relaxed resize-y`}
                                 />
+                                <p className="text-[11px] text-slate-400 mt-1">
+                                    First line shows as the large headline; second line shows as the message below it.
+                                </p>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <div>
                                     <label className={labelCls}>Tagline</label>
-                                    <input type="text" value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} className={inputCls} />
+                                    <input type="text" value={form.tagline} onChange={(e) => setForm({ ...form, tagline: e.target.value })} placeholder="Peaceful mountain retreat surrounded by nature" className={inputCls} />
                                 </div>
                                 <div>
                                     <label className={labelCls}>Location / Area</label>
                                     <input type="text" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} placeholder="Rishikesh, India" className={inputCls} />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-3 pt-1">
                                 <div>
                                     <label className={labelCls}>Checkout Morning Greeting</label>
-                                    <textarea rows={2} value={form.checkoutMessage} onChange={(e) => setForm({ ...form, checkoutMessage: e.target.value })} className={inputCls} />
+                                    <textarea rows={2} value={form.checkoutMessage} onChange={(e) => setForm({ ...form, checkoutMessage: e.target.value })} className={`${inputCls} leading-relaxed resize-y`} />
                                 </div>
                                 <div>
                                     <label className={labelCls}>Between-Stays Greeting</label>
-                                    <textarea rows={2} value={form.betweenStaysMessage} onChange={(e) => setForm({ ...form, betweenStaysMessage: e.target.value })} className={inputCls} />
+                                    <textarea rows={2} value={form.betweenStaysMessage} onChange={(e) => setForm({ ...form, betweenStaysMessage: e.target.value })} className={`${inputCls} leading-relaxed resize-y`} />
                                 </div>
                             </div>
                         </div>
