@@ -342,6 +342,7 @@ const TvDisplayPage: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/tv/pairing-codes/${encodeURIComponent(pairingIdRef.current)}`, {
           headers: { Accept: 'application/json' },
+          cache: 'no-store',
         });
         if (res.status === 404 || res.status === 410) {
           startPairing();
@@ -614,6 +615,12 @@ const TvDisplayPage: React.FC = () => {
               key={photoUrl}
               src={photoUrl}
               alt=""
+              onError={(e) => {
+                const img = e.currentTarget;
+                if (!img.src.endsWith('/tv-bg/bg_villa_stay.jpg')) {
+                  img.src = '/tv-bg/bg_villa_stay.jpg';
+                }
+              }}
               style={{
                 position: 'absolute',
                 inset: 0,

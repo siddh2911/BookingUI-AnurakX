@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Room } from '../../types';
-import { Tv, Link2, RefreshCw, Unlink, CheckCircle2, AlertCircle, Wifi, Clock, User, Sparkles, Shield, Save } from 'lucide-react';
+import { Tv, Link2, RefreshCw, Unlink, CheckCircle2, AlertCircle, Wifi, Clock, User, Sparkles, Shield, Save, ExternalLink } from 'lucide-react';
 import {
     listLinkedTvs,
     linkRoomTv,
@@ -279,11 +279,10 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                     </form>
 
                     {feedback && (
-                        <div className={`mt-4 p-3 rounded-lg text-xs font-medium flex items-start gap-2 ${
-                            feedback.type === 'success'
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
-                        }`}>
+                        <div className={`mt-4 p-3 rounded-lg text-xs font-medium flex items-start gap-2 ${feedback.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}>
                             {feedback.type === 'success' ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" /> : <AlertCircle size={15} className="mt-0.5 shrink-0" />}
                             <span>{feedback.text}</span>
                         </div>
@@ -335,6 +334,15 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                     </div>
 
                                     <div className="flex items-center gap-2">
+                                        <a
+                                            href={`/tv?room=${encodeURIComponent(tv.roomNumber)}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+                                        >
+                                            <ExternalLink size={13} />
+                                            Open TV
+                                        </a>
                                         <button
                                             onClick={() => handleSync(tv.roomNumber)}
                                             disabled={syncingRoom === tv.roomNumber}
@@ -390,11 +398,10 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                 </div>
 
                 {settingsFeedback && (
-                    <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2 ${
-                        settingsFeedback.type === 'success'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-red-50 text-red-700 border border-red-200'
-                    }`}>
+                    <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2 ${settingsFeedback.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
                         {settingsFeedback.type === 'success' ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" /> : <AlertCircle size={15} className="mt-0.5 shrink-0" />}
                         <span>{settingsFeedback.text}</span>
                     </div>
@@ -501,7 +508,7 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                 <h5 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-3">
                                     <Clock size={13} className="text-slate-500" /> Timings &amp; Background Theme
                                 </h5>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className={labelCls}>Check-in Time</label>
                                         <input type="time" value={form.checkInTime} onChange={(e) => setForm({ ...form, checkInTime: e.target.value })} className={inputCls} />
@@ -533,9 +540,8 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                                     key={opt.id}
                                                     type="button"
                                                     onClick={() => setForm({ ...form, template: opt.id })}
-                                                    className={`relative rounded-xl overflow-hidden border-2 text-left transition-all ${
-                                                        active ? 'border-blue-600 ring-2 ring-blue-500/30 shadow-md' : 'border-slate-200 hover:border-slate-300'
-                                                    }`}
+                                                    className={`relative rounded-xl overflow-hidden border-2 text-left transition-all ${active ? 'border-blue-600 ring-2 ring-blue-500/30 shadow-md' : 'border-slate-200 hover:border-slate-300'
+                                                        }`}
                                                 >
                                                     <img src={opt.img} alt={opt.label} className="w-full h-16 object-cover" />
                                                     <div className="p-2 bg-white">
