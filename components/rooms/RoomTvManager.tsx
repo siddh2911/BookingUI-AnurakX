@@ -637,9 +637,14 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                         {/* Ambient Room Music (YouTube) */}
                         <div className="lg:col-span-2 space-y-4 p-5 rounded-xl bg-slate-50/70 border border-slate-200/70">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                    <Music size={15} className="text-rose-500" /> Ambient Room Music (YouTube)
-                                </h4>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                        <Music size={15} className="text-rose-500" /> Ambient Room Music (YouTube)
+                                        <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                            {settingsScope ? `Room ${settingsScope}` : 'All Rooms'}
+                                        </span>
+                                    </h4>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => setForm({ ...form, musicEnabled: !form.musicEnabled })}
@@ -652,6 +657,36 @@ const RoomTvManager: React.FC<RoomTvManagerProps> = ({ rooms }) => {
                                     <span className={`w-2 h-2 rounded-full ${form.musicEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
                                     {form.musicEnabled ? 'Playing on Room TV' : 'Music Paused — Click to Play'}
                                 </button>
+                            </div>
+
+                            {/* Quick Per-Room Switcher so each room can have its own song & volume */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">Target Room:</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setSettingsScope('')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                        settingsScope === ''
+                                            ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    All Rooms
+                                </button>
+                                {rooms.map((r) => (
+                                    <button
+                                        key={r.id}
+                                        type="button"
+                                        onClick={() => setSettingsScope(r.roomNumber)}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                            settingsScope === r.roomNumber
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        Room {r.roomNumber}
+                                    </button>
+                                ))}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
