@@ -160,6 +160,66 @@ function resolveRoomNumber(listingName, defaultRoom) {
   return String(defaultRoom || config.defaultRoomNumber || '101');
 }
 
+function getYearMonthsInRange(fromDate, toDate) {
+  const [y1, m1] = fromDate.split('-').map(Number);
+  const [y2, m2] = toDate.split('-').map(Number);
+  const list = [];
+  let y = y1;
+  let m = m1;
+  while (y < y2 || (y === y2 && m <= m2)) {
+    list.push({ year: y, month: m });
+    m++;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+    if (list.length >= 18) break;
+  }
+  return list;
+}
+
+const MONTH_NAMES = [
+  '', 'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+async function navigateCalendarToMonth(page, calendarBaseUrl, year, month) {
+  const targetLabel = `${MONTH_NAMES[month]} ${year}`;
+  const shortLabel = `${MONTH_NAMES[month].slice(0, 3)} ${year}`;
+
+  // 1) Try Airbnb's Month/Year dropdown selector on the calendar header
+  try {
+    const monthBtn = page
+      .locator('button:has-text("2025"), button:has-text("2026"), button:has-text("2027")')
+      .filter({ hasText: /January|February|March|April|May|June|July|August|September|October|November|December/i })
+      .first();
+    if (await monthBtn.isVisible({ timeout: 1500 })) {
+      const currentText = (await monthBtn.innerText().catch(() => '')).trim();
+      if (currentText.includes(targetLabel) || currentText.includes(shortLabel)) {
+        return true;
+      }
+      await monthBtn.click();
+      await page.waitForTimeout(700);
+
+      const option = page
+        .locator(`[role="option"]:has-text("${targetLabel}"), button:has-text("${targetLabel}"), [role="menuitem"]:has-text("${targetLabel}"), li:has-text("${targetLabel}"), button:has-text("${MONTH_NAMES[month]}")`)
+        .first();
+      if (await option.isVisible({ timeout: 1500 })) {
+        await option.click();
+        await page.waitForTimeout(1800);
+        return true;
+      }
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+  } catch { /* fallback below */ }
+
+  // 2) Fallback: direct month/year query URL on Airbnb multicalendar
+  const sep = calendarBaseUrl.includes('?') ? '&' : '?';
+  await page.goto(`${calendarBaseUrl}${sep}month=${month}&year=${year}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2200);
+  return true;
+}
+
 async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
   const handles = await page.locator('button:has(img), [role="button"]:has(img)').elementHandles();
   let newlyFound = 0;
@@ -240,21 +300,21 @@ async function main() {
   await page.goto(`${config.airbnbBaseUrl}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
 
   console.log('\n👉 Log in with your phone number & OTP if prompted, and make sure your Calendar is visible.');
-  await rl.question('Press ENTER to scan the visible Calendar bookings... ');
+  await rl.question('Press ENTER to scan your selected date range on Calendar... ');
+
+  const calendarBaseUrl = page.url().split('?')[0];
+  const monthsToScan = getYearMonthsInRange(fromDate, toDate);
+  console.log(`\n🔎 Scanning ${monthsToScan.length} month(s): ${monthsToScan.map((x) => `${MONTH_NAMES[x.month].slice(0, 3)} ${x.year}`).join(', ')}`);
 
   const reservationsByKey = new Map();
   const clickedSignatures = new Set();
 
-  let keepScanning = true;
-  while (keepScanning) {
-    console.log('\n🔎 Scanning visible Calendar bookings (no Manage Reservation redirects, no Who\'s coming clicks)...');
+  for (let idx = 0; idx < monthsToScan.length; idx++) {
+    const { year, month } = monthsToScan[idx];
+    console.log(`\n   [${idx + 1}/${monthsToScan.length}] Switching Calendar to ${MONTH_NAMES[month]} ${year}...`);
+    await navigateCalendarToMonth(page, calendarBaseUrl, year, month);
     const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures);
-    console.log(`   Found ${found} new booking(s) on this view (Total: ${reservationsByKey.size}).`);
-
-    const again = (
-      await rl.question('\nScroll to another month in Chrome and scan again? (y/N): ')
-    ).trim().toLowerCase();
-    keepScanning = again === 'y' || again === 'yes';
+    console.log(`   → Found ${found} new booking(s) in ${MONTH_NAMES[month]} ${year} (Total: ${reservationsByKey.size}).`);
   }
 
   const reservations = Array.from(reservationsByKey.values())
