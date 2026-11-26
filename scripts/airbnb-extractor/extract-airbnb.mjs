@@ -375,22 +375,26 @@ async function navigateCalendarToMonth(page, year, month) {
   const stepDelta = diffMonths < 0 ? -550 : 550;
 
   let stuckCount = 0;
-  for (let attempt = 0; attempt < 16; attempt++) {
+  let lastSeenLabel = currentLabel;
+  for (let attempt = 0; attempt < 20; attempt++) {
     const res = await scrollCalendarContainer(page, stepDelta);
     if (!res.moved) {
-      await page.mouse.move(650, 420);
+      await page.mouse.move(520, 420);
       await page.mouse.wheel(0, stepDelta);
     }
-    await page.waitForTimeout(res.moved ? 1500 : 2200);
+    await page.waitForTimeout(1200);
     currentLabel = await getVisibleCalendarMonthLabel(page);
     if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
-    if (!res.moved) {
+
+    // Only count as "stuck" if BOTH scrollTop didn't move AND the visible month label stopped changing
+    if (!res.moved && currentLabel === lastSeenLabel) {
       stuckCount++;
-      if (stuckCount >= 4) {
+      if (stuckCount >= 5) {
         return { label: currentLabel, reachedBoundary: true };
       }
     } else {
       stuckCount = 0;
+      lastSeenLabel = currentLabel;
     }
   }
 
