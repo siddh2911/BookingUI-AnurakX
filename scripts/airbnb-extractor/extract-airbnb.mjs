@@ -129,11 +129,13 @@ function parseReservationPanelText(rawText, fallbackCode = '') {
     phone = phoneMatch[1].replace(/\s+/g, ' ').trim();
   }
 
-  // Guest name (usually the first non-status heading line in the drawer/page)
-  const skipWords = /^(Today|Upcoming|Confirmed|Checked in|Checking in|Checking out|Arriving|Currently hosting|Reservation|Details|Manage reservation|Message|Call|Help|Airbnb|Close|Back|All reservations)$/i;
+  // Guest name (prefer explicit heading passed in, or first non-date/non-status line)
+  const skipWords = /^(Today|Upcoming|Confirmed|Checked in|Checking in|Checking out|Arriving|Currently hosting|Past guest|Reservation|Details|Manage reservation|Message|Call|Help|Airbnb|Close|Back|All reservations|Booking details|Payout|Earnings)$/i;
+  const dateLike = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+\d{1,2}\s+[A-Za-z]{3,9}|^\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?$|^[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?$/i;
   let guestName = '';
-  for (const line of lines.slice(0, 12)) {
+  for (const line of lines.slice(0, 16)) {
     if (skipWords.test(line)) continue;
+    if (dateLike.test(line)) continue;
     if (/^\d|\bCheck-?in\b|\bCheck-?out\b|\bnight|\bguest|\badult|₹|\$|HM[A-Z0-9]{8}/i.test(line)) continue;
     if (line.length >= 2 && line.length <= 48) {
       guestName = line;
@@ -255,23 +257,38 @@ async function main() {
   await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(4000);
 
-  // Calculate how many month scrolls to cover fromDate -> toDate
-  const monthsSpan = Math.max(
-    1,
-    Math.min(
-      12,
-      Math.ceil((new Date(toDate).getTime() - new Date(fromDate).getTime()) / (28 * 86400000)) + 1
-    )
-  );
+  // Calculate backward & forward month scrolls to cover fromDate -> toDate
+  const nowMs = Date.now();
+  const fromMs = new Date(fromDate).getTime();
+  const toMs = new Date(toDate).getTime();
+  const pastMonths = fromMs < nowMs ? Math.min(12, Math.ceil((nowMs - fromMs) / (28 * 86400000))) : 0;
+  const futureMonths = toMs > nowMs ? Math.min(12, Math.ceil((toMs - nowMs) / (28 * 86400000))) : 0;
+
+  // Build scroll plan: start at today (0), scroll UP for past months, then return & scroll DOWN for future months
+  const scrollSteps = [0];
+  for (let p = 1; p <= pastMonths; p++) scrollSteps.push(-950);
+  if (futureMonths > 0 && pastMonths > 0) {
+    // Jump back down past today
+    for (let p = 1; p <= pastMonths; p++) scrollSteps.push(950);
+  }
+  for (let f = 1; f <= futureMonths; f++) scrollSteps.push(950);
 
   const clickedSignatures = new Set();
+  let savedSamplePanel = false;
 
-  for (let step = 0; step < monthsSpan; step++) {
+  for (let step = 0; step < scrollSteps.length; step++) {
+    const deltaY = scrollSteps[step];
+    if (deltaY !== 0) {
+      await page.mouse.move(760, 460);
+      await page.mouse.wheel(0, deltaY);
+      await page.waitForTimeout(1600);
+    }
+
     const calendarBookingHandles = await page
       .locator('button:has(img), [role="button"]:has(img), a[href*="/hosting/reservations/details/"]')
       .elementHandles();
 
-    console.log(`   [Month view ${step + 1}/${monthsSpan}] Scanning ${calendarBookingHandles.length} profile pill(s)...`);
+    console.log(`   [View ${step + 1}/${scrollSteps.length}] Scanning ${calendarBookingHandles.length} profile pill(s)...`);
 
     for (let i = 0; i < calendarBookingHandles.length; i++) {
       try {
@@ -288,25 +305,32 @@ async function main() {
 
         await el.scrollIntoViewIfNeeded().catch(() => {});
         await el.click({ timeout: 2000 }).catch(() => {});
-        await page.waitForTimeout(1400);
+        await page.waitForTimeout(1500);
 
-        // Read the left/side reservation panel containing Check-in / You earn / Manage reservation
+        // Read the FULL left/side reservation panel (must include BOTH Check-in AND You earn / Who's coming / Manage reservation)
         const panelData = await page.evaluate(() => {
-          const candidates = Array.from(
+          const allContainers = Array.from(
             document.querySelectorAll('aside, [role="dialog"], [role="complementary"], [data-testid*="panel"], [data-testid*="drawer"], section, div')
           ).filter((node) => {
             const t = node.innerText || '';
-            return (
-              t.length > 40 &&
-              t.length < 4000 &&
-              /Check-?in/i.test(t) &&
-              (/Check-?out/i.test(t) || /You\s+earn/i.test(t) || /Manage\s+reservation/i.test(t))
-            );
+            if (t.length < 80 || t.length > 6000) return false;
+            const hasDates = /Check-?in/i.test(t) && /Check-?out/i.test(t);
+            const hasDetails = /You\s+earn|Your\s+earnings|Who['’]s\s+coming|Manage\s+reservation|Confirmation\s+code/i.test(t);
+            return hasDates && hasDetails;
           });
-          // Pick the most specific (smallest) container that holds the full guest info panel
-          candidates.sort((a, b) => (a.innerText?.length || 9999) - (b.innerText?.length || 9999));
-          const best = candidates[0];
+          // Smallest container that STILL has BOTH dates AND earnings/manage/who's coming (so nothing is cut off!)
+          allContainers.sort((a, b) => (a.innerText?.length || 99999) - (b.innerText?.length || 99999));
+          const best = allContainers[0];
           const text = best ? best.innerText : '';
+
+          // Also grab heading text inside panel for accurate guest name
+          let headingName = '';
+          if (best) {
+            const headings = Array.from(best.querySelectorAll('h1, h2, h3'))
+              .map((h) => (h.innerText || '').trim())
+              .filter((s) => s.length >= 2 && s.length <= 48 && !/Check-?in|Check-?out|Reservation|Earnings|Who|Payout|^\d/i.test(s));
+            headingName = headings[0] || '';
+          }
 
           const manageLink = Array.from((best || document).querySelectorAll('a')).find(
             (a) =>
@@ -315,12 +339,20 @@ async function main() {
           );
           return {
             text,
+            headingName,
             manageHref: manageLink?.getAttribute('href') || '',
           };
         });
 
         if (panelData.text) {
+          if (!savedSamplePanel) {
+            fs.writeFileSync(path.join(__dirname, 'debug-panel.txt'), panelData.text);
+            savedSamplePanel = true;
+          }
           const parsed = parseReservationPanelText(panelData.text);
+          if (panelData.headingName && (!parsed.guestName || parsed.guestName.startsWith('Airbnb Guest'))) {
+            parsed.guestName = panelData.headingName;
+          }
           if (parsed.checkInDate && parsed.checkOutDate) {
             addReservation(parsed);
             console.log(
@@ -339,13 +371,6 @@ async function main() {
       } catch {
         /* ignore individual click errors */
       }
-    }
-
-    // Scroll calendar grid forward to next month if more months remain
-    if (step + 1 < monthsSpan) {
-      await page.mouse.move(760, 460);
-      await page.mouse.wheel(0, 900);
-      await page.waitForTimeout(1800);
     }
   }
 
