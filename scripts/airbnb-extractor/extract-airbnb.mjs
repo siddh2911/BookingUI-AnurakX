@@ -185,17 +185,40 @@ const MONTH_NAMES = [
 
 const SHORT_MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+async function findTopLeftDateSelector(page) {
+  // Locate the Month/Date selector button on the top-left of Airbnb's Calendar (x < 520, y: 40..250)
+  const handles = await page.locator('button, [role="button"], select').elementHandles();
+  const monthRe = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
+
+  let best = null;
+  for (const el of handles) {
+    try {
+      const box = await el.boundingBox();
+      if (!box || box.left > 520 || box.y < 40 || box.y > 250 || box.width < 40 || box.height < 18) continue;
+      const text = (await el.innerText().catch(() => '')).trim().replace(/\s+/g, ' ');
+      if (text.length >= 3 && text.length <= 32 && monthRe.test(text)) {
+        if (!best || box.y < best.box.y || (Math.abs(box.y - best.box.y) < 15 && box.x < best.box.x)) {
+          best = { el, box, text };
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return best;
+}
+
 async function getVisibleCalendarMonthLabel(page) {
+  const topLeft = await findTopLeftDateSelector(page);
+  if (topLeft?.text) return topLeft.text;
+
   return page.evaluate(() => {
     const monthRe = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+20\d{2})?\b/i;
     const candidates = [];
     for (const el of document.querySelectorAll('h1, h2, h3, button, span, div')) {
       const rect = el.getBoundingClientRect();
-      // Only look inside the calendar header / top of calendar grid (x >= 320, y between 50 and 340)
-      if (rect.left < 320 || rect.top < 50 || rect.top > 340 || rect.width === 0 || rect.height === 0) continue;
+      if (rect.top < 40 || rect.top > 260 || rect.width === 0 || rect.height === 0) continue;
       if (el.children.length > 2) continue;
       const t = (el.innerText || '').trim();
-      if (t.length >= 3 && t.length <= 24 && monthRe.test(t) && !/\d{1,2}\s*[–-]/.test(t)) {
+      if (t.length >= 3 && t.length <= 28 && monthRe.test(t) && !/\d{1,2}\s*[–-]/.test(t)) {
         candidates.push({ text: t, top: rect.top, left: rect.left });
       }
     }
@@ -257,7 +280,48 @@ async function navigateCalendarToMonth(page, year, month) {
   let currentLabel = await getVisibleCalendarMonthLabel(page);
   if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
 
-  // 1) Try scrolling directly to an already-rendered month heading in the DOM
+  // 1) Click the TOP-LEFT Date/Month Selector on Airbnb Calendar and pick the target month
+  try {
+    const selector = await findTopLeftDateSelector(page);
+    if (selector) {
+      await selector.el.click({ timeout: 2000 });
+      await page.waitForTimeout(700);
+
+      // Look for exact "June 2026", "Jun 2026", or "June" inside the opened menu/popover
+      const optionSelectors = [
+        `[role="option"]:has-text("${targetFull}")`,
+        `[role="menuitem"]:has-text("${targetFull}")`,
+        `button:has-text("${targetFull}")`,
+        `li:has-text("${targetFull}")`,
+        `[role="option"]:has-text("${targetShort} ${year}")`,
+        `button:has-text("${targetShort} ${year}")`,
+        `[role="dialog"] button:has-text("${targetMonthName}")`,
+        `[role="menu"] button:has-text("${targetMonthName}")`,
+        `[role="listbox"] :text-is("${targetFull}")`,
+      ];
+
+      let clickedOption = false;
+      for (const sel of optionSelectors) {
+        const opt = page.locator(sel).first();
+        if (await opt.isVisible({ timeout: 400 }).catch(() => false)) {
+          await opt.scrollIntoViewIfNeeded().catch(() => {});
+          await opt.click({ timeout: 1500 }).catch(() => {});
+          clickedOption = true;
+          break;
+        }
+      }
+
+      if (clickedOption) {
+        await page.waitForTimeout(1600);
+        currentLabel = await getVisibleCalendarMonthLabel(page);
+        if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
+      } else {
+        await page.keyboard.press('Escape').catch(() => {});
+      }
+    }
+  } catch { /* fallback below */ }
+
+  // 2) Try scrolling directly to an already-rendered month heading in the DOM
   const jumped = await page.evaluate(({ full, shortName, y }) => {
     const nodes = Array.from(document.querySelectorAll('h1, h2, h3, div, span')).filter((el) => {
       if (el.children.length > 2) return false;
