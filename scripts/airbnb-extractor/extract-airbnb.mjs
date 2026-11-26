@@ -124,28 +124,40 @@ function collectReservationsFromJson(node, foundMap) {
     node.start_date ||
     node.startDate ||
     node.check_in ||
+    node.checkIn ||
     node.checkInDate ||
-    node.checkin;
+    node.checkinDate ||
+    node.checkin ||
+    node.firstNight ||
+    node.dates?.startDate ||
+    node.stayDates?.startDate;
   const endRaw =
     node.end_date ||
     node.endDate ||
     node.check_out ||
+    node.checkOut ||
     node.checkOutDate ||
-    node.checkout;
+    node.checkoutDate ||
+    node.checkout ||
+    node.lastNight ||
+    node.dates?.endDate ||
+    node.stayDates?.endDate;
 
   if (typeof code === 'string' && /^[A-Z0-9]{8,14}$/i.test(code) && startRaw && endRaw) {
-    const status = String(node.status || node.reservationStatus || node.statusString || '');
+    const status = String(node.status || node.reservationStatus || node.statusString || node.statusLabel || '');
     if (!/cancel|declin|expir/i.test(status)) {
       const checkInDate = parseFlexibleDate(startRaw);
       const checkOutDate = parseFlexibleDate(endRaw);
       const todayIso = new Date().toISOString().slice(0, 10);
       if (checkInDate && checkOutDate && checkOutDate >= todayIso) {
-        const guestObj = node.guest || node.guestDetails || node.booker || {};
+        const guestObj = node.guest || node.guestDetails || node.booker || node.primaryGuest || {};
         const guestName =
           node.guest_name ||
           node.guestName ||
           guestObj.full_name ||
           guestObj.fullName ||
+          guestObj.smart_name ||
+          guestObj.smartName ||
           guestObj.first_name ||
           guestObj.firstName ||
           guestObj.name ||
@@ -170,12 +182,12 @@ function collectReservationsFromJson(node, foundMap) {
           node.totalPayout ||
           node.expected_payout_amount_accurate ||
           node.payoutAmount ||
+          node.payout?.amount ||
           0;
         const totalAmount = Number(String(rawAmt).replace(/[^0-9.]/g, '')) || 0;
 
         const key = code.toUpperCase();
         const prev = foundMap.get(key);
-        // Prefer richer object (with real guest name or non-zero amount)
         if (!prev || (totalAmount > 0 && !prev.totalAmount) || (guestName && !guestName.startsWith('Airbnb Guest') && prev.guestName.startsWith('Airbnb Guest'))) {
           foundMap.set(key, {
             confirmationCode: key,
@@ -197,6 +209,22 @@ function collectReservationsFromJson(node, foundMap) {
     if (val && typeof val === 'object') {
       collectReservationsFromJson(val, foundMap);
     }
+  }
+}
+
+async function scanPageEmbeddedJson(page, foundMap) {
+  const scripts = await page.evaluate(() => {
+    const out = [];
+    document.querySelectorAll('script[type="application/json"]').forEach((s) => {
+      if (s.textContent && s.textContent.length > 50) out.push(s.textContent);
+    });
+    return out;
+  });
+  for (const raw of scripts) {
+    try {
+      const parsed = JSON.parse(raw);
+      collectReservationsFromJson(parsed, foundMap);
+    } catch { /* ignore */ }
   }
 }
 
@@ -225,12 +253,16 @@ async function main() {
 
   // Passively capture Airbnb's own JSON responses while the user navigates
   const interceptedMap = new Map();
+  const seenApiUrls = [];
   page.on('response', async (response) => {
     try {
       const url = response.url();
-      if (!url.includes('/api/')) return;
+      if (!url.includes('airbnb')) return;
       const ct = response.headers()['content-type'] || '';
       if (!ct.includes('json')) return;
+      if (url.includes('/api/') || url.includes('graphql')) {
+        if (seenApiUrls.length < 30) seenApiUrls.push(url.split('?')[0]);
+      }
       const json = await response.json();
       collectReservationsFromJson(json, interceptedMap);
     } catch {
@@ -262,6 +294,9 @@ async function main() {
     });
   } catch { /* continue */ }
   await page.waitForTimeout(3000);
+  await scanPageEmbeddedJson(page, interceptedMap);
+  const upcomingUrl = page.url();
+  const upcomingTextSnippet = await page.evaluate(() => (document.body?.innerText || '').slice(0, 1500)).catch(() => '');
 
   let reservations = [];
 
@@ -343,14 +378,15 @@ async function main() {
     console.log(`   ✅ Extracted ${reservations.length} upcoming reservations from DOM.`);
   }
 
-  // Open Calendar view as well (and capture any additional reservations from calendar API!)
+  // Open Calendar view as well (and capture any additional reservations from calendar API + SSR JSON!)
   console.log(`\n3. Opening ${origin}/hosting/calendar ...`);
   await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' }).catch(() => {});
   await page.waitForTimeout(3500);
+  await scanPageEmbeddedJson(page, interceptedMap);
 
   if (reservations.length === 0 && interceptedMap.size > 0) {
     reservations = Array.from(interceptedMap.values());
-    console.log(`   ✅ Extracted ${reservations.length} upcoming reservations from Airbnb Calendar API.`);
+    console.log(`   ✅ Extracted ${reservations.length} upcoming reservations from Airbnb Calendar API / Embedded JSON.`);
   }
 
   const outJsonPath = path.join(__dirname, 'airbnb-upcoming.json');
@@ -362,14 +398,16 @@ async function main() {
 
   if (reservations.length === 0) {
     const debugInfo = {
-      currentUrl: page.url(),
+      upcomingUrl,
+      calendarUrl: page.url(),
       title: await page.title().catch(() => ''),
       interceptedCount: interceptedMap.size,
-      hint: 'Make sure you were fully logged into Host mode and had upcoming reservations visible before pressing ENTER.',
+      seenApiUrls,
+      upcomingTextSnippet,
     };
     fs.writeFileSync(path.join(__dirname, 'debug-airbnb.json'), JSON.stringify(debugInfo, null, 2));
     console.log('\n⚠️  No upcoming reservations detected. Saved diagnostic info to debug-airbnb.json.');
-    console.log('   Current URL was:', debugInfo.currentUrl);
+    console.log('   Upcoming URL was:', debugInfo.upcomingUrl);
     await context.close();
     rl.close();
     return;
