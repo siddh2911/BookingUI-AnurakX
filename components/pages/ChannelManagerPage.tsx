@@ -450,19 +450,19 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                 value={importUrl}
                                 onChange={(e) => {
                                     setImportUrl(e.target.value);
-                                    if (uploadedIcsContent) clearUploadedFile();
+                                    if (uploadedIcsContent || uploadedReservations) clearUploadedFile();
                                     setErrorMessage('');
                                 }}
                             />
                         </div>
 
-                        {/* Optional .ics File Upload */}
+                        {/* Optional .ics / .csv / .json File Upload */}
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                             <div className="flex items-center gap-2">
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".ics,.csv,.json,text/calendar,text/csv,application/json"
+                                    accept=".ics,.csv,.json"
                                     onChange={handleFileUpload}
                                     className="hidden"
                                 />
