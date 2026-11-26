@@ -518,6 +518,7 @@ function setCors(req, res) {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.has(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -604,7 +605,7 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { error: 'Not found' });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`\n✅ Karuna Villa Airbnb Extractor Bridge running on http://127.0.0.1:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`\n✅ Karuna Villa Airbnb Extractor Bridge running on http://localhost:${PORT}`);
   console.log('   Open Admin → Channel Manager and click "Fetch from Airbnb" anytime.\n');
 });

@@ -29,7 +29,7 @@ import {
     Terminal,
 } from 'lucide-react';
 
-const AIRBNB_BRIDGE_URL = 'http://127.0.0.1:4321';
+const AIRBNB_BRIDGE_URL = 'http://localhost:4321';
 
 interface ChannelManagerPageProps {
     rooms: Room[];
