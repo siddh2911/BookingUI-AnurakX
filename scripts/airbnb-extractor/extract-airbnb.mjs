@@ -183,88 +183,130 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-async function navigateCalendarToMonth(page, year, month) {
-  const targetLabel = `${MONTH_NAMES[month]} ${year}`;
-  const shortLabel = `${MONTH_NAMES[month].slice(0, 3)} ${year}`;
-
-  const matchesTarget = (label) =>
-    label.toLowerCase().includes(targetLabel.toLowerCase()) ||
-    label.toLowerCase().includes(shortLabel.toLowerCase());
-
-  const currentLabel = await getVisibleCalendarMonthLabel(page);
-  if (matchesTarget(currentLabel)) return currentLabel;
-
-  // 1) Try Airbnb's Month/Year dropdown button in calendar header
-  try {
-    const monthBtn = page
-      .locator('button:has-text("2025"), button:has-text("2026"), button:has-text("2027")')
-      .filter({ hasText: /January|February|March|April|May|June|July|August|September|October|November|December/i })
-      .first();
-    if (await monthBtn.isVisible({ timeout: 1200 })) {
-      await monthBtn.click();
-      await page.waitForTimeout(600);
-      const option = page
-        .locator(`[role="option"]:has-text("${targetLabel}"), button:has-text("${targetLabel}"), [role="menuitem"]:has-text("${targetLabel}"), li:has-text("${targetLabel}")`)
-        .first();
-      if (await option.isVisible({ timeout: 1200 })) {
-        await option.click();
-        await page.waitForTimeout(1600);
-        return await getVisibleCalendarMonthLabel(page);
-      }
-      await page.keyboard.press('Escape').catch(() => {});
-    }
-  } catch { /* try arrows/scroll below */ }
-
-  // 2) Try scrolling the month header directly into view if Airbnb renders multiple months vertically
-  const scrolledToHeading = await page.evaluate((target) => {
-    const headings = Array.from(document.querySelectorAll('h1, h2, h3, div, span')).filter((el) => {
-      const t = (el.innerText || '').trim();
-      return t.toLowerCase() === target.toLowerCase();
-    });
-    if (headings[0]) {
-      headings[0].scrollIntoView({ behavior: 'instant', block: 'start' });
-      return true;
-    }
-    return false;
-  }, targetLabel).catch(() => false);
-
-  if (scrolledToHeading) {
-    await page.waitForTimeout(1200);
-    return await getVisibleCalendarMonthLabel(page);
-  }
-
-  // 3) Try Previous / Next month arrow buttons (up to 12 clicks)
-  const currentMatch = currentLabel.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/i);
-  if (currentMatch) {
-    const curMonthIdx = MONTH_NAMES.findIndex((m) => m.toLowerCase() === currentMatch[1].toLowerCase());
-    const curYear = Number(currentMatch[2]);
-    const diff = (year - curYear) * 12 + (month - curMonthIdx);
-    const arrowSelector = diff < 0
-      ? 'button[aria-label*="Previous"], button[aria-label*="Back"], button[aria-label*="earlier"]'
-      : 'button[aria-label*="Next"], button[aria-label*="Forward"], button[aria-label*="later"]';
-    const arrowBtn = page.locator(arrowSelector).first();
-    if (await arrowBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-      const clicks = Math.min(Math.abs(diff), 12);
-      for (let c = 0; c < clicks; c++) {
-        if (await arrowBtn.isDisabled().catch(() => true)) break;
-        await arrowBtn.click().catch(() => {});
-        await page.waitForTimeout(500);
-      }
-      await page.waitForTimeout(1000);
-    }
-  }
-
-  return await getVisibleCalendarMonthLabel(page);
-}
+const SHORT_MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 async function getVisibleCalendarMonthLabel(page) {
   return page.evaluate(() => {
-    const monthRe = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+20\d{2}\b/i;
-    const candidates = Array.from(document.querySelectorAll('h1, h2, h3, button, span, div'))
-      .map((el) => (el.innerText || '').trim())
-      .filter((t) => t.length >= 8 && t.length <= 28 && monthRe.test(t));
-    return candidates[0] || '(unknown)';
+    const monthRe = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+20\d{2})?\b/i;
+    const candidates = [];
+    for (const el of document.querySelectorAll('h1, h2, h3, button, span, div')) {
+      const rect = el.getBoundingClientRect();
+      // Only look inside the calendar header / top of calendar grid (x >= 320, y between 50 and 340)
+      if (rect.left < 320 || rect.top < 50 || rect.top > 340 || rect.width === 0 || rect.height === 0) continue;
+      if (el.children.length > 2) continue;
+      const t = (el.innerText || '').trim();
+      if (t.length >= 3 && t.length <= 24 && monthRe.test(t) && !/\d{1,2}\s*[–-]/.test(t)) {
+        candidates.push({ text: t, top: rect.top, left: rect.left });
+      }
+    }
+    candidates.sort((a, b) => a.top - b.top || a.left - b.left);
+    return candidates[0]?.text || '(unknown)';
   }).catch(() => '(unknown)');
+}
+
+function parseMonthYearFromLabel(label, fallbackYear) {
+  const m = String(label || '').match(
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+(20\d{2}))?\b/i
+  );
+  if (!m) return null;
+  const token = m[1].toLowerCase();
+  let month = MONTH_NAMES.findIndex((x) => x.toLowerCase() === token);
+  if (month <= 0) month = SHORT_MONTHS.findIndex((x) => x.toLowerCase() === token);
+  const year = m[2] ? Number(m[2]) : fallbackYear;
+  return month > 0 ? { year, month } : null;
+}
+
+async function scrollCalendarContainer(page, deltaY) {
+  return page.evaluate((dy) => {
+    const scrollables = Array.from(document.querySelectorAll('div, main, section'))
+      .filter((el) => {
+        const style = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        return (
+          (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+          el.scrollHeight > el.clientHeight + 50 &&
+          rect.left >= 250 &&
+          rect.width > 350 &&
+          rect.height > 250
+        );
+      })
+      .sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight);
+
+    const target = scrollables[0];
+    if (target) {
+      const before = target.scrollTop;
+      target.scrollTop += dy;
+      return { moved: target.scrollTop !== before, scrollTop: target.scrollTop, maxScroll: target.scrollHeight - target.clientHeight };
+    }
+    const beforeW = window.scrollY;
+    window.scrollBy(0, dy);
+    return { moved: window.scrollY !== beforeW, scrollTop: window.scrollY, maxScroll: document.body.scrollHeight };
+  }, deltaY);
+}
+
+async function navigateCalendarToMonth(page, year, month) {
+  const targetFull = `${MONTH_NAMES[month]} ${year}`;
+  const targetMonthName = MONTH_NAMES[month];
+  const targetShort = SHORT_MONTHS[month];
+
+  const isMatch = (label) => {
+    const p = parseMonthYearFromLabel(label, year);
+    return p && p.month === month && p.year === year;
+  };
+
+  let currentLabel = await getVisibleCalendarMonthLabel(page);
+  if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
+
+  // 1) Try scrolling directly to an already-rendered month heading in the DOM
+  const jumped = await page.evaluate(({ full, shortName, y }) => {
+    const nodes = Array.from(document.querySelectorAll('h1, h2, h3, div, span')).filter((el) => {
+      if (el.children.length > 2) return false;
+      const t = (el.innerText || '').trim();
+      return t.toLowerCase() === full.toLowerCase() || t.toLowerCase() === `${shortName} ${y}`.toLowerCase();
+    });
+    if (nodes[0]) {
+      nodes[0].scrollIntoView({ behavior: 'instant', block: 'start' });
+      return true;
+    }
+    return false;
+  }, { full: targetFull, shortName: targetShort, y: year }).catch(() => false);
+
+  if (jumped) {
+    await page.waitForTimeout(800);
+    currentLabel = await getVisibleCalendarMonthLabel(page);
+    if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
+  }
+
+  // 2) Scroll the calendar container UP (for earlier months) or DOWN (for later months) until target appears
+  const curParsed = parseMonthYearFromLabel(currentLabel, new Date().getFullYear()) || {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+  };
+  const diffMonths = (year - curParsed.year) * 12 + (month - curParsed.month);
+  const stepDelta = diffMonths < 0 ? -750 : 750;
+
+  let stuckCount = 0;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const res = await scrollCalendarContainer(page, stepDelta);
+    // Also send a real wheel event over the calendar grid in case Airbnb uses virtualized wheel scrolling
+    if (!res.moved) {
+      await page.mouse.move(820, 420);
+      await page.mouse.wheel(0, stepDelta);
+    }
+    await page.waitForTimeout(600);
+    currentLabel = await getVisibleCalendarMonthLabel(page);
+    if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
+    if (!res.moved) {
+      stuckCount++;
+      if (stuckCount >= 2) {
+        return { label: currentLabel, reachedBoundary: true };
+      }
+    } else {
+      stuckCount = 0;
+    }
+  }
+
+  return { label: currentLabel, reachedBoundary: false };
 }
 
 async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
@@ -360,8 +402,12 @@ async function main() {
     const { year, month } = monthsToScan[idx];
     const targetName = `${MONTH_NAMES[month]} ${year}`;
     console.log(`\n   [${idx + 1}/${monthsToScan.length}] Switching Calendar to ${targetName}...`);
-    const visibleMonth = await navigateCalendarToMonth(page, year, month);
+    const nav = await navigateCalendarToMonth(page, year, month);
+    const visibleMonth = nav.label;
     console.log(`   📅 Target: ${targetName} | Currently visible on Airbnb: ${visibleMonth}`);
+    if (nav.reachedBoundary) {
+      console.log(`   ⚠️  Airbnb Calendar hit scroll boundary at ${visibleMonth}.`);
+    }
 
     if (scannedVisibleMonths.has(visibleMonth)) {
       console.log(`   ⏭️  Already scanned ${visibleMonth} — skipping duplicate scan.`);
