@@ -638,17 +638,27 @@ export default function App() {
         const fallbackTotal = (b.nightlyRate || 0) * nights;
         const finalTotal = b.totalAmount || sourcesSum || fallbackTotal || b.totalPaid || 0;
 
+        const rawStatus = String(b.status || 'Confirmed').trim().toUpperCase();
+        const normalizedStatus: BookingStatus =
+          rawStatus === 'CONFIRMED' ? BookingStatus.CONFIRMED :
+          rawStatus === 'CHECKED_IN' || rawStatus === 'CHECKED IN' ? BookingStatus.CHECKED_IN :
+          rawStatus === 'CHECKED_OUT' || rawStatus === 'CHECKED OUT' ? BookingStatus.CHECKED_OUT :
+          rawStatus === 'CANCELLED' ? BookingStatus.CANCELLED :
+          (b.status as BookingStatus);
+
         return {
           id: b.id, hotelId: b.hotelId ?? b.hotel?.id ?? DEFAULT_HOTEL_ID, roomId: roomId, guestName: b.guest, guestEmail: b.guestEmail,
           guestPhone: b.contactNumber, checkInDate: normalizeDateString(b.checkInDate),
           checkOutDate: normalizeDateString(b.checkOutDate),
           sources: sources.length > 0 ? sources : [{ source: b.bookingSource as BookingSource, amount: finalTotal, startDate: b.checkInDate, endDate: b.checkOutDate }],
-          status: b.status as BookingStatus,
+          status: normalizedStatus,
           totalPaid: b.totalPaid || 0, 
           totalAmount: finalTotal,
           advanceAmount: b.advanceAmount || 0,
           pendingBalance: Math.max(0, finalTotal - Math.max((b.totalPaid || 0), (b.advanceAmount || 0))),
-          mealPlan: b.mealPlan, bookingPackage: b.bookingPackage
+          mealPlan: b.mealPlan, bookingPackage: b.bookingPackage,
+          notes: b.internalNotes || b.notes,
+          externalId: b.externalId,
         };
       });
 

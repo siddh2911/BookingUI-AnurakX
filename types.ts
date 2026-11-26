@@ -82,6 +82,7 @@ export interface Booking {
   mealPlan?: string;
   bookingPackage?: string;
   notes?: string;
+  externalId?: string;
   createdAt?: string;
 }
 

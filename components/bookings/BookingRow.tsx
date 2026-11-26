@@ -1,6 +1,6 @@
 import React from 'react';
 import { Booking, Room, BookingStatus, PaymentMethod } from '../../types';
-import { Pencil, CreditCard, CheckCircle, Trash2, Download } from 'lucide-react';
+import { Pencil, CreditCard, CheckCircle, Trash2, Download, RefreshCw } from 'lucide-react';
 import { generateInvoice } from '../../services/pdfGenerator';
 import PlatformIcon from '../common/PlatformIcon';
 
@@ -37,6 +37,15 @@ const BookingRow: React.FC<BookingRowProps> = ({ booking, room, onUpdateStatus, 
               </span>
             </div>
           ))}
+          {(booking.externalId || (booking.notes || '').toLowerCase().includes('ical') || (booking.notes || '').toLowerCase().includes('synced')) && (
+            <span
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+              title={booking.notes || `Synced from ${booking.sources?.[0]?.source || 'External Calendar'}`}
+            >
+              <RefreshCw size={10} className="text-emerald-600" />
+              {booking.sources?.[0]?.source ? `${booking.sources[0].source} Sync` : 'iCal Sync'}
+            </span>
+          )}
         </div>
       </td>
       <td className="px-2 py-3">

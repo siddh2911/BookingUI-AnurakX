@@ -1,6 +1,6 @@
 import React from 'react';
 import { Booking, Room, BookingStatus } from '../../types';
-import { Pencil, Trash2, Calendar, MapPin, CheckCircle, Download } from 'lucide-react';
+import { Pencil, Trash2, Calendar, MapPin, CheckCircle, Download, RefreshCw } from 'lucide-react';
 import PlatformIcon from '../common/PlatformIcon';
 import { generateInvoice } from '../../services/pdfGenerator';
 
@@ -55,6 +55,15 @@ const BookingMobileCard: React.FC<BookingMobileCardProps> = ({
                                 </span>
                             </div>
                         ))}
+                        {(booking.externalId || (booking.notes || '').toLowerCase().includes('ical') || (booking.notes || '').toLowerCase().includes('synced')) && (
+                            <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                title={booking.notes || `Synced from ${booking.sources?.[0]?.source || 'External Calendar'}`}
+                            >
+                                <RefreshCw size={10} className="text-emerald-600" />
+                                {booking.sources?.[0]?.source ? `${booking.sources[0].source} Sync` : 'iCal Sync'}
+                            </span>
+                        )}
                         <span className="text-xs font-mono text-slate-400 ml-1">#{booking.id}</span>
                     </div>
                 </div>

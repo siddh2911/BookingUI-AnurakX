@@ -284,6 +284,28 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                     </p>
 
                     <div className="space-y-4 flex-1">
+                        {/* Room Number Selector for Import */}
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                                Syncing for Room Number
+                            </label>
+                            <select
+                                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white font-semibold text-slate-800"
+                                value={selectedRoom?.id || 0}
+                                onChange={(e) => {
+                                    setSelectedRoomId(Number(e.target.value));
+                                    setPreview(null);
+                                    setSyncStatus('idle');
+                                }}
+                            >
+                                {rooms.map(room => (
+                                    <option key={room.id} value={room.id}>
+                                        Room {room.number} — {room.type}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* All Booking Platforms */}
                         <div>
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
