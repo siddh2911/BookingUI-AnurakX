@@ -49,7 +49,7 @@ function parseFlexibleDate(raw) {
   return '';
 }
 
-function parseReservationPanelText(rawText, fallbackPillName = '') {
+function parseReservationPanelText(rawText, fallbackPillName = '', targetYear = new Date().getFullYear()) {
   const text = String(rawText || '').replace(/\r/g, '');
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 
@@ -70,31 +70,50 @@ function parseReservationPanelText(rawText, fallbackPillName = '') {
   const confirmationCode = codeMatch ? codeMatch[1].toUpperCase() : '';
 
   const bookingDateRaw = findAfterLabel(/^Booking\s+date$/i);
+  const bookingDateIso = parseFlexibleDate(bookingDateRaw);
   const yearMatch = bookingDateRaw.match(/\b(20\d{2})\b/);
-  const refYear = yearMatch ? Number(yearMatch[1]) : new Date().getFullYear();
+  const refYear = yearMatch ? Number(yearMatch[1]) : targetYear;
 
   const parseWithRefYear = (raw) => {
     if (!raw) return '';
     if (/\b20\d{2}\b/.test(raw) || /^\d{4}-\d{2}-\d{2}/.test(raw)) return parseFlexibleDate(raw);
-    return parseFlexibleDate(`${raw} ${refYear}`);
+    const candidate = parseFlexibleDate(`${raw} ${refYear}`);
+    // Handle year boundary: e.g. booked in Dec 2025 for a Jan 2026 stay!
+    if (candidate && bookingDateIso && candidate < bookingDateIso) {
+      const nextYearCandidate = parseFlexibleDate(`${raw} ${refYear + 1}`);
+      if (nextYearCandidate) return nextYearCandidate;
+    }
+    return candidate;
   };
 
   const checkInRaw = findAfterLabel(/^Check-?in$/i) || findAfterLabel(/^Check-?in\b/i);
   const checkOutRaw = findAfterLabel(/^Check-?out$/i) || findAfterLabel(/^Check-?out\b/i);
   const checkInDate = parseWithRefYear(checkInRaw);
-  const checkOutDate = parseWithRefYear(checkOutRaw);
+  let checkOutDate = parseWithRefYear(checkOutRaw);
+  if (checkInDate && checkOutDate && checkOutDate < checkInDate) {
+    // e.g. Dec 31 -> Jan 2 across New Year
+    const [y, m, d] = checkOutDate.split('-').map(Number);
+    checkOutDate = `${y + 1}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
 
-  // Full guest name is directly after "Who's coming" (upcoming) or from top of panel / calendar pill (past stays)
+  // Full guest name: "Who's coming" -> "<Name>'s group" -> top panel line -> calendar pill text/alt -> fallback
   let guestName = findAfterLabel(/^Who['’]s\s+coming$/i);
   if (!guestName || /^\+?\d|adult|guest/i.test(guestName)) {
     const groupLine = lines.find((l) => /['’]s\s+group\s+of\s+\d+/i.test(l));
     if (groupLine) guestName = groupLine.replace(/['’]s\s+group\s+of\s+\d+.*$/i, '').trim();
   }
   if (!guestName) {
+    const skipLine = /^(?:\+\d+|\d+\s+others?|Past\s+guest|Confirmed|Completed|Checked\s+out|Cancelled|Check-?in|Check-?out|Booking\s+date|Confirmation\s+code|Cancellation\s+policy|Manage\s+reservation|Your\s+notes|Suggested\s+door\s+code|Total\s+for)/i;
+    const dateLine = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+\d{1,2}|^\d{1,2}[–-]\d{1,2}\s+[A-Za-z]|^\d{1,2}:\d{2}|^[₹$€£]/i;
+    const topName = lines.slice(0, 6).find((l) => !skipLine.test(l) && !dateLine.test(l) && l.length >= 2 && l.length <= 36 && !/\d{4}/.test(l));
+    if (topName) guestName = topName;
+  }
+  if (!guestName) {
     const cleanPill = String(fallbackPillName || '')
       .replace(/\b\d+\s*(?:adult|guest|night)s?\b/gi, '')
       .replace(/[₹$€£][\d,.]+/g, '')
       .replace(/^\+\d+\s*/, '')
+      .replace(/\bUser\s+Profile\b|\bProfile\b/gi, '')
       .trim();
     if (cleanPill && cleanPill.length >= 2 && cleanPill.length <= 40 && !/^\d+$/.test(cleanPill)) {
       guestName = cleanPill;
@@ -411,7 +430,7 @@ async function navigateCalendarToMonth(page, year, month) {
   return { label: currentLabel, reachedBoundary: false };
 }
 
-async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
+async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures, targetYear) {
   const handles = await page.locator('button:has(img), [role="button"]:has(img)').elementHandles();
   let newlyFound = 0;
 
@@ -463,8 +482,8 @@ async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
       });
 
       if (!panelText) continue;
-      const pillLabel = sig.split('|')[0] || '';
-      const parsed = parseReservationPanelText(panelText, pillLabel);
+      const [pillText, pillAlt] = sig.split('|');
+      const parsed = parseReservationPanelText(panelText, pillText || pillAlt || '', targetYear);
       if (!parsed.checkInDate || !parsed.checkOutDate) continue;
 
       const key = parsed.confirmationCode || `${parsed.checkInDate}_${parsed.checkOutDate}_${parsed.guestName}`;
@@ -533,7 +552,7 @@ async function main() {
     }
     scannedVisibleMonths.add(visibleMonth);
 
-    const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures);
+    const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
     console.log(`   → Found ${found} new booking(s) in ${visibleMonth} (Total: ${reservationsByKey.size}).`);
     await page.waitForTimeout(1500);
   }
