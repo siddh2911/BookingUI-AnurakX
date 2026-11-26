@@ -80,6 +80,12 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+    const selectedRoom = rooms.find(r => r.id === selectedRoomId) || rooms[0];
+    const activePlatform = BOOKING_PLATFORMS.find(p => p.id === importSource) || BOOKING_PLATFORMS[0];
+    const exportIcalUrl = selectedRoom
+        ? `${API_BASE_URL}/api/ical/${encodeURIComponent(selectedRoom.number)}/calendar.ics`
+        : '';
+
     const checkBridgeHealth = async () => {
         try {
             const res = await fetch(`${AIRBNB_BRIDGE_URL}/health`);
@@ -198,12 +204,6 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
             setSelectedRoomId(rooms[0].id);
         }
     }, [rooms, selectedRoomId]);
-
-    const selectedRoom = rooms.find(r => r.id === selectedRoomId) || rooms[0];
-    const activePlatform = BOOKING_PLATFORMS.find(p => p.id === importSource) || BOOKING_PLATFORMS[0];
-    const exportIcalUrl = selectedRoom
-        ? `${API_BASE_URL}/api/ical/${encodeURIComponent(selectedRoom.number)}/calendar.ics`
-        : '';
 
     const handleCopyExportUrl = () => {
         if (!exportIcalUrl) return;
