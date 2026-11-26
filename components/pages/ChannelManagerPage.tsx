@@ -797,12 +797,12 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                         )}
                         <div className="flex items-center gap-2 bg-slate-900 text-emerald-300 rounded-lg p-2.5 font-mono text-[11px]">
                             <code className="flex-1 overflow-x-auto whitespace-nowrap">
-                                nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs &gt; /opt/myapp/airbnb-bridge.log 2&gt;&amp;1 &amp;
+                                HEADLESS=true nohup node /opt/myapp/airbnb-bridge/bridge-server.mjs &gt; /opt/myapp/airbnb-bridge.log 2&gt;&amp;1 &amp;
                             </code>
                             <button
                                 type="button"
                                 onClick={() => {
-                                    navigator.clipboard.writeText('nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs > /opt/myapp/airbnb-bridge.log 2>&1 &');
+                                    navigator.clipboard.writeText('HEADLESS=true nohup node /opt/myapp/airbnb-bridge/bridge-server.mjs > /opt/myapp/airbnb-bridge.log 2>&1 &');
                                     setCopiedBridgeCmd(true);
                                     setTimeout(() => setCopiedBridgeCmd(false), 2000);
                                 }}
@@ -821,7 +821,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
 npm install
 npx playwright-core install chromium
 npx playwright-core install-deps chromium
-nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs > /opt/myapp/airbnb-bridge.log 2>&1 &
+HEADLESS=true nohup node /opt/myapp/airbnb-bridge/bridge-server.mjs > /opt/myapp/airbnb-bridge.log 2>&1 &
 curl -s http://127.0.0.1:4321/health`}
                             </pre>
                         </details>
