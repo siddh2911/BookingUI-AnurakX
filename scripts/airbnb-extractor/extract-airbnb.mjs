@@ -422,6 +422,66 @@ async function main() {
   }
 
   // =========================================================================
+  // STEP 3b: Also scan Hosting -> Reservations (All & Completed) so June & all other months are captured!
+  // =========================================================================
+  const reservationPages = [`${origin}/hosting/reservations/all`];
+  if (fromDate < todayIso) {
+    reservationPages.push(`${origin}/hosting/reservations/completed`);
+  }
+
+  for (const resPageUrl of reservationPages) {
+    console.log(`\n   Scanning ${resPageUrl} for bookings across all months (${fromDate} → ${toDate})...`);
+    try {
+      await page.goto(resPageUrl, { waitUntil: 'domcontentloaded' });
+      try {
+        await page.waitForSelector('a[href*="/hosting/reservations/details/"], table tbody tr', { timeout: 10000 });
+      } catch { /* continue */ }
+      await page.waitForTimeout(2500);
+
+      // Scroll down up to 5 times to trigger lazy-loading of older/newer reservations
+      for (let s = 0; s < 5; s++) {
+        const foundLinks = await page.evaluate(() => {
+          const out = [];
+          document.querySelectorAll('a[href*="/hosting/reservations/details/"]').forEach((a) => {
+            const href = a.getAttribute('href') || '';
+            const m = href.match(/details\/([A-Z0-9]+)/i);
+            if (m) out.push({ code: m[1].toUpperCase(), href });
+          });
+          // Also scan plain text for HM... confirmation codes in table rows
+          const matches = (document.body?.innerText || '').match(/\bHM[A-Z0-9]{8}\b/g) || [];
+          for (const code of matches) {
+            out.push({ code: code.toUpperCase(), href: `/hosting/reservations/details/${code.toUpperCase()}` });
+          }
+          return out;
+        });
+
+        for (const l of foundLinks) {
+          if (!detailUrlsToVisit.has(l.code)) {
+            const fullUrl = l.href.startsWith('http') ? l.href : `${origin}${l.href}`;
+            detailUrlsToVisit.set(l.code, fullUrl);
+          }
+        }
+
+        // Click "Next" or "Show more" if paginated, otherwise scroll down
+        const nextBtn = page.locator('button[aria-label="Next"], button:has-text("Show more"), a[aria-label="Next"]').first();
+        if (await nextBtn.isVisible({ timeout: 800 }).catch(() => false)) {
+          const disabled = await nextBtn.isDisabled().catch(() => true);
+          if (!disabled) {
+            await nextBtn.click().catch(() => {});
+            await page.waitForTimeout(2000);
+            continue;
+          }
+        }
+        await page.evaluate(() => window.scrollBy(0, 1200));
+        await page.waitForTimeout(1200);
+      }
+      console.log(`   Total unique reservation codes collected so far: ${detailUrlsToVisit.size}`);
+    } catch (err) {
+      console.log(`   (Could not scan ${resPageUrl}: ${err.message})`);
+    }
+  }
+
+  // =========================================================================
   // STEP 4: Visit each "Manage reservation" detail page to extract full Phone Number & Earnings
   // =========================================================================
   if (detailUrlsToVisit.size > 0) {
