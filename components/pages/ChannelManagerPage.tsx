@@ -24,7 +24,12 @@ import {
     ShieldAlert,
     CheckCircle2,
     X,
+    Play,
+    Square,
+    Terminal,
 } from 'lucide-react';
+
+const AIRBNB_BRIDGE_URL = 'http://127.0.0.1:4321';
 
 interface ChannelManagerPageProps {
     rooms: Room[];
@@ -60,7 +65,133 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [lastResult, setLastResult] = useState<IcalImportResult | null>(null);
     const [copiedExport, setCopiedExport] = useState(false);
 
+    // Live Airbnb Local Bridge Extractor state
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const plus90Iso = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+    const [bridgeOnline, setBridgeOnline] = useState<boolean>(false);
+    const [extractFromDate, setExtractFromDate] = useState<string>(todayIso);
+    const [extractToDate, setExtractToDate] = useState<string>(plus90Iso);
+    const [bridgeStatus, setBridgeStatus] = useState<'idle' | 'waiting_login' | 'scanning' | 'done' | 'error'>('idle');
+    const [bridgeProgress, setBridgeProgress] = useState<string>('');
+    const [bridgeLogs, setBridgeLogs] = useState<string[]>([]);
+    const [bridgeError, setBridgeError] = useState<string>('');
+    const [copiedBridgeCmd, setCopiedBridgeCmd] = useState<boolean>(false);
+    const handledDoneRef = useRef<boolean>(false);
+
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const checkBridgeHealth = async () => {
+        try {
+            const res = await fetch(`${AIRBNB_BRIDGE_URL}/health`);
+            if (res.ok) {
+                setBridgeOnline(true);
+                return true;
+            }
+        } catch { /* offline */ }
+        setBridgeOnline(false);
+        return false;
+    };
+
+    useEffect(() => {
+        checkBridgeHealth();
+    }, []);
+
+    // Poll local bridge while waiting for login or scanning
+    useEffect(() => {
+        if (bridgeStatus !== 'waiting_login' && bridgeStatus !== 'scanning') return;
+        const id = window.setInterval(async () => {
+            try {
+                const res = await fetch(`${AIRBNB_BRIDGE_URL}/status`);
+                if (!res.ok) return;
+                const data = await res.json();
+                setBridgeStatus(data.status || 'idle');
+                setBridgeProgress(data.progressText || '');
+                setBridgeLogs(Array.isArray(data.logs) ? data.logs : []);
+                if (data.error) setBridgeError(data.error);
+
+                if (data.status === 'done' && !handledDoneRef.current) {
+                    handledDoneRef.current = true;
+                    const extracted: StructuredReservationInput[] = Array.isArray(data.reservations) ? data.reservations : [];
+                    if (extracted.length > 0 && selectedRoom) {
+                        setImportSource(BookingSource.AIRBNB);
+                        setUploadedReservations(extracted);
+                        setUploadedIcsContent('');
+                        setUploadedIcsName(`Airbnb Extractor (${extracted.length} bookings)`);
+                        // Automatically run conflict preview so Override Confirmation opens right away!
+                        setSyncStatus('checking');
+                        setErrorMessage('');
+                        try {
+                            const previewRes = await previewStructuredReservations(selectedRoom.number, {
+                                source: BookingSource.AIRBNB,
+                                reservations: extracted,
+                            });
+                            if (previewRes.conflicts.length > 0) {
+                                setPreview(previewRes);
+                                setSelectedOverrideUids(new Set());
+                                setSyncStatus('confirm_override');
+                            } else {
+                                const importRes = await confirmStructuredReservations(selectedRoom.number, {
+                                    source: BookingSource.AIRBNB,
+                                    reservations: extracted,
+                                    overrideUids: [],
+                                });
+                                setLastResult(importRes);
+                                setSyncStatus('success');
+                                await onRefreshBookings();
+                            }
+                        } catch (err: any) {
+                            setErrorMessage(err?.message || 'Extracted bookings, but preview failed.');
+                            setSyncStatus('error');
+                        }
+                    }
+                }
+            } catch {
+                setBridgeOnline(false);
+            }
+        }, 1200);
+        return () => window.clearInterval(id);
+    }, [bridgeStatus, selectedRoom, onRefreshBookings]);
+
+    const handleStartAirbnbExtractor = async () => {
+        setBridgeError('');
+        const ok = await checkBridgeHealth();
+        if (!ok) {
+            setBridgeError('Local Airbnb Bridge is not running. Start it with the command shown below, then try again.');
+            return;
+        }
+        handledDoneRef.current = false;
+        try {
+            const res = await fetch(`${AIRBNB_BRIDGE_URL}/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fromDate: extractFromDate, toDate: extractToDate }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Could not start extractor');
+            setBridgeStatus('waiting_login');
+            setBridgeProgress('Chrome opened — log in to Airbnb with Phone + OTP if prompted, then click "Start Scanning".');
+            setBridgeLogs([]);
+        } catch (err: any) {
+            setBridgeError(err?.message || 'Failed to start Airbnb extractor.');
+        }
+    };
+
+    const handleContinueAirbnbScan = async () => {
+        try {
+            await fetch(`${AIRBNB_BRIDGE_URL}/continue`, { method: 'POST' });
+            setBridgeStatus('scanning');
+        } catch {
+            setBridgeError('Lost connection to local bridge.');
+        }
+    };
+
+    const handleStopAirbnbExtractor = async () => {
+        try {
+            await fetch(`${AIRBNB_BRIDGE_URL}/stop`, { method: 'POST' });
+        } catch { /* ignore */ }
+        setBridgeStatus('idle');
+        setBridgeProgress('');
+    };
 
     useEffect(() => {
         if (!selectedRoomId && rooms.length > 0) {
@@ -541,6 +672,166 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* LIVE AIRBNB CALENDAR EXTRACTOR TRIGGER CARD */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#FF5A5F]" />
+                            Airbnb Live Calendar Extractor (Full Guest Names &amp; Earnings)
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            Opens Chrome on your computer so you can sign in with Phone + OTP, extracts bookings across your custom dates, and checks for date overrides automatically.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                bridgeOnline
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}
+                        >
+                            <span className={`w-2 h-2 rounded-full ${bridgeOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                            {bridgeOnline ? 'Local Bridge Connected' : 'Local Bridge Offline'}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={checkBridgeHealth}
+                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
+                            title="Re-check local bridge"
+                        >
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
+                </div>
+
+                {!bridgeOnline && (
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div className="space-y-1">
+                            <div className="font-semibold text-slate-700 flex items-center gap-1.5">
+                                <Terminal size={14} className="text-slate-500" />
+                                Start the local extractor bridge once on your Mac, then click Fetch:
+                            </div>
+                            <code className="block font-mono text-[11px] text-slate-600 bg-white px-2.5 py-1.5 rounded border border-slate-200 break-all">
+                                cd "/Users/siddhantsingh/Documents/BookingUI-AnurakX/scripts/airbnb-extractor" &amp;&amp; npm run bridge
+                            </code>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                navigator.clipboard?.writeText(
+                                    'cd "/Users/siddhantsingh/Documents/BookingUI-AnurakX/scripts/airbnb-extractor" && npm run bridge'
+                                );
+                                setCopiedBridgeCmd(true);
+                                setTimeout(() => setCopiedBridgeCmd(false), 2000);
+                            }}
+                            className="px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold inline-flex items-center gap-1.5 shrink-0"
+                        >
+                            {copiedBridgeCmd ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                            {copiedBridgeCmd ? 'Copied' : 'Copy Command'}
+                        </button>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                    <div className="sm:col-span-3">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Target Room</label>
+                        <select
+                            className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-white font-semibold text-slate-800"
+                            value={selectedRoom?.id || 0}
+                            onChange={(e) => setSelectedRoomId(Number(e.target.value))}
+                        >
+                            {rooms.map(room => (
+                                <option key={room.id} value={room.id}>
+                                    Room {room.number} — {room.type}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="sm:col-span-3">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From Date</label>
+                        <input
+                            type="date"
+                            value={extractFromDate}
+                            onChange={(e) => setExtractFromDate(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-lg text-sm"
+                        />
+                    </div>
+                    <div className="sm:col-span-3">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To Date</label>
+                        <input
+                            type="date"
+                            value={extractToDate}
+                            onChange={(e) => setExtractToDate(e.target.value)}
+                            className="w-full p-2.5 border border-slate-300 rounded-lg text-sm"
+                        />
+                    </div>
+                    <div className="sm:col-span-3 flex gap-2">
+                        {bridgeStatus === 'waiting_login' ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={handleContinueAirbnbScan}
+                                    className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                                >
+                                    <Play size={14} /> I&apos;m Logged In — Scan
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleStopAirbnbExtractor}
+                                    className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold"
+                                    title="Stop"
+                                >
+                                    <Square size={14} />
+                                </button>
+                            </>
+                        ) : bridgeStatus === 'scanning' ? (
+                            <button
+                                type="button"
+                                onClick={handleStopAirbnbExtractor}
+                                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+                            >
+                                <Square size={14} /> Stop Scanning
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={handleStartAirbnbExtractor}
+                                className="w-full py-2.5 px-4 bg-[#FF5A5F] hover:bg-[#e0484d] text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                <Play size={15} /> Fetch from Airbnb
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {bridgeError && (
+                    <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+                        <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                        <span>{bridgeError}</span>
+                    </div>
+                )}
+
+                {(bridgeProgress || bridgeLogs.length > 0) && (
+                    <div className="rounded-xl bg-slate-900 text-slate-100 p-3.5 text-xs font-mono space-y-1.5">
+                        {bridgeProgress && (
+                            <div className="text-amber-300 font-semibold flex items-center gap-2">
+                                {bridgeStatus === 'scanning' && <RefreshCw size={13} className="animate-spin" />}
+                                <span>{bridgeProgress}</span>
+                            </div>
+                        )}
+                        {bridgeLogs.length > 0 && (
+                            <div className="max-h-40 overflow-y-auto space-y-0.5 text-[11px] text-slate-300 pt-1 border-t border-slate-700">
+                                {bridgeLogs.slice(-12).map((line, i) => (
+                                    <div key={i}>{line}</div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* EXPLICIT DATE OVERRIDE CONFIRMATION PANEL */}

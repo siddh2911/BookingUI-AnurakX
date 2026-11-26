@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Interactive Airbnb Host Phone+OTP Reservation Extractor for Karuna Villa Admin",
   "scripts": {
-    "start": "node extract-airbnb.mjs"
+    "start": "node extract-airbnb.mjs",
+    "bridge": "node bridge-server.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.50.0"
