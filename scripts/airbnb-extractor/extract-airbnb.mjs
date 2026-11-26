@@ -19,8 +19,26 @@ const profileDir = path.join(os.homedir(), '.karuna-airbnb-profile');
 
 function parseFlexibleDate(raw) {
   if (!raw) return '';
-  const cleaned = String(raw).trim();
+  let cleaned = String(raw).trim()
+    .replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s*/i, '')
+    .replace(/\s+at\s+.*$/i, '')
+    .replace(/\s+\d{1,2}:\d{2}.*$/i, '')
+    .trim();
+
   if (/^\d{4}-\d{2}-\d{2}/.test(cleaned)) return cleaned.slice(0, 10);
+
+  // If year is missing (e.g. "26 Nov" or "Nov 26"), append current year (or next year if >60 days in past)
+  if (!/\b20\d{2}\b/.test(cleaned)) {
+    const now = new Date();
+    const withYear = `${cleaned} ${now.getFullYear()}`;
+    const testDate = new Date(withYear);
+    if (!Number.isNaN(testDate.getTime())) {
+      const diffDays = (testDate.getTime() - now.getTime()) / 86400000;
+      const year = diffDays < -60 ? now.getFullYear() + 1 : now.getFullYear();
+      cleaned = `${cleaned} ${year}`;
+    }
+  }
+
   const parsed = new Date(cleaned);
   if (!Number.isNaN(parsed.getTime())) {
     const y = parsed.getFullYear();
@@ -31,201 +49,133 @@ function parseFlexibleDate(raw) {
   return '';
 }
 
-function parseCsvLine(line) {
-  const out = [];
-  let cur = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === ',' && !inQuotes) {
-      out.push(cur.trim());
-      cur = '';
-    } else {
-      cur += ch;
-    }
-  }
-  out.push(cur.trim());
-  return out;
-}
-
-function parseAirbnbCsv(csvText) {
-  const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length < 2) return [];
-  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
-  const idx = (...names) => headers.findIndex((h) => names.some((n) => h.includes(n)));
-
-  const iCode = idx('confirmation code', 'code');
-  const iStatus = idx('status');
-  const iGuest = idx('guest name', 'guest');
-  const iContact = idx('contact', 'phone');
-  const iStart = idx('start date', 'check-in', 'checkin');
-  const iEnd = idx('end date', 'check-out', 'checkout');
-  const iListing = idx('listing');
-  const iEarnings = idx('earnings', 'payout', 'total');
-
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const rows = [];
-
-  for (const line of lines.slice(1)) {
-    const cols = parseCsvLine(line);
-    const status = iStatus >= 0 ? cols[iStatus] || '' : '';
-    if (/cancel/i.test(status)) continue;
-
-    const checkInDate = parseFlexibleDate(iStart >= 0 ? cols[iStart] : '');
-    const checkOutDate = parseFlexibleDate(iEnd >= 0 ? cols[iEnd] : '');
-    if (!checkInDate || !checkOutDate) continue;
-    if (checkOutDate < todayIso) continue;
-
-    const code = iCode >= 0 ? cols[iCode] : '';
-    const guestName = iGuest >= 0 ? cols[iGuest] : '';
-    const phone = iContact >= 0 ? cols[iContact] : '';
-    const listing = iListing >= 0 ? cols[iListing] : '';
-    const rawEarnings = iEarnings >= 0 ? cols[iEarnings] : '0';
-    const totalAmount = Number(String(rawEarnings).replace(/[^0-9.]/g, '')) || 0;
-
-    rows.push({
-      confirmationCode: code,
-      guestName: guestName || (code ? `Airbnb Guest (${code})` : 'Airbnb Guest'),
-      phone,
-      checkInDate,
-      checkOutDate,
-      totalAmount,
-      listing,
-      source: 'Airbnb',
-      notes: listing ? `Airbnb Listing: ${listing}` : 'Extracted from Airbnb Host',
-    });
-  }
-  return rows;
-}
-
 /**
- * Recursively scans Airbnb's own GraphQL / REST JSON responses for reservation objects.
+ * Extracts Guest Name, Check-in, Check-out, Who's coming, Earnings ("You earn"),
+ * Confirmation code, and Phone number from Airbnb's Today drawer / Calendar side panel / Manage Reservation page.
  */
-function collectReservationsFromJson(node, foundMap) {
-  if (!node || typeof node !== 'object') return;
-  if (Array.isArray(node)) {
-    for (const item of node) collectReservationsFromJson(item, foundMap);
-    return;
-  }
+function parseReservationPanelText(rawText, fallbackCode = '') {
+  const text = String(rawText || '').replace(/\r/g, '');
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 
-  const code =
-    node.confirmation_code ||
-    node.confirmationCode ||
-    node.reservationCode ||
-    node.code;
-  const startRaw =
-    node.start_date ||
-    node.startDate ||
-    node.check_in ||
-    node.checkIn ||
-    node.checkInDate ||
-    node.checkinDate ||
-    node.checkin ||
-    node.firstNight ||
-    node.dates?.startDate ||
-    node.stayDates?.startDate;
-  const endRaw =
-    node.end_date ||
-    node.endDate ||
-    node.check_out ||
-    node.checkOut ||
-    node.checkOutDate ||
-    node.checkoutDate ||
-    node.checkout ||
-    node.lastNight ||
-    node.dates?.endDate ||
-    node.stayDates?.endDate;
+  const findAfterLabel = (labelRegex) => {
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(labelRegex);
+      if (m) {
+        // Value on same line after label, or on next line
+        const rest = lines[i].replace(labelRegex, '').replace(/^[:\s-]+/, '').trim();
+        if (rest) return rest;
+        if (i + 1 < lines.length) return lines[i + 1];
+      }
+    }
+    return '';
+  };
 
-  if (typeof code === 'string' && /^[A-Z0-9]{8,14}$/i.test(code) && startRaw && endRaw) {
-    const status = String(node.status || node.reservationStatus || node.statusString || node.statusLabel || '');
-    if (!/cancel|declin|expir/i.test(status)) {
-      const checkInDate = parseFlexibleDate(startRaw);
-      const checkOutDate = parseFlexibleDate(endRaw);
-      const todayIso = new Date().toISOString().slice(0, 10);
-      if (checkInDate && checkOutDate && checkOutDate >= todayIso) {
-        const guestObj = node.guest || node.guestDetails || node.booker || node.primaryGuest || {};
-        const guestName =
-          node.guest_name ||
-          node.guestName ||
-          guestObj.full_name ||
-          guestObj.fullName ||
-          guestObj.smart_name ||
-          guestObj.smartName ||
-          guestObj.first_name ||
-          guestObj.firstName ||
-          guestObj.name ||
-          `Airbnb Guest (${code.toUpperCase()})`;
-        const phone =
-          node.guest_phone ||
-          node.guestPhone ||
-          guestObj.phone ||
-          guestObj.phoneNumber ||
-          '';
-        const listingObj = node.listing || {};
-        const listing =
-          node.listing_name ||
-          node.listingName ||
-          listingObj.name ||
-          listingObj.title ||
-          '';
-        const rawAmt =
-          node.host_payout_formatted ||
-          node.earnings ||
-          node.payout_price_formatted ||
-          node.totalPayout ||
-          node.expected_payout_amount_accurate ||
-          node.payoutAmount ||
-          node.payout?.amount ||
-          0;
-        const totalAmount = Number(String(rawAmt).replace(/[^0-9.]/g, '')) || 0;
+  // Confirmation code
+  const codeMatch =
+    text.match(/Confirmation\s*code[\s:\n]+([A-Z0-9]{8,14})/i) ||
+    text.match(/\b(HM[A-Z0-9]{8})\b/);
+  const confirmationCode = (codeMatch ? codeMatch[1] : fallbackCode || '').toUpperCase();
 
-        const key = code.toUpperCase();
-        const prev = foundMap.get(key);
-        if (!prev || (totalAmount > 0 && !prev.totalAmount) || (guestName && !guestName.startsWith('Airbnb Guest') && prev.guestName.startsWith('Airbnb Guest'))) {
-          foundMap.set(key, {
-            confirmationCode: key,
-            guestName: String(guestName).trim(),
-            phone: String(phone || '').trim(),
-            checkInDate,
-            checkOutDate,
-            totalAmount,
-            listing: String(listing || '').trim(),
-            source: 'Airbnb',
-            notes: listing ? `Airbnb Listing: ${listing}` : 'Extracted from Airbnb Host',
-          });
+  // Check-in & Check-out
+  const checkInRaw = findAfterLabel(/^Check-?in$/i) || findAfterLabel(/^Check-?in\b/i);
+  const checkOutRaw = findAfterLabel(/^Check-?out$/i) || findAfterLabel(/^Check-?out\b/i);
+  let checkInDate = parseFlexibleDate(checkInRaw);
+  let checkOutDate = parseFlexibleDate(checkOutRaw);
+
+  // Fallback: look for "26 Nov – 28 Nov" or "Nov 26 – 28"
+  if (!checkInDate || !checkOutDate) {
+    const rangeMatch = text.match(
+      /(\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?|[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?)\s*[–—-]\s*(\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?|[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?|\d{1,2})/
+    );
+    if (rangeMatch) {
+      if (!checkInDate) checkInDate = parseFlexibleDate(rangeMatch[1]);
+      if (!checkOutDate) {
+        let endStr = rangeMatch[2];
+        if (/^\d{1,2}$/.test(endStr) && checkInDate) {
+          // Same month, e.g. "Nov 26 – 28"
+          const [y, m] = checkInDate.split('-');
+          checkOutDate = `${y}-${m}-${endStr.padStart(2, '0')}`;
+        } else {
+          checkOutDate = parseFlexibleDate(endStr);
         }
       }
     }
   }
 
-  for (const val of Object.values(node)) {
-    if (val && typeof val === 'object') {
-      collectReservationsFromJson(val, foundMap);
+  // Who's coming
+  const whosComing =
+    findAfterLabel(/^Who['’]s\s+coming$/i) ||
+    findAfterLabel(/^Guests$/i) ||
+    (text.match(/\b\d+\s+(?:adult|guest)s?(?:,\s*\d+\s+(?:child|children|infant|pet)s?)?/i)?.[0] || '');
+
+  // Earnings / You earn
+  let earningsRaw =
+    findAfterLabel(/^You\s+earn$/i) ||
+    findAfterLabel(/^Your\s+earnings$/i) ||
+    findAfterLabel(/^Total\s*\([A-Z]{3}\)$/i) ||
+    findAfterLabel(/^Payout$/i);
+  if (!earningsRaw || !/\d/.test(earningsRaw)) {
+    const earnInline = text.match(/(?:You\s+earn|Your\s+earnings|Total\s*\(INR\)|Payout)[^\n₹$]*([₹$]\s*[\d,]+(?:\.\d{1,2})?)/i);
+    if (earnInline) earningsRaw = earnInline[1];
+  }
+  const totalAmount = Number(String(earningsRaw || '0').replace(/[^0-9.]/g, '')) || 0;
+
+  // Phone number (from Manage reservation / Call section)
+  let phone = '';
+  const phoneMatch =
+    text.match(/(?:Phone|Mobile|Call)[^\n+]*(\+\d[\d\s\-()]{7,18})/i) ||
+    text.match(/(\+\d{1,3}[\s-]?\d{3,5}[\s-]?\d{3,6}[\s-]?\d{0,4})/);
+  if (phoneMatch) {
+    phone = phoneMatch[1].replace(/\s+/g, ' ').trim();
+  }
+
+  // Guest name (usually the first non-status heading line in the drawer/page)
+  const skipWords = /^(Today|Upcoming|Confirmed|Checked in|Checking in|Checking out|Arriving|Currently hosting|Reservation|Details|Manage reservation|Message|Call|Help|Airbnb|Close|Back|All reservations)$/i;
+  let guestName = '';
+  for (const line of lines.slice(0, 12)) {
+    if (skipWords.test(line)) continue;
+    if (/^\d|\bCheck-?in\b|\bCheck-?out\b|\bnight|\bguest|\badult|₹|\$|HM[A-Z0-9]{8}/i.test(line)) continue;
+    if (line.length >= 2 && line.length <= 48) {
+      guestName = line;
+      break;
     }
   }
+  if (!guestName) {
+    guestName = confirmationCode ? `Airbnb Guest (${confirmationCode})` : 'Airbnb Guest';
+  }
+
+  const noteParts = [];
+  if (whosComing) noteParts.push(`Guests: ${whosComing}`);
+  if (confirmationCode) noteParts.push(`Code: ${confirmationCode}`);
+
+  return {
+    confirmationCode,
+    guestName,
+    phone,
+    checkInDate,
+    checkOutDate,
+    whosComing,
+    totalAmount,
+    source: 'Airbnb',
+    notes: noteParts.join(' | ') || 'Extracted from Airbnb Host',
+  };
 }
 
-async function scanPageEmbeddedJson(page, foundMap) {
-  const scripts = await page.evaluate(() => {
-    const out = [];
-    document.querySelectorAll('script[type="application/json"]').forEach((s) => {
-      if (s.textContent && s.textContent.length > 50) out.push(s.textContent);
-    });
-    return out;
-  });
-  for (const raw of scripts) {
-    try {
-      const parsed = JSON.parse(raw);
-      collectReservationsFromJson(parsed, foundMap);
-    } catch { /* ignore */ }
-  }
+async function extractFromReservationDetailsPage(page, url, fallbackCode = '') {
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2500);
+
+  // Click "Show phone number" or "Call" if hidden behind a button
+  try {
+    const showPhone = page.locator('button:has-text("Show phone"), button:has-text("Call"), a:has-text("Show phone")').first();
+    if (await showPhone.isVisible({ timeout: 1500 })) {
+      await showPhone.click().catch(() => {});
+      await page.waitForTimeout(800);
+    }
+  } catch { /* ignore */ }
+
+  const bodyText = await page.evaluate(() => document.body?.innerText || '');
+  return parseReservationPanelText(bodyText, fallbackCode);
 }
 
 function resolveRoomNumber(listingName, defaultRoom) {
@@ -251,25 +201,6 @@ async function main() {
 
   const page = context.pages()[0] || (await context.newPage());
 
-  // Passively capture Airbnb's own JSON responses while the user navigates
-  const interceptedMap = new Map();
-  const seenApiUrls = [];
-  page.on('response', async (response) => {
-    try {
-      const url = response.url();
-      if (!url.includes('airbnb')) return;
-      const ct = response.headers()['content-type'] || '';
-      if (!ct.includes('json')) return;
-      if (url.includes('/api/') || url.includes('graphql')) {
-        if (seenApiUrls.length < 30) seenApiUrls.push(url.split('?')[0]);
-      }
-      const json = await response.json();
-      collectReservationsFromJson(json, interceptedMap);
-    } catch {
-      /* ignore non-JSON or closed responses */
-    }
-  });
-
   console.log('1. Opening Airbnb login in Chrome...');
   await page.goto(`${config.airbnbBaseUrl}/login`, { waitUntil: 'domcontentloaded' });
 
@@ -277,137 +208,191 @@ async function main() {
   console.log('   (Complete any verification Airbnb asks for.)');
   await rl.question('\nPress ENTER here once you are logged in to Airbnb Hosting... ');
 
-  // Keep the exact domain the user is logged into (.co.in vs .com)
   let origin = config.airbnbBaseUrl;
   try {
     const currentOrigin = new URL(page.url()).origin;
     if (currentOrigin.includes('airbnb')) origin = currentOrigin;
   } catch { /* fallback */ }
 
-  console.log(`\n2. Navigating to ${origin}/hosting/reservations/upcoming ...`);
-  await page.goto(`${origin}/hosting/reservations/upcoming`, { waitUntil: 'domcontentloaded' });
+  const reservationsByKey = new Map();
+  const detailUrlsToVisit = new Map(); // code -> url
 
-  // Wait for reservation data to load
-  try {
-    await page.waitForSelector('a[href*="/hosting/reservations/details/"], table tbody tr, [role="row"]', {
-      timeout: 12000,
-    });
-  } catch { /* continue */ }
-  await page.waitForTimeout(3000);
-  await scanPageEmbeddedJson(page, interceptedMap);
-  const upcomingUrl = page.url();
-  const upcomingTextSnippet = await page.evaluate(() => (document.body?.innerText || '').slice(0, 1500)).catch(() => '');
-
-  let reservations = [];
-
-  // Strategy A: Try Airbnb's built-in Export -> Download CSV button
-  try {
-    const exportBtn = page.locator('button:has-text("Export")').first();
-    if (await exportBtn.isVisible({ timeout: 3000 })) {
-      console.log('   Found Airbnb "Export" button — downloading official upcoming CSV...');
-      await exportBtn.click();
-      await page.waitForTimeout(800);
-      const csvBtn = page.locator('button:has-text("Download CSV"), a:has-text("Download CSV"), [role="menuitem"]:has-text("CSV")').first();
-      if (await csvBtn.isVisible({ timeout: 3000 })) {
-        const [download] = await Promise.all([
-          page.waitForEvent('download', { timeout: 15000 }),
-          csvBtn.click(),
-        ]);
-        const csvSavePath = path.join(__dirname, 'airbnb-upcoming.csv');
-        await download.saveAs(csvSavePath);
-        const csvText = fs.readFileSync(csvSavePath, 'utf8');
-        reservations = parseAirbnbCsv(csvText);
-        console.log(`   ✅ Parsed ${reservations.length} upcoming reservations from Airbnb CSV.`);
-      }
-    }
-  } catch {
-    console.log('   (CSV export not triggered — checking live Airbnb API & DOM...)');
-  }
-
-  // Strategy B: Use intercepted Airbnb API JSON responses (most reliable for modern React SPA)
-  if (reservations.length === 0 && interceptedMap.size > 0) {
-    reservations = Array.from(interceptedMap.values());
-    console.log(`   ✅ Extracted ${reservations.length} upcoming reservations from Airbnb API responses.`);
-  }
-
-  // Strategy C: DOM extraction across BOTH <table> rows AND modern <div>/[role="row"]/detail links
-  if (reservations.length === 0) {
-    console.log('   Scanning rendered reservation cards & links on page...');
-    const domRows = await page.evaluate(() => {
-      const items = [];
-      const seenCodes = new Set();
-
-      // Find all links to reservation details (works across table, cards, and mobile layouts)
-      const detailLinks = Array.from(document.querySelectorAll('a[href*="/hosting/reservations/details/"]'));
-      for (const link of detailLinks) {
-        const href = link.getAttribute('href') || '';
-        const m = href.match(/details\/([A-Z0-9]+)/i);
-        const code = m ? m[1].toUpperCase() : '';
-        if (code && seenCodes.has(code)) continue;
-        if (code) seenCodes.add(code);
-
-        const row = link.closest('tr, [role="row"], li, article') || link.parentElement?.parentElement;
-        const text = (row?.innerText || link.innerText || '').trim().replace(/\s+/g, ' ');
-        items.push({ code, text });
-      }
-      return items;
-    });
-
-    for (const r of domRows) {
-      const dateMatches =
-        r.text.match(/\b(?:\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})\b/g) || [];
-      const checkInDate = parseFlexibleDate(dateMatches[0]);
-      const checkOutDate = parseFlexibleDate(dateMatches[1]);
-      if (!checkInDate || !checkOutDate) continue;
-
-      const amtMatch = r.text.match(/(?:₹|INR|\$|USD)\s*([\d,]+(?:\.\d{1,2})?)/i);
-      const totalAmount = amtMatch ? Number(amtMatch[1].replace(/,/g, '')) : 0;
-
-      reservations.push({
-        confirmationCode: r.code,
-        guestName: r.code ? `Airbnb Guest (${r.code})` : 'Airbnb Guest',
-        phone: '',
-        checkInDate,
-        checkOutDate,
-        totalAmount,
-        listing: '',
-        source: 'Airbnb',
-        notes: r.text.slice(0, 180),
+  const addReservation = (res) => {
+    if (!res || !res.checkInDate || !res.checkOutDate) return;
+    const key = res.confirmationCode || `${res.checkInDate}_${res.checkOutDate}_${res.guestName}`;
+    const prev = reservationsByKey.get(key);
+    if (!prev) {
+      reservationsByKey.set(key, res);
+    } else {
+      reservationsByKey.set(key, {
+        ...prev,
+        ...res,
+        guestName: res.guestName && !res.guestName.startsWith('Airbnb Guest') ? res.guestName : prev.guestName,
+        phone: res.phone || prev.phone,
+        totalAmount: res.totalAmount > 0 ? res.totalAmount : prev.totalAmount,
+        whosComing: res.whosComing || prev.whosComing,
       });
     }
-    console.log(`   ✅ Extracted ${reservations.length} upcoming reservations from DOM.`);
-  }
+  };
 
-  // Open Calendar view as well (and capture any additional reservations from calendar API + SSR JSON!)
-  console.log(`\n3. Opening ${origin}/hosting/calendar ...`);
-  await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' }).catch(() => {});
+  // =========================================================================
+  // FLOW 1: Today -> Hit Tab 1 (Today / Upcoming) -> Extract each booking + Manage Reservation (Phone)
+  // =========================================================================
+  console.log(`\n2. Going to Hosting → Today (${origin}/hosting)...`);
+  await page.goto(`${origin}/hosting`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3500);
-  await scanPageEmbeddedJson(page, interceptedMap);
 
-  if (reservations.length === 0 && interceptedMap.size > 0) {
-    reservations = Array.from(interceptedMap.values());
-    console.log(`   ✅ Extracted ${reservations.length} upcoming reservations from Airbnb Calendar API / Embedded JSON.`);
+  // Collect reservation links from Today tab and Upcoming tab
+  const tabLabels = ['Today', 'Upcoming', 'Arriving soon', 'Currently hosting'];
+  for (const label of tabLabels) {
+    try {
+      const tab = page.locator(`button[role="tab"]:has-text("${label}"), button:has-text("${label}")`).first();
+      if (await tab.isVisible({ timeout: 1500 })) {
+        console.log(`   Checking "${label}" tab...`);
+        await tab.click().catch(() => {});
+        await page.waitForTimeout(2000);
+      }
+    } catch { /* ignore */ }
+
+    // Find direct reservation detail links
+    const links = await page.evaluate(() => {
+      const out = [];
+      document.querySelectorAll('a[href*="/hosting/reservations/details/"]').forEach((a) => {
+        const href = a.getAttribute('href') || '';
+        const m = href.match(/details\/([A-Z0-9]+)/i);
+        if (m) out.push({ code: m[1].toUpperCase(), href });
+      });
+      return out;
+    });
+    for (const l of links) {
+      const fullUrl = l.href.startsWith('http') ? l.href : `${origin}${l.href}`;
+      detailUrlsToVisit.set(l.code, fullUrl);
+    }
+
+    // Also try clicking reservation cards on Today/Upcoming that open a modal/drawer without an <a> href
+    const cardCount = await page.locator('[data-testid*="reservation"], [data-testid*="booking"]').count().catch(() => 0);
+    for (let i = 0; i < Math.min(cardCount, 20); i++) {
+      try {
+        const card = page.locator('[data-testid*="reservation"], [data-testid*="booking"]').nth(i);
+        if (!(await card.isVisible({ timeout: 1000 }))) continue;
+        await card.click();
+        await page.waitForTimeout(1500);
+
+        const drawerText = await page.evaluate(() => {
+          const dialog = document.querySelector('[role="dialog"], aside, [aria-modal="true"]');
+          return (dialog || document.body)?.innerText || '';
+        });
+        const parsed = parseReservationPanelText(drawerText);
+        if (parsed.checkInDate && parsed.checkOutDate) {
+          addReservation(parsed);
+        }
+
+        // Check for "Manage reservation" link inside drawer to grab full phone number
+        const manageHref = await page.evaluate(() => {
+          const a = Array.from(document.querySelectorAll('a')).find((el) =>
+            /manage reservation|view details|reservation details/i.test(el.innerText || '') ||
+            (el.getAttribute('href') || '').includes('/hosting/reservations/details/')
+          );
+          return a?.getAttribute('href') || '';
+        });
+        if (manageHref) {
+          const m = manageHref.match(/details\/([A-Z0-9]+)/i);
+          const code = m ? m[1].toUpperCase() : parsed.confirmationCode || `RES_${i}`;
+          const fullUrl = manageHref.startsWith('http') ? manageHref : `${origin}${manageHref}`;
+          detailUrlsToVisit.set(code, fullUrl);
+        }
+
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(500);
+      } catch { /* ignore */ }
+    }
   }
+
+  // =========================================================================
+  // FLOW 2: Calendar -> Click on each user profile / booking bar -> Extract details + Manage reservation
+  // =========================================================================
+  console.log(`\n3. Opening Calendar (${origin}/hosting/calendar) to scan booked guest bars...`);
+  await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(4000);
+
+  // Find clickable guest booking bars / avatars inside the calendar
+  const calendarBookingHandles = await page.locator(
+    'button:has(img[alt]), [role="button"]:has(img[alt]), a[href*="/hosting/reservations/details/"]'
+  ).elementHandles();
+
+  console.log(`   Found ${calendarBookingHandles.length} potential guest profile pill(s) on Calendar...`);
+  for (let i = 0; i < Math.min(calendarBookingHandles.length, 30); i++) {
+    try {
+      const el = calendarBookingHandles[i];
+      const box = await el.boundingBox();
+      if (!box || box.width < 20 || box.y < 110) continue; // skip top navbar avatar
+
+      await el.click({ timeout: 2000 }).catch(() => {});
+      await page.waitForTimeout(1500);
+
+      const panelText = await page.evaluate(() => {
+        const panel = document.querySelector('aside, [role="dialog"], [data-testid*="panel"], [data-testid*="drawer"]');
+        return (panel || document.body)?.innerText || '';
+      });
+
+      if (/Check-?in|You earn|Confirmation code|Manage reservation/i.test(panelText)) {
+        const parsed = parseReservationPanelText(panelText);
+        if (parsed.checkInDate && parsed.checkOutDate) {
+          addReservation(parsed);
+          console.log(
+            `   📌 Calendar booking: ${parsed.guestName} | ${parsed.checkInDate} → ${parsed.checkOutDate} | ₹${parsed.totalAmount}`
+          );
+        }
+
+        // Check for "Manage reservation" link inside the side panel
+        const manageHref = await page.evaluate(() => {
+          const a = Array.from(document.querySelectorAll('a')).find((node) =>
+            /manage reservation/i.test(node.innerText || '') ||
+            (node.getAttribute('href') || '').includes('/hosting/reservations/details/')
+          );
+          return a?.getAttribute('href') || '';
+        });
+        if (manageHref) {
+          const m = manageHref.match(/details\/([A-Z0-9]+)/i);
+          const code = m ? m[1].toUpperCase() : parsed.confirmationCode || `CAL_${i}`;
+          const fullUrl = manageHref.startsWith('http') ? manageHref : `${origin}${manageHref}`;
+          detailUrlsToVisit.set(code, fullUrl);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // =========================================================================
+  // STEP 4: Visit each "Manage reservation" detail page to extract full Phone Number & Earnings
+  // =========================================================================
+  if (detailUrlsToVisit.size > 0) {
+    console.log(`\n4. Opening ${detailUrlsToVisit.size} "Manage reservation" page(s) to extract phone numbers & earnings...`);
+    for (const [code, url] of detailUrlsToVisit.entries()) {
+      try {
+        console.log(`   🔎 Reading ${code} (${url})...`);
+        const detail = await extractFromReservationDetailsPage(page, url, code);
+        addReservation(detail);
+      } catch (err) {
+        console.log(`   ⚠️ Could not read ${code}: ${err.message}`);
+      }
+    }
+  }
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const reservations = Array.from(reservationsByKey.values()).filter(
+    (r) => r.checkInDate && r.checkOutDate && r.checkOutDate >= todayIso
+  );
 
   const outJsonPath = path.join(__dirname, 'airbnb-upcoming.json');
   fs.writeFileSync(
     outJsonPath,
     JSON.stringify({ source: 'Airbnb', extractedAt: new Date().toISOString(), reservations }, null, 2)
   );
-  console.log(`\n💾 Saved extracted reservations to: ${outJsonPath}`);
+  console.log(`\n💾 Saved ${reservations.length} upcoming reservation(s) to: ${outJsonPath}`);
 
   if (reservations.length === 0) {
-    const debugInfo = {
-      upcomingUrl,
-      calendarUrl: page.url(),
-      title: await page.title().catch(() => ''),
-      interceptedCount: interceptedMap.size,
-      seenApiUrls,
-      upcomingTextSnippet,
-    };
-    fs.writeFileSync(path.join(__dirname, 'debug-airbnb.json'), JSON.stringify(debugInfo, null, 2));
-    console.log('\n⚠️  No upcoming reservations detected. Saved diagnostic info to debug-airbnb.json.');
-    console.log('   Upcoming URL was:', debugInfo.upcomingUrl);
+    console.log('\n⚠️  No upcoming bookings were found automatically.');
+    console.log('   Tip: Open a booking in the Chrome window right now, or export CSV from Airbnb Hosting → Reservations.');
     await context.close();
     rl.close();
     return;
@@ -420,12 +405,13 @@ async function main() {
       Phone: r.phone || '-',
       CheckIn: r.checkInDate,
       CheckOut: r.checkOutDate,
-      Amount: r.totalAmount,
+      Guests: r.whosComing || '-',
+      YouEarn: r.totalAmount ? `₹${r.totalAmount}` : '-',
       Room: resolveRoomNumber(r.listing),
     }))
   );
 
-  const pushNow = (await rl.question('\n4. Push these bookings directly to Admin Panel now? (y/N): ')).trim().toLowerCase();
+  const pushNow = (await rl.question('\n5. Update these bookings in Admin Panel now? (y/N): ')).trim().toLowerCase();
   if (pushNow !== 'y' && pushNow !== 'yes') {
     console.log(`\nSkipped direct push. You can upload ${outJsonPath} anytime in Admin → Channel Manager → Import Calendar.`);
     await context.close();
@@ -435,10 +421,10 @@ async function main() {
 
   const adminPage = await context.newPage();
   await adminPage.goto(`${config.adminUiBaseUrl}/channels`, { waitUntil: 'domcontentloaded' });
-  await rl.question('\n👉 Make sure you are signed in to Karuna Villa Admin in the new Chrome tab, then press ENTER to sync... ');
+  await rl.question('\n👉 Make sure you are signed in to Karuna Villa Admin in the Chrome tab, then press ENTER to sync... ');
 
   const defaultRoom =
-    (await rl.question(`Default Room Number [${config.defaultRoomNumber || '101'}]: `)).trim() ||
+    (await rl.question(`Target Room Number [${config.defaultRoomNumber || '101'}]: `)).trim() ||
     config.defaultRoomNumber ||
     '101';
 
