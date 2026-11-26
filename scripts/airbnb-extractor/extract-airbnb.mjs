@@ -175,7 +175,8 @@ function getYearMonthsInRange(fromDate, toDate) {
     }
     if (list.length >= 18) break;
   }
-  return list;
+  // Start from the latest month (e.g. November 2026) and walk backwards smoothly to the earliest month (e.g. January 2026)
+  return list.reverse();
 }
 
 const MONTH_NAMES = [
