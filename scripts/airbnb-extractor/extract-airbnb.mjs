@@ -552,7 +552,17 @@ async function main() {
     }
     scannedVisibleMonths.add(visibleMonth);
 
-    const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
+    let found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
+
+    // When scrolling backwards (e.g. Feb -> Jan), the bottom week of the month appears first.
+    // Do one extra upward scroll so the first half of the month (days 1-20) is also scanned!
+    if (idx === monthsToScan.length - 1 || month === 1) {
+      await page.mouse.move(520, 420);
+      await page.mouse.wheel(0, -520);
+      await page.waitForTimeout(1600);
+      found += await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
+    }
+
     console.log(`   → Found ${found} new booking(s) in ${visibleMonth} (Total: ${reservationsByKey.size}).`);
     await page.waitForTimeout(1500);
   }
