@@ -297,37 +297,35 @@ async function navigateCalendarToMonth(page, year, month) {
         await selector.el.click({ timeout: 2000 });
         await page.waitForTimeout(800);
 
-        // Log what options appeared inside the opened dropdown so we can verify
-        const visibleOpts = await page.evaluate(() => {
-          const pop = document.querySelector('[role="listbox"], [role="menu"], [role="dialog"], [data-testid*="popover"]');
-          if (!pop) return [];
-          return Array.from(pop.querySelectorAll('button, [role="option"], [role="menuitem"], li'))
+        // Capture exact popover DOM options for debugging once
+        const popoverInfo = await page.evaluate(() => {
+          const pops = Array.from(document.querySelectorAll('[role="listbox"], [role="menu"], [role="dialog"], [data-testid*="popover"], ul'));
+          const visiblePop = pops.find((p) => {
+            const r = p.getBoundingClientRect();
+            return r.width > 80 && r.height > 80 && /January|February|March|April|May|June|July|August|September|October|November|December/i.test(p.innerText || '');
+          });
+          if (!visiblePop) return { found: false, options: [] };
+          const opts = Array.from(visiblePop.querySelectorAll('button, [role="option"], [role="menuitem"], li'))
             .map((e) => (e.innerText || '').trim().replace(/\s+/g, ' '))
-            .filter((t) => t.length >= 3 && t.length <= 30)
-            .slice(0, 15);
-        }).catch(() => []);
-        if (visibleOpts.length > 0) {
-          console.log(`   🔽 Date selector "${selector.text}" options: ${visibleOpts.join(' | ')}`);
+            .filter((t) => t.length >= 3 && t.length <= 30);
+          return { found: true, options: Array.from(new Set(opts)).slice(0, 24) };
+        }).catch(() => ({ found: false, options: [] }));
+
+        if (popoverInfo.found) {
+          fs.writeFileSync(path.join(__dirname, 'debug-selector.json'), JSON.stringify({ triggerText: selector.text, ...popoverInfo }, null, 2));
         }
 
-        const optionSelectors = [
-          `[role="option"]:has-text("${targetFull}")`,
-          `[role="menuitem"]:has-text("${targetFull}")`,
-          `button:has-text("${targetFull}")`,
-          `li:has-text("${targetFull}")`,
-          `[role="option"]:has-text("${targetShort} ${year}")`,
-          `button:has-text("${targetShort} ${year}")`,
-          `[role="listbox"] :text-is("${targetFull}")`,
-          `[role="dialog"] button:has-text("${targetFull}")`,
-          `[role="menu"] button:has-text("${targetFull}")`,
-        ];
-
+        // Click ONLY an EXACT text match inside the opened popover/menu (never a loose substring elsewhere on the page)
         let clickedOption = false;
-        for (const sel of optionSelectors) {
-          const opt = page.locator(sel).first();
+        const exactCandidates = [targetFull, `${targetShort} ${year}`, targetMonthName];
+        for (const exactText of exactCandidates) {
+          const opt = page
+            .locator('[role="listbox"], [role="menu"], [role="dialog"], [data-testid*="popover"], ul')
+            .getByText(exactText, { exact: true })
+            .first();
           if ((await opt.count().catch(() => 0)) > 0) {
             await opt.scrollIntoViewIfNeeded().catch(() => {});
-            if (await opt.isVisible({ timeout: 400 }).catch(() => false)) {
+            if (await opt.isVisible({ timeout: 500 }).catch(() => false)) {
               await opt.click({ timeout: 1500 }).catch(() => {});
               clickedOption = true;
               break;
