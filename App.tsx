@@ -1502,42 +1502,7 @@ export default function App() {
             <Route path="house-rules" element={renderAdminRoute(<HouseRulesPage />)} />
             <Route path="finance" element={renderAdminRoute(<FinancePage />)} />
             <Route path="logs" element={renderAdminRoute(<LogsPage logs={logs} />)} />
-            <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onSyncExternalBookings={(newBookings) => {
-              setBookings(prev => {
-                // 1. Filter out duplicates by ID
-                const existingIds = new Set(prev.map(b => b.id));
-                const uniqueNew = newBookings.filter(b => !existingIds.has(b.id));
-
-                if (uniqueNew.length === 0) {
-                  alert("No new bookings found or all bookings already exist.");
-                  return prev;
-                }
-
-                // 2. Conflict Detection (Basic)
-                const nonConflicting = uniqueNew.filter(newB => {
-                  const conflict = prev.find(existingB =>
-                    existingB.roomId === newB.roomId &&
-                    existingB.status !== BookingStatus.CANCELLED &&
-                    (
-                      (newB.checkInDate < existingB.checkOutDate && newB.checkOutDate > existingB.checkInDate)
-                    )
-                  );
-                  if (conflict) {
-                    console.warn(`Skipping conflicting booking from external source for room ${newB.roomId} on ${newB.checkInDate}`);
-                    return false;
-                  }
-                  return true;
-                });
-
-                if (nonConflicting.length > 0) {
-                  alert(`Successfully synced ${nonConflicting.length} new bookings from external channels!`);
-                  return [...prev, ...nonConflicting];
-                } else {
-                  alert("Sync complete, but all imported bookings overlapped with existing reservations.");
-                  return prev;
-                }
-              });
-            }} />} />
+            <Route path="channels" element={<ChannelManagerPage rooms={rooms} bookings={bookings} onRefreshBookings={fetchBookings} />} />
           </Route>
           { }
           <Route path="*" element={<Navigate to="/" replace />} />

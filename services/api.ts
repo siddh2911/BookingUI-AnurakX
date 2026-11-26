@@ -351,3 +351,88 @@ export const saveTvSettings = async (settings: TvSettings, roomNumber?: string):
   if (!response.ok) throw new Error('Failed to save TV settings');
   return response.json();
 };
+
+export interface IcalEventPreview {
+  uid: string;
+  summary: string;
+  guestName: string;
+  source: string;
+  checkInDate: string;
+  checkOutDate: string;
+}
+
+export interface IcalExistingBooking {
+  id: number;
+  guestName: string;
+  bookingSource: string;
+  checkInDate: string;
+  checkOutDate: string;
+  status: string;
+  totalAmount: number;
+  externalId?: string | null;
+}
+
+export interface IcalConflictPreview extends IcalEventPreview {
+  existingBookings: IcalExistingBooking[];
+}
+
+export interface IcalPreviewResponse {
+  roomNumber: string;
+  source: string;
+  totalEvents: number;
+  ready: IcalEventPreview[];
+  alreadySynced: IcalEventPreview[];
+  conflicts: IcalConflictPreview[];
+}
+
+export interface IcalImportResult {
+  roomNumber: string;
+  source: string;
+  importedCount: number;
+  overriddenCount: number;
+  skippedConflicts: number;
+  alreadySyncedCount: number;
+  syncedAt: string;
+}
+
+export const previewRoomIcalImport = async (
+  roomNumber: string,
+  payload: { url?: string; icsContent?: string; source: string }
+): Promise<IcalPreviewResponse> => {
+  const response = await fetch(`${API_BASE_URL}/rooms/${encodeURIComponent(roomNumber)}/ical/preview`, {
+    method: 'POST',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  const data = await response.json().catch(() => ({ error: 'Failed to fetch iCal calendar' }));
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to preview iCal calendar');
+  }
+  return data;
+};
+
+export const confirmRoomIcalImport = async (
+  roomNumber: string,
+  payload: { url?: string; icsContent?: string; source: string; overrideUids: string[]; saveUrl?: boolean }
+): Promise<IcalImportResult> => {
+  const response = await fetch(`${API_BASE_URL}/rooms/${encodeURIComponent(roomNumber)}/ical/import`, {
+    method: 'POST',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  const data = await response.json().catch(() => ({ error: 'Failed to import iCal calendar' }));
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to import iCal calendar');
+  }
+  return data;
+};

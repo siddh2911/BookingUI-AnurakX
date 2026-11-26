@@ -1,140 +1,265 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Room, Booking, BookingSource } from '../../types';
-import { generateICal, parseICal } from '../../services/iCalUtils';
-import { Download, RefreshCw, Link, Check, AlertCircle } from 'lucide-react';
+import { generateICal } from '../../services/iCalUtils';
+import { API_BASE_URL } from '../../constants/api';
+import {
+    previewRoomIcalImport,
+    confirmRoomIcalImport,
+    IcalPreviewResponse,
+    IcalImportResult,
+} from '../../services/api';
+import {
+    Download,
+    RefreshCw,
+    Link,
+    Check,
+    AlertCircle,
+    AlertTriangle,
+    Upload,
+    Copy,
+    Calendar,
+    ShieldAlert,
+    CheckCircle2,
+    X,
+} from 'lucide-react';
 
 interface ChannelManagerPageProps {
     rooms: Room[];
     bookings: Booking[];
-    onSyncExternalBookings: (newBookings: Booking[]) => void;
+    onRefreshBookings: () => Promise<void> | void;
 }
 
-const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings, onSyncExternalBookings }) => {
+const BOOKING_PLATFORMS: { id: string; label: string; placeholder: string }[] = [
+    { id: BookingSource.AIRBNB, label: 'Airbnb', placeholder: 'https://www.airbnb.com/calendar/ical/...' },
+    { id: BookingSource.BOOKING_COM, label: 'Booking.com', placeholder: 'https://admin.booking.com/hotel/hoteladmin/ical.html?t=...' },
+    { id: BookingSource.MAKE_MY_TRIP, label: 'MakeMyTrip', placeholder: 'https://in.goibibo.com/... or MakeMyTrip iCal link' },
+    { id: BookingSource.GOIBIBO, label: 'Goibibo', placeholder: 'https://in.goibibo.com/... iCal export link' },
+    { id: BookingSource.AGODA, label: 'Agoda', placeholder: 'https://ycs.agoda.com/... iCal link' },
+    { id: BookingSource.EXPEDIA, label: 'Expedia', placeholder: 'https://www.expediapartnercentral.com/... iCal link' },
+    { id: 'Vrbo', label: 'Vrbo', placeholder: 'https://www.vrbo.com/icalendar/...' },
+    { id: 'Google Calendar', label: 'Google Calendar', placeholder: 'https://calendar.google.com/calendar/ical/.../basic.ics' },
+    { id: 'Other iCal', label: 'Other / Custom', placeholder: 'https://... (.ics calendar URL)' },
+];
+
+const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings, onRefreshBookings }) => {
     const [selectedRoomId, setSelectedRoomId] = useState<number>(rooms[0]?.id || 0);
     const [importUrl, setImportUrl] = useState('');
-    const [importSource, setImportSource] = useState<BookingSource>(BookingSource.AIRBNB);
-    const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
-    const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+    const [uploadedIcsName, setUploadedIcsName] = useState('');
+    const [uploadedIcsContent, setUploadedIcsContent] = useState('');
+    const [importSource, setImportSource] = useState<string>(BookingSource.AIRBNB);
+    const [saveUrlForAutoSync, setSaveUrlForAutoSync] = useState(true);
 
-    const selectedRoom = rooms.find(r => r.id === selectedRoomId);
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'checking' | 'confirm_override' | 'importing' | 'success' | 'error'>('idle');
+    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [preview, setPreview] = useState<IcalPreviewResponse | null>(null);
+    const [selectedOverrideUids, setSelectedOverrideUids] = useState<Set<string>>(new Set());
+    const [lastResult, setLastResult] = useState<IcalImportResult | null>(null);
+    const [copiedExport, setCopiedExport] = useState(false);
+
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    useEffect(() => {
+        if (!selectedRoomId && rooms.length > 0) {
+            setSelectedRoomId(rooms[0].id);
+        }
+    }, [rooms, selectedRoomId]);
+
+    const selectedRoom = rooms.find(r => r.id === selectedRoomId) || rooms[0];
+    const activePlatform = BOOKING_PLATFORMS.find(p => p.id === importSource) || BOOKING_PLATFORMS[0];
+    const exportIcalUrl = selectedRoom
+        ? `${API_BASE_URL}/api/ical/${encodeURIComponent(selectedRoom.number)}/calendar.ics`
+        : '';
+
+    const handleCopyExportUrl = () => {
+        if (!exportIcalUrl) return;
+        navigator.clipboard?.writeText(exportIcalUrl).then(() => {
+            setCopiedExport(true);
+            setTimeout(() => setCopiedExport(false), 2000);
+        });
+    };
 
     const handleDownloadICal = () => {
         if (!selectedRoom) return;
-        const roomBookings = bookings.filter(b => b.roomId === selectedRoom.id);
+        const roomBookings = bookings.filter(b => b.roomId === selectedRoom.id && b.status !== 'Cancelled');
         const icalContent = generateICal(roomBookings, `Room ${selectedRoom.number}`);
 
-        // Trigger download
-        const element = document.createElement("a");
+        const element = document.createElement('a');
         const file = new Blob([icalContent], { type: 'text/calendar' });
         element.href = URL.createObjectURL(file);
         element.download = `karuna_villa_room_${selectedRoom.number}.ics`;
         document.body.appendChild(element);
         element.click();
+        document.body.removeChild(element);
     };
 
-    const handleSync = async () => {
-        setSyncStatus('syncing');
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const text = typeof reader.result === 'string' ? reader.result : '';
+            setUploadedIcsContent(text);
+            setUploadedIcsName(file.name);
+            setErrorMessage('');
+        };
+        reader.readAsText(file);
+    };
 
-        // SIMULATION: In a real app, we would fetch(importUrl) here.
-        // Due to CORS, we simulate a successful fetch from Airbnb/Booking.com
-        // by generating a dummy iCal string with a future booking.
+    const clearUploadedFile = () => {
+        setUploadedIcsContent('');
+        setUploadedIcsName('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
 
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
+    const executeFinalImport = async (overrideUids: string[]) => {
+        if (!selectedRoom) return;
+        setSyncStatus('importing');
+        setErrorMessage('');
         try {
-            // Create a mock booking for 5 days from now
-            const mockStartDate = new Date();
-            mockStartDate.setDate(mockStartDate.getDate() + 5);
-            const mockEndDate = new Date(mockStartDate);
-            mockEndDate.setDate(mockEndDate.getDate() + 3);
-
-            const year = mockStartDate.getFullYear();
-            const month = String(mockStartDate.getMonth() + 1).padStart(2, '0');
-            const day = String(mockStartDate.getDate()).padStart(2, '0');
-            const startString = `${year}${month}${day}`;
-
-            const endYear = mockEndDate.getFullYear();
-            const endMonth = String(mockEndDate.getMonth() + 1).padStart(2, '0');
-            const endDay = String(mockEndDate.getDate()).padStart(2, '0');
-            const endString = `${endYear}${endMonth}${endDay}`;
-
-            const mockICalContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//${importSource}//NONSGML v1.0//EN
-BEGIN:VEVENT
-UID:${Date.now()}@${importSource.toLowerCase()}.com
-DTSTAMP:20240101T000000Z
-DTSTART;VALUE=DATE:${startString}
-DTEND;VALUE=DATE:${endString}
-SUMMARY:${importSource} Guest (Synced)
-DESCRIPTION:Imported from ${importSource}
-END:VEVENT
-END:VCALENDAR`;
-
-            const parsedBookings = parseICal(mockICalContent, importSource);
-
-            // Assign to the selected room for this demo
-            const bookingsWithRoom = parsedBookings.map(b => ({
-                ...b,
-                roomId: selectedRoomId,
-                roomName: selectedRoom?.name || 'Unknown Room'
-            }));
-
-            onSyncExternalBookings(bookingsWithRoom);
-
+            const res = await confirmRoomIcalImport(selectedRoom.number, {
+                url: uploadedIcsContent ? undefined : importUrl.trim(),
+                icsContent: uploadedIcsContent || undefined,
+                source: importSource,
+                overrideUids,
+                saveUrl: saveUrlForAutoSync && !uploadedIcsContent,
+            });
+            setLastResult(res);
+            setPreview(null);
+            setSelectedOverrideUids(new Set());
             setSyncStatus('success');
-            setLastSyncTime(new Date().toLocaleTimeString());
-        } catch (error) {
-            console.error("Sync failed:", error);
+            await onRefreshBookings();
+        } catch (err: any) {
+            setErrorMessage(err?.message || 'Failed to import calendar.');
             setSyncStatus('error');
         }
     };
 
+    const handleCheckAndSync = async () => {
+        if (!selectedRoom) {
+            setErrorMessage('Please select a room first.');
+            setSyncStatus('error');
+            return;
+        }
+        if (!uploadedIcsContent && !importUrl.trim()) {
+            setErrorMessage('Please paste an iCal URL or upload a .ics file.');
+            setSyncStatus('error');
+            return;
+        }
+
+        setSyncStatus('checking');
+        setErrorMessage('');
+        setPreview(null);
+        setLastResult(null);
+
+        try {
+            const previewRes = await previewRoomIcalImport(selectedRoom.number, {
+                url: uploadedIcsContent ? undefined : importUrl.trim(),
+                icsContent: uploadedIcsContent || undefined,
+                source: importSource,
+            });
+
+            if (previewRes.conflicts.length > 0) {
+                // Stop and ask Admin explicitly whether to override conflicting dates
+                setPreview(previewRes);
+                setSelectedOverrideUids(new Set());
+                setSyncStatus('confirm_override');
+                return;
+            }
+
+            // No conflicts — import directly
+            await executeFinalImport([]);
+        } catch (err: any) {
+            setErrorMessage(err?.message || 'Failed to fetch or parse iCal calendar.');
+            setSyncStatus('error');
+        }
+    };
+
+    const toggleOverrideUid = (uid: string) => {
+        setSelectedOverrideUids(prev => {
+            const next = new Set(prev);
+            if (next.has(uid)) next.delete(uid);
+            else next.add(uid);
+            return next;
+        });
+    };
+
+    const toggleAllOverrides = () => {
+        if (!preview) return;
+        if (selectedOverrideUids.size === preview.conflicts.length) {
+            setSelectedOverrideUids(new Set());
+        } else {
+            setSelectedOverrideUids(new Set(preview.conflicts.map(c => c.uid)));
+        }
+    };
+
     return (
-        <div className="animate-in fade-in duration-500 space-y-8">
+        <div className="animate-in fade-in duration-500 space-y-6">
             <div>
                 <h1 className="text-3xl font-bold text-slate-900">Channel Manager</h1>
-                <p className="text-slate-500">Sync your calendar with Airbnb, Booking.com, and more.</p>
+                <p className="text-slate-500">
+                    Sync calendars across Airbnb, Booking.com, MakeMyTrip, Goibibo, Agoda, Expedia, Vrbo, and Google Calendar.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                 {/* EXPORT SECTION */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-full">
-                    <div className="flex items-center gap-2 mb-6 text-blue-600">
-                        <Download size={24} />
+                <div className="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-full">
+                    <div className="flex items-center gap-2 mb-4 text-blue-600">
+                        <Download size={22} />
                         <h2 className="text-xl font-bold text-slate-800">Export Calendar</h2>
                     </div>
-                    <p className="text-slate-600 mb-6 text-sm min-h-[40px]">
-                        Share this iCal link with OTAs (Airbnb, Vrbo) to prevent double bookings.
-                        They will pull your availability from here.
+                    <p className="text-slate-600 mb-5 text-sm">
+                        Share this live iCal link with any OTA (Airbnb, Booking.com, MakeMyTrip, Agoda, Vrbo) so they automatically pull blocked dates from Karuna Villa.
                     </p>
 
                     <div className="space-y-4 flex-1">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Select Room</label>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                                Select Room
+                            </label>
                             <select
-                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={selectedRoomId}
-                                onChange={(e) => setSelectedRoomId(Number(e.target.value))}
+                                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
+                                value={selectedRoom?.id || 0}
+                                onChange={(e) => {
+                                    setSelectedRoomId(Number(e.target.value));
+                                    setPreview(null);
+                                    setSyncStatus('idle');
+                                }}
                             >
                                 {rooms.map(room => (
-                                    <option key={room.id} value={room.id}>{room.number} - {room.type}</option>
+                                    <option key={room.id} value={room.id}>
+                                        Room {room.number} — {room.type}
+                                    </option>
                                 ))}
                             </select>
                         </div>
 
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 break-all text-xs font-mono text-slate-600">
-                            https://karunavilla.com/api/ical/{selectedRoomId}/calendar.ics
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                                Live Export iCal URL
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200 break-all text-xs font-mono text-slate-600">
+                                    {exportIcalUrl || 'Select a room'}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleCopyExportUrl}
+                                    className="px-3 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                                    title="Copy URL"
+                                >
+                                    {copiedExport ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                                    {copiedExport ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="mt-auto pt-4">
-                        <div className="min-h-[24px] mb-2"></div>
+                    <div className="mt-6 pt-4 border-t border-slate-100">
                         <button
+                            type="button"
                             onClick={handleDownloadICal}
-                            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
+                            className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm flex items-center justify-center gap-2"
                         >
                             <Download size={16} /> Download .ics File
                         </button>
@@ -142,68 +267,279 @@ END:VCALENDAR`;
                 </div>
 
                 {/* IMPORT SECTION */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-full">
-                    <div className="flex items-center gap-2 mb-6 text-green-600">
-                        <RefreshCw size={24} />
-                        <h2 className="text-xl font-bold text-slate-800">Import Calendar</h2>
+                <div className="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-full">
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                        <div className="flex items-center gap-2 text-emerald-600">
+                            <RefreshCw size={22} />
+                            <h2 className="text-xl font-bold text-slate-800">Import Calendar</h2>
+                        </div>
+                        {selectedRoom && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                Room {selectedRoom.number}
+                            </span>
+                        )}
                     </div>
-                    <p className="text-slate-600 mb-6 text-sm min-h-[40px]">
-                        Paste the iCal export link from Airbnb/Booking.com. We will periodically fetch it to block dates here.
+                    <p className="text-slate-600 mb-5 text-sm">
+                        Select any booking platform and paste its iCal export URL (or upload a <code>.ics</code> file). If any date already has a booking, we will ask you before overriding it.
                     </p>
 
                     <div className="space-y-4 flex-1">
+                        {/* All Booking Platforms */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Channel Source</label>
-                            <div className="flex gap-2">
-                                {[BookingSource.AIRBNB, BookingSource.BOOKING_COM, BookingSource.EXPEDIA].map(src => (
-                                    <button
-                                        key={src}
-                                        onClick={() => setImportSource(src)}
-                                        className={`px-3 py-2 text-xs rounded-lg border transition-colors ${importSource === src ? 'bg-green-50 border-green-500 text-green-700 font-medium' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                                    >
-                                        {src}
-                                    </button>
-                                ))}
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                Booking Platform
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {BOOKING_PLATFORMS.map(platform => {
+                                    const active = importSource === platform.id;
+                                    return (
+                                        <button
+                                            key={platform.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setImportSource(platform.id);
+                                                setErrorMessage('');
+                                            }}
+                                            className={`px-3 py-1.5 text-xs rounded-lg border font-semibold transition-all ${
+                                                active
+                                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {platform.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
+                        {/* iCal URL Input */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">iCal URL</label>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                                {activePlatform.label} iCal URL
+                            </label>
                             <input
-                                type="text"
-                                placeholder="https://www.airbnb.com/calendar/ical/..."
-                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                                type="url"
+                                placeholder={activePlatform.placeholder}
+                                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
                                 value={importUrl}
-                                onChange={(e) => setImportUrl(e.target.value)}
+                                onChange={(e) => {
+                                    setImportUrl(e.target.value);
+                                    if (uploadedIcsContent) clearUploadedFile();
+                                    setErrorMessage('');
+                                }}
                             />
                         </div>
-                    </div>
 
-                    <div className="mt-auto pt-4">
-                        <div className="min-h-[24px] mb-2 flex flex-col justify-end">
-                            {syncStatus === 'success' ? (
-                                <div className="flex items-center gap-2 text-green-700 text-xs">
-                                    <Check size={14} /> Synced: {lastSyncTime}
-                                </div>
-                            ) : (
-                                <div className="text-xs text-slate-400 flex items-start gap-1">
-                                    <AlertCircle size={12} className="mt-0.5 shrink-0" />
-                                    <span>Backend sync required.</span>
-                                </div>
+                        {/* Optional .ics File Upload */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".ics,text/calendar"
+                                    onChange={handleFileUpload}
+                                    className="hidden"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700"
+                                >
+                                    <Upload size={13} /> Or Upload .ics File
+                                </button>
+                                {uploadedIcsName && (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700">
+                                        {uploadedIcsName}
+                                        <button type="button" onClick={clearUploadedFile} className="hover:text-emerald-900">
+                                            <X size={12} />
+                                        </button>
+                                    </span>
+                                )}
+                            </div>
+
+                            {(importSource === BookingSource.AIRBNB || importSource === BookingSource.BOOKING_COM) && !uploadedIcsContent && (
+                                <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={saveUrlForAutoSync}
+                                        onChange={(e) => setSaveUrlForAutoSync(e.target.checked)}
+                                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                    Save link for hourly auto-sync
+                                </label>
                             )}
                         </div>
 
+                        {/* Error Banner */}
+                        {syncStatus === 'error' && errorMessage && (
+                            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+                                <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                                <span>{errorMessage}</span>
+                            </div>
+                        )}
+
+                        {/* Success Summary Banner */}
+                        {syncStatus === 'success' && lastResult && (
+                            <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs space-y-1">
+                                <div className="font-bold flex items-center gap-1.5 text-sm">
+                                    <CheckCircle2 size={16} className="text-emerald-600" />
+                                    Calendar synced for Room {lastResult.roomNumber} ({lastResult.source})
+                                </div>
+                                <div className="flex flex-wrap gap-3 pt-1 text-emerald-700 font-medium">
+                                    <span>Imported: <b>{lastResult.importedCount}</b></span>
+                                    <span>Overridden: <b>{lastResult.overriddenCount}</b></span>
+                                    <span>Skipped conflicts: <b>{lastResult.skippedConflicts}</b></span>
+                                    <span>Already up-to-date: <b>{lastResult.alreadySyncedCount}</b></span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-slate-100">
                         <button
-                            onClick={handleSync}
-                            disabled={syncStatus === 'syncing'}
-                            className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                            type="button"
+                            onClick={handleCheckAndSync}
+                            disabled={syncStatus === 'checking' || syncStatus === 'importing'}
+                            className="w-full py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                         >
-                            {syncStatus === 'syncing' ? <RefreshCw className="animate-spin" size={16} /> : <Link size={16} />}
-                            {syncStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+                            {syncStatus === 'checking' || syncStatus === 'importing' ? (
+                                <RefreshCw className="animate-spin" size={16} />
+                            ) : (
+                                <Link size={16} />
+                            )}
+                            {syncStatus === 'checking'
+                                ? 'Fetching & Checking for Date Conflicts...'
+                                : syncStatus === 'importing'
+                                    ? 'Importing Calendar...'
+                                    : `Import ${activePlatform.label} Calendar`}
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* EXPLICIT DATE OVERRIDE CONFIRMATION PANEL */}
+            {syncStatus === 'confirm_override' && preview && (
+                <div className="bg-white rounded-2xl shadow-md border-2 border-amber-300 overflow-hidden animate-in fade-in duration-300">
+                    <div className="p-5 bg-amber-50/90 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700 shrink-0">
+                                <ShieldAlert size={22} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">
+                                    Date Override Confirmation — Room {preview.roomNumber}
+                                </h3>
+                                <p className="text-sm text-slate-700 mt-0.5">
+                                    Found <b>{preview.conflicts.length}</b> date conflict{preview.conflicts.length > 1 ? 's' : ''} that can be overridden
+                                    {preview.ready.length > 0 && (
+                                        <> (plus <b>{preview.ready.length}</b> non-conflicting booking{preview.ready.length > 1 ? 's' : ''} ready to import)</>
+                                    )}. <b>Should I override these existing bookings?</b>
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={toggleAllOverrides}
+                            className="px-3 py-1.5 rounded-lg border border-amber-300 bg-white hover:bg-amber-100 text-xs font-bold text-amber-800 shrink-0 self-start sm:self-center"
+                        >
+                            {selectedOverrideUids.size === preview.conflicts.length ? 'Deselect All' : 'Select All to Override'}
+                        </button>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 max-h-[420px] overflow-y-auto">
+                        {preview.conflicts.map((conflict) => {
+                            const checked = selectedOverrideUids.has(conflict.uid);
+                            return (
+                                <label
+                                    key={conflict.uid}
+                                    className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${
+                                        checked ? 'bg-amber-50/60' : 'hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleOverrideUid(conflict.uid)}
+                                        className="mt-1 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                    />
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                        {/* Incoming iCal Booking */}
+                                        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                                            <div className="flex items-center justify-between gap-2 mb-1">
+                                                <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-700">
+                                                    Incoming ({conflict.source})
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 font-bold text-emerald-900">
+                                                    <Calendar size={12} /> {conflict.checkInDate} → {conflict.checkOutDate}
+                                                </span>
+                                            </div>
+                                            <div className="font-semibold text-slate-800 text-sm">{conflict.guestName}</div>
+                                            {conflict.summary && conflict.summary !== conflict.guestName && (
+                                                <div className="text-slate-500 mt-0.5">{conflict.summary}</div>
+                                            )}
+                                        </div>
+
+                                        {/* Conflicting Existing Booking(s) */}
+                                        <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200 space-y-2">
+                                            <div className="font-bold uppercase tracking-wider text-[10px] text-rose-700 flex items-center gap-1">
+                                                <AlertTriangle size={11} /> Existing Booking{conflict.existingBookings.length > 1 ? 's' : ''} (Will be cancelled if overridden)
+                                            </div>
+                                            {conflict.existingBookings.map((eb) => (
+                                                <div key={eb.id} className="flex items-center justify-between gap-2">
+                                                    <div>
+                                                        <div className="font-semibold text-slate-800 text-sm">
+                                                            {eb.guestName}{' '}
+                                                            <span className="text-[11px] font-normal text-slate-500">({eb.bookingSource})</span>
+                                                        </div>
+                                                        <div className="text-rose-800 font-medium">
+                                                            {eb.checkInDate} → {eb.checkOutDate} · {eb.status}
+                                                        </div>
+                                                    </div>
+                                                    {eb.totalAmount > 0 && (
+                                                        <span className="font-bold text-slate-700 shrink-0">
+                                                            ₹{Number(eb.totalAmount).toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </label>
+                            );
+                        })}
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setPreview(null);
+                                setSelectedOverrideUids(new Set());
+                                setSyncStatus('idle');
+                            }}
+                            className="px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-sm font-semibold"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => executeFinalImport([])}
+                            className="px-4 py-2.5 rounded-lg border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-semibold"
+                        >
+                            No, Keep Existing ({preview.ready.length > 0 ? `Import ${preview.ready.length} Safe Only` : 'Skip All'})
+                        </button>
+                        <button
+                            type="button"
+                            disabled={selectedOverrideUids.size === 0}
+                            onClick={() => executeFinalImport(Array.from(selectedOverrideUids))}
+                            className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Yes, Override Selected ({selectedOverrideUids.size}) &amp; Import
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
