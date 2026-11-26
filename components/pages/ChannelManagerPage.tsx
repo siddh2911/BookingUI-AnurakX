@@ -78,6 +78,8 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [airbnbPhone, setAirbnbPhone] = useState<string>('');
     const [airbnbOtp, setAirbnbOtp] = useState<string>('');
     const [copiedBridgeCmd, setCopiedBridgeCmd] = useState<boolean>(false);
+    const [checkingBridge, setCheckingBridge] = useState<boolean>(false);
+    const [bridgeCheckNote, setBridgeCheckNote] = useState<string>('');
     const handledDoneRef = useRef<boolean>(false);
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,16 +91,33 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         : '';
 
     const checkBridgeHealth = async () => {
+        setCheckingBridge(true);
+        setBridgeCheckNote('');
         try {
-            const res = await fetch(`${AIRBNB_BRIDGE_URL}/health`, { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json().catch(() => ({}));
-                if (data.ok) {
-                    setBridgeOnline(true);
-                    return true;
-                }
+            const res = await fetch(`${AIRBNB_BRIDGE_URL}/health`, {
+                credentials: 'include',
+                cache: 'no-store',
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                setBridgeOnline(true);
+                setBridgeCheckNote('');
+                return true;
             }
-        } catch { /* offline */ }
+            if (res.status === 404) {
+                setBridgeCheckNote('HTTP 404: /api/airbnb-bridge not found on backend — deploy & restart the new booking-system JAR on srv1225912.');
+            } else if (res.status === 503) {
+                setBridgeCheckNote(`HTTP 503: ${data.error || 'Backend reached, but airbnb-bridge is not running on port 4321.'}`);
+            } else if (res.status === 401 || res.status === 403) {
+                setBridgeCheckNote(`HTTP ${res.status}: Admin session required — try refreshing or logging in again.`);
+            } else {
+                setBridgeCheckNote(`HTTP ${res.status}: ${data.error || res.statusText || 'Unexpected response from bridge'}`);
+            }
+        } catch (err: any) {
+            setBridgeCheckNote(`Could not reach ${AIRBNB_BRIDGE_URL}/health (${err?.message || 'network error'}).`);
+        } finally {
+            setCheckingBridge(false);
+        }
         setBridgeOnline(false);
         return false;
     };
@@ -745,10 +764,11 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                         <button
                             type="button"
                             onClick={checkBridgeHealth}
-                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
+                            disabled={checkingBridge}
+                            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 disabled:opacity-50"
                             title="Re-check server extractor service"
                         >
-                            <RefreshCw size={14} />
+                            <RefreshCw size={14} className={checkingBridge ? 'animate-spin' : ''} />
                         </button>
                     </div>
                 </div>
@@ -763,12 +783,18 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                             <button
                                 type="button"
                                 onClick={checkBridgeHealth}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold"
+                                disabled={checkingBridge}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold disabled:opacity-50"
                             >
-                                <RefreshCw size={12} />
-                                Re-check Now
+                                <RefreshCw size={12} className={checkingBridge ? 'animate-spin' : ''} />
+                                {checkingBridge ? 'Checking...' : 'Re-check Now'}
                             </button>
                         </div>
+                        {bridgeCheckNote && (
+                            <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-medium">
+                                {bridgeCheckNote}
+                            </div>
+                        )}
                         <div className="flex items-center gap-2 bg-slate-900 text-emerald-300 rounded-lg p-2.5 font-mono text-[11px]">
                             <code className="flex-1 overflow-x-auto whitespace-nowrap">
                                 nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs &gt; /opt/myapp/airbnb-bridge.log 2&gt;&amp;1 &amp;
