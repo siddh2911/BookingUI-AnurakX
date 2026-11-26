@@ -356,7 +356,7 @@ async function navigateCalendarToMonth(page, year, month) {
       return t.toLowerCase() === full.toLowerCase() || t.toLowerCase() === `${shortName} ${y}`.toLowerCase();
     });
     if (nodes[0]) {
-      nodes[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nodes[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
       return true;
     }
     return false;
