@@ -77,6 +77,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [bridgeError, setBridgeError] = useState<string>('');
     const [airbnbPhone, setAirbnbPhone] = useState<string>('');
     const [airbnbOtp, setAirbnbOtp] = useState<string>('');
+    const [copiedBridgeCmd, setCopiedBridgeCmd] = useState<boolean>(false);
     const handledDoneRef = useRef<boolean>(false);
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -753,9 +754,51 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                 </div>
 
                 {!bridgeOnline && (
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
-                        <Terminal size={14} className="text-slate-500 shrink-0" />
-                        <span>Server extractor service is offline. Start <code>airbnb-bridge</code> on <code>srv1225912</code> (port 4321) to enable one-click mobile &amp; desktop extraction.</span>
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 font-semibold text-slate-800">
+                                <Terminal size={14} className="text-slate-600 shrink-0" />
+                                <span>Start <code>airbnb-bridge</code> on <code>srv1225912</code> (port 4321) to enable one-click extraction:</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={checkBridgeHealth}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-semibold"
+                            >
+                                <RefreshCw size={12} />
+                                Re-check Now
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-900 text-emerald-300 rounded-lg p-2.5 font-mono text-[11px]">
+                            <code className="flex-1 overflow-x-auto whitespace-nowrap">
+                                nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs &gt; /opt/myapp/airbnb-bridge.log 2&gt;&amp;1 &amp;
+                            </code>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    navigator.clipboard.writeText('nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs > /opt/myapp/airbnb-bridge.log 2>&1 &');
+                                    setCopiedBridgeCmd(true);
+                                    setTimeout(() => setCopiedBridgeCmd(false), 2000);
+                                }}
+                                className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-sans text-[11px]"
+                            >
+                                {copiedBridgeCmd ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                {copiedBridgeCmd ? 'Copied' : 'Copy'}
+                            </button>
+                        </div>
+                        <details className="text-[11px] text-slate-600">
+                            <summary className="cursor-pointer font-semibold text-slate-700 hover:text-slate-900">
+                                First-time setup on srv1225912 (if /opt/myapp/airbnb-bridge is not installed yet)
+                            </summary>
+                            <pre className="mt-2 p-2.5 rounded-lg bg-slate-900 text-slate-200 overflow-x-auto leading-relaxed">
+{`cd /opt/myapp/airbnb-bridge
+npm install
+npx playwright-core install chromium
+npx playwright-core install-deps chromium
+nohup HEADLESS=true node /opt/myapp/airbnb-bridge/bridge-server.mjs > /opt/myapp/airbnb-bridge.log 2>&1 &
+curl -s http://127.0.0.1:4321/health`}
+                            </pre>
+                        </details>
                     </div>
                 )}
 
