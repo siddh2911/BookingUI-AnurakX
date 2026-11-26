@@ -554,14 +554,12 @@ async function main() {
 
     let found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
 
-    // When scrolling backwards (e.g. Feb -> Jan), the bottom week of the month appears first.
-    // Do one extra upward scroll so the first half of the month (days 1-20) is also scanned!
-    if (idx === monthsToScan.length - 1 || month === 1) {
-      await page.mouse.move(520, 420);
-      await page.mouse.wheel(0, -520);
-      await page.waitForTimeout(1600);
-      found += await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
-    }
+    // Since scrolling backwards brings the bottom week of each month into view first,
+    // do one extra gentle upward scroll on EVERY month so days 1-20 are always scanned too!
+    await page.mouse.move(520, 420);
+    await page.mouse.wheel(0, -480);
+    await page.waitForTimeout(1400);
+    found += await scanVisibleCalendar(page, reservationsByKey, clickedSignatures, year);
 
     console.log(`   → Found ${found} new booking(s) in ${visibleMonth} (Total: ${reservationsByKey.size}).`);
     await page.waitForTimeout(1500);
