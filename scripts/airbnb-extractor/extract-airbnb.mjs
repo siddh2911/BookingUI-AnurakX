@@ -183,41 +183,78 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-async function navigateCalendarToMonth(page, calendarBaseUrl, year, month) {
+async function navigateCalendarToMonth(page, year, month) {
   const targetLabel = `${MONTH_NAMES[month]} ${year}`;
   const shortLabel = `${MONTH_NAMES[month].slice(0, 3)} ${year}`;
 
-  // 1) Try Airbnb's Month/Year dropdown selector on the calendar header
+  const matchesTarget = (label) =>
+    label.toLowerCase().includes(targetLabel.toLowerCase()) ||
+    label.toLowerCase().includes(shortLabel.toLowerCase());
+
+  const currentLabel = await getVisibleCalendarMonthLabel(page);
+  if (matchesTarget(currentLabel)) return currentLabel;
+
+  // 1) Try Airbnb's Month/Year dropdown button in calendar header
   try {
     const monthBtn = page
       .locator('button:has-text("2025"), button:has-text("2026"), button:has-text("2027")')
       .filter({ hasText: /January|February|March|April|May|June|July|August|September|October|November|December/i })
       .first();
-    if (await monthBtn.isVisible({ timeout: 1500 })) {
-      const currentText = (await monthBtn.innerText().catch(() => '')).trim();
-      if (currentText.includes(targetLabel) || currentText.includes(shortLabel)) {
-        return true;
-      }
+    if (await monthBtn.isVisible({ timeout: 1200 })) {
       await monthBtn.click();
-      await page.waitForTimeout(700);
-
+      await page.waitForTimeout(600);
       const option = page
-        .locator(`[role="option"]:has-text("${targetLabel}"), button:has-text("${targetLabel}"), [role="menuitem"]:has-text("${targetLabel}"), li:has-text("${targetLabel}"), button:has-text("${MONTH_NAMES[month]}")`)
+        .locator(`[role="option"]:has-text("${targetLabel}"), button:has-text("${targetLabel}"), [role="menuitem"]:has-text("${targetLabel}"), li:has-text("${targetLabel}")`)
         .first();
-      if (await option.isVisible({ timeout: 1500 })) {
+      if (await option.isVisible({ timeout: 1200 })) {
         await option.click();
-        await page.waitForTimeout(1800);
-        return true;
+        await page.waitForTimeout(1600);
+        return await getVisibleCalendarMonthLabel(page);
       }
       await page.keyboard.press('Escape').catch(() => {});
     }
-  } catch { /* fallback below */ }
+  } catch { /* try arrows/scroll below */ }
 
-  // 2) Fallback: direct month/year query URL on Airbnb multicalendar
-  const sep = calendarBaseUrl.includes('?') ? '&' : '?';
-  await page.goto(`${calendarBaseUrl}${sep}month=${month}&year=${year}`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2200);
-  return true;
+  // 2) Try scrolling the month header directly into view if Airbnb renders multiple months vertically
+  const scrolledToHeading = await page.evaluate((target) => {
+    const headings = Array.from(document.querySelectorAll('h1, h2, h3, div, span')).filter((el) => {
+      const t = (el.innerText || '').trim();
+      return t.toLowerCase() === target.toLowerCase();
+    });
+    if (headings[0]) {
+      headings[0].scrollIntoView({ behavior: 'instant', block: 'start' });
+      return true;
+    }
+    return false;
+  }, targetLabel).catch(() => false);
+
+  if (scrolledToHeading) {
+    await page.waitForTimeout(1200);
+    return await getVisibleCalendarMonthLabel(page);
+  }
+
+  // 3) Try Previous / Next month arrow buttons (up to 12 clicks)
+  const currentMatch = currentLabel.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/i);
+  if (currentMatch) {
+    const curMonthIdx = MONTH_NAMES.findIndex((m) => m.toLowerCase() === currentMatch[1].toLowerCase());
+    const curYear = Number(currentMatch[2]);
+    const diff = (year - curYear) * 12 + (month - curMonthIdx);
+    const arrowSelector = diff < 0
+      ? 'button[aria-label*="Previous"], button[aria-label*="Back"], button[aria-label*="earlier"]'
+      : 'button[aria-label*="Next"], button[aria-label*="Forward"], button[aria-label*="later"]';
+    const arrowBtn = page.locator(arrowSelector).first();
+    if (await arrowBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+      const clicks = Math.min(Math.abs(diff), 12);
+      for (let c = 0; c < clicks; c++) {
+        if (await arrowBtn.isDisabled().catch(() => true)) break;
+        await arrowBtn.click().catch(() => {});
+        await page.waitForTimeout(500);
+      }
+      await page.waitForTimeout(1000);
+    }
+  }
+
+  return await getVisibleCalendarMonthLabel(page);
 }
 
 async function getVisibleCalendarMonthLabel(page) {
@@ -312,19 +349,26 @@ async function main() {
   console.log('\n👉 Log in with your phone number & OTP if prompted, and make sure your Calendar is visible.');
   await rl.question('Press ENTER to scan your selected date range on Calendar... ');
 
-  const calendarBaseUrl = page.url().split('?')[0];
   const monthsToScan = getYearMonthsInRange(fromDate, toDate);
   console.log(`\n🔎 Scanning ${monthsToScan.length} month(s): ${monthsToScan.map((x) => `${MONTH_NAMES[x.month].slice(0, 3)} ${x.year}`).join(', ')}`);
 
   const reservationsByKey = new Map();
   const clickedSignatures = new Set();
+  const scannedVisibleMonths = new Set();
 
   for (let idx = 0; idx < monthsToScan.length; idx++) {
     const { year, month } = monthsToScan[idx];
-    console.log(`\n   [${idx + 1}/${monthsToScan.length}] Switching Calendar to ${MONTH_NAMES[month]} ${year}...`);
-    await navigateCalendarToMonth(page, calendarBaseUrl, year, month);
-    const visibleMonth = await getVisibleCalendarMonthLabel(page);
-    console.log(`   📅 Target: ${MONTH_NAMES[month]} ${year} | Currently visible on Airbnb: ${visibleMonth}`);
+    const targetName = `${MONTH_NAMES[month]} ${year}`;
+    console.log(`\n   [${idx + 1}/${monthsToScan.length}] Switching Calendar to ${targetName}...`);
+    const visibleMonth = await navigateCalendarToMonth(page, year, month);
+    console.log(`   📅 Target: ${targetName} | Currently visible on Airbnb: ${visibleMonth}`);
+
+    if (scannedVisibleMonths.has(visibleMonth)) {
+      console.log(`   ⏭️  Already scanned ${visibleMonth} — skipping duplicate scan.`);
+      continue;
+    }
+    scannedVisibleMonths.add(visibleMonth);
+
     const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures);
     console.log(`   → Found ${found} new booking(s) in ${visibleMonth} (Total: ${reservationsByKey.size}).`);
   }
