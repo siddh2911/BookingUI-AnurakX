@@ -236,82 +236,9 @@ async function main() {
   };
 
   // =========================================================================
-  // FLOW 1: Today -> Hit Tab 1 (Today / Upcoming) -> Extract each booking + Manage Reservation (Phone)
+  // STEP 2: Go straight to Calendar -> Click each booked guest profile -> Extract details + Manage reservation
   // =========================================================================
-  console.log(`\n2. Going to Hosting → Today (${origin}/hosting)...`);
-  await page.goto(`${origin}/hosting`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(3500);
-
-  // Collect reservation links from Today tab and Upcoming tab
-  const tabLabels = ['Today', 'Upcoming', 'Arriving soon', 'Currently hosting'];
-  for (const label of tabLabels) {
-    try {
-      const tab = page.locator(`button[role="tab"]:has-text("${label}"), button:has-text("${label}")`).first();
-      if (await tab.isVisible({ timeout: 1500 })) {
-        console.log(`   Checking "${label}" tab...`);
-        await tab.click().catch(() => {});
-        await page.waitForTimeout(2000);
-      }
-    } catch { /* ignore */ }
-
-    // Find direct reservation detail links
-    const links = await page.evaluate(() => {
-      const out = [];
-      document.querySelectorAll('a[href*="/hosting/reservations/details/"]').forEach((a) => {
-        const href = a.getAttribute('href') || '';
-        const m = href.match(/details\/([A-Z0-9]+)/i);
-        if (m) out.push({ code: m[1].toUpperCase(), href });
-      });
-      return out;
-    });
-    for (const l of links) {
-      const fullUrl = l.href.startsWith('http') ? l.href : `${origin}${l.href}`;
-      detailUrlsToVisit.set(l.code, fullUrl);
-    }
-
-    // Also try clicking reservation cards on Today/Upcoming that open a modal/drawer without an <a> href
-    const cardCount = await page.locator('[data-testid*="reservation"], [data-testid*="booking"]').count().catch(() => 0);
-    for (let i = 0; i < Math.min(cardCount, 20); i++) {
-      try {
-        const card = page.locator('[data-testid*="reservation"], [data-testid*="booking"]').nth(i);
-        if (!(await card.isVisible({ timeout: 1000 }))) continue;
-        await card.click();
-        await page.waitForTimeout(1500);
-
-        const drawerText = await page.evaluate(() => {
-          const dialog = document.querySelector('[role="dialog"], aside, [aria-modal="true"]');
-          return (dialog || document.body)?.innerText || '';
-        });
-        const parsed = parseReservationPanelText(drawerText);
-        if (parsed.checkInDate && parsed.checkOutDate) {
-          addReservation(parsed);
-        }
-
-        // Check for "Manage reservation" link inside drawer to grab full phone number
-        const manageHref = await page.evaluate(() => {
-          const a = Array.from(document.querySelectorAll('a')).find((el) =>
-            /manage reservation|view details|reservation details/i.test(el.innerText || '') ||
-            (el.getAttribute('href') || '').includes('/hosting/reservations/details/')
-          );
-          return a?.getAttribute('href') || '';
-        });
-        if (manageHref) {
-          const m = manageHref.match(/details\/([A-Z0-9]+)/i);
-          const code = m ? m[1].toUpperCase() : parsed.confirmationCode || `RES_${i}`;
-          const fullUrl = manageHref.startsWith('http') ? manageHref : `${origin}${manageHref}`;
-          detailUrlsToVisit.set(code, fullUrl);
-        }
-
-        await page.keyboard.press('Escape').catch(() => {});
-        await page.waitForTimeout(500);
-      } catch { /* ignore */ }
-    }
-  }
-
-  // =========================================================================
-  // FLOW 2: Calendar -> Click on each user profile / booking bar -> Extract details + Manage reservation
-  // =========================================================================
-  console.log(`\n3. Opening Calendar (${origin}/hosting/calendar) to scan booked guest bars...`);
+  console.log(`\n2. Opening Calendar (${origin}/hosting/calendar)...`);
   await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(4000);
 
