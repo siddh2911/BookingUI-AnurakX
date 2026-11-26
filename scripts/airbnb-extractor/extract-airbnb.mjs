@@ -59,9 +59,7 @@ function parseReservationPanelText(rawText, fallbackCode = '') {
 
   const findAfterLabel = (labelRegex) => {
     for (let i = 0; i < lines.length; i++) {
-      const m = lines[i].match(labelRegex);
-      if (m) {
-        // Value on same line after label, or on next line
+      if (labelRegex.test(lines[i])) {
         const rest = lines[i].replace(labelRegex, '').replace(/^[:\s-]+/, '').trim();
         if (rest) return rest;
         if (i + 1 < lines.length) return lines[i + 1];
@@ -76,74 +74,103 @@ function parseReservationPanelText(rawText, fallbackCode = '') {
     text.match(/\b(HM[A-Z0-9]{8})\b/);
   const confirmationCode = (codeMatch ? codeMatch[1] : fallbackCode || '').toUpperCase();
 
+  // Reference year from "Booking date" (e.g. "Wednesday, 25 November 2026") if present
+  const bookingDateRaw = findAfterLabel(/^Booking\s+date$/i);
+  const yearMatch = bookingDateRaw.match(/\b(20\d{2})\b/);
+  const refYear = yearMatch ? Number(yearMatch[1]) : new Date().getFullYear();
+
+  const parseWithRefYear = (raw) => {
+    if (!raw) return '';
+    if (/\b20\d{2}\b/.test(raw) || /^\d{4}-\d{2}-\d{2}/.test(raw)) return parseFlexibleDate(raw);
+    return parseFlexibleDate(`${raw} ${refYear}`);
+  };
+
   // Check-in & Check-out
   const checkInRaw = findAfterLabel(/^Check-?in$/i) || findAfterLabel(/^Check-?in\b/i);
   const checkOutRaw = findAfterLabel(/^Check-?out$/i) || findAfterLabel(/^Check-?out\b/i);
-  let checkInDate = parseFlexibleDate(checkInRaw);
-  let checkOutDate = parseFlexibleDate(checkOutRaw);
+  let checkInDate = parseWithRefYear(checkInRaw);
+  let checkOutDate = parseWithRefYear(checkOutRaw);
 
-  // Fallback: look for "26 Nov – 28 Nov" or "Nov 26 – 28"
   if (!checkInDate || !checkOutDate) {
     const rangeMatch = text.match(
       /(\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?|[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?)\s*[–—-]\s*(\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?|[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?|\d{1,2})/
     );
     if (rangeMatch) {
-      if (!checkInDate) checkInDate = parseFlexibleDate(rangeMatch[1]);
+      if (!checkInDate) checkInDate = parseWithRefYear(rangeMatch[1]);
       if (!checkOutDate) {
-        let endStr = rangeMatch[2];
+        const endStr = rangeMatch[2];
         if (/^\d{1,2}$/.test(endStr) && checkInDate) {
-          // Same month, e.g. "Nov 26 – 28"
           const [y, m] = checkInDate.split('-');
           checkOutDate = `${y}-${m}-${endStr.padStart(2, '0')}`;
         } else {
-          checkOutDate = parseFlexibleDate(endStr);
+          checkOutDate = parseWithRefYear(endStr);
         }
       }
     }
   }
 
-  // Who's coming
-  const whosComing =
-    findAfterLabel(/^Who['’]s\s+coming$/i) ||
-    findAfterLabel(/^Guests$/i) ||
-    (text.match(/\b\d+\s+(?:adult|guest)s?(?:,\s*\d+\s+(?:child|children|infant|pet)s?)?/i)?.[0] || '');
+  // Guest Name: Airbnb puts the full guest name directly after "Who's coming"
+  let guestName = findAfterLabel(/^Who['’]s\s+coming$/i);
+  if (!guestName || /^\+?\d|adult|guest/i.test(guestName)) {
+    // Fallback: look for "<Name>'s group of N"
+    const groupLine = lines.find((l) => /['’]s\s+group\s+of\s+\d+/i.test(l));
+    if (groupLine) {
+      guestName = groupLine.replace(/['’]s\s+group\s+of\s+\d+.*$/i, '').trim();
+    }
+  }
+  if (!guestName) {
+    guestName = confirmationCode ? `Airbnb Guest (${confirmationCode})` : 'Airbnb Guest';
+  }
 
-  // Earnings / You earn
-  let earningsRaw =
+  // Who's coming (guest count, e.g. "3 adults" or "group of 4")
+  const whosComing =
+    lines.find((l) => /^\d+\s+(?:adult|guest)s?(?:,\s*\d+\s+(?:child|children|infant|pet)s?)?$/i.test(l)) ||
+    lines.find((l) => /group\s+of\s+\d+/i.test(l)) ||
+    '';
+
+  // Earnings: check "You earn", OR the currency line right below "Cancellation policy" / right above "Total for N night(s)"
+  let totalAmount = 0;
+  const earnLabelVal =
     findAfterLabel(/^You\s+earn$/i) ||
     findAfterLabel(/^Your\s+earnings$/i) ||
-    findAfterLabel(/^Total\s*\([A-Z]{3}\)$/i) ||
     findAfterLabel(/^Payout$/i);
-  if (!earningsRaw || !/\d/.test(earningsRaw)) {
-    const earnInline = text.match(/(?:You\s+earn|Your\s+earnings|Total\s*\(INR\)|Payout)[^\n₹$]*([₹$]\s*[\d,]+(?:\.\d{1,2})?)/i);
-    if (earnInline) earningsRaw = earnInline[1];
+  if (earnLabelVal && /\d/.test(earnLabelVal)) {
+    totalAmount = Number(String(earnLabelVal).replace(/[^0-9.]/g, '')) || 0;
   }
-  const totalAmount = Number(String(earningsRaw || '0').replace(/[^0-9.]/g, '')) || 0;
+  if (totalAmount === 0) {
+    // Look for currency line right before "Total for X night"
+    for (let i = 1; i < lines.length; i++) {
+      if (/^Total\s+for\s+\d+\s+night/i.test(lines[i]) && /[₹$€£]\s*[\d,]+/.test(lines[i - 1])) {
+        totalAmount = Number(lines[i - 1].replace(/[^0-9.]/g, '')) || 0;
+        break;
+      }
+    }
+  }
+  if (totalAmount === 0) {
+    // Look for first currency line after "Cancellation policy"
+    const cancelIdx = lines.findIndex((l) => /^Cancellation\s+policy$/i.test(l));
+    if (cancelIdx >= 0) {
+      for (let i = cancelIdx + 1; i < Math.min(lines.length, cancelIdx + 6); i++) {
+        if (/[₹$€£]\s*[\d,]+/.test(lines[i])) {
+          totalAmount = Number(lines[i].replace(/[^0-9.]/g, '')) || 0;
+          break;
+        }
+      }
+    }
+  }
 
-  // Phone number (from Manage reservation / Call section)
+  // Phone number (full phone from Manage reservation, or fallback to Suggested door code last-4 digits)
   let phone = '';
   const phoneMatch =
     text.match(/(?:Phone|Mobile|Call)[^\n+]*(\+\d[\d\s\-()]{7,18})/i) ||
     text.match(/(\+\d{1,3}[\s-]?\d{3,5}[\s-]?\d{3,6}[\s-]?\d{0,4})/);
   if (phoneMatch) {
     phone = phoneMatch[1].replace(/\s+/g, ' ').trim();
-  }
-
-  // Guest name (prefer explicit heading passed in, or first non-date/non-status line)
-  const skipWords = /^(Today|Upcoming|Confirmed|Checked in|Checking in|Checking out|Arriving|Currently hosting|Past guest|Reservation|Details|Manage reservation|Message|Call|Help|Airbnb|Close|Back|All reservations|Booking details|Payout|Earnings)$/i;
-  const dateLike = /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+\d{1,2}\s+[A-Za-z]{3,9}|^\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?$|^[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?$/i;
-  let guestName = '';
-  for (const line of lines.slice(0, 16)) {
-    if (skipWords.test(line)) continue;
-    if (dateLike.test(line)) continue;
-    if (/^\d|\bCheck-?in\b|\bCheck-?out\b|\bnight|\bguest|\badult|₹|\$|HM[A-Z0-9]{8}/i.test(line)) continue;
-    if (line.length >= 2 && line.length <= 48) {
-      guestName = line;
-      break;
+  } else {
+    const doorCode = findAfterLabel(/^Suggested\s+door\s+code$/i);
+    if (/^\d{4}$/.test(doorCode)) {
+      phone = `****${doorCode}`;
     }
-  }
-  if (!guestName) {
-    guestName = confirmationCode ? `Airbnb Guest (${confirmationCode})` : 'Airbnb Guest';
   }
 
   const noteParts = [];
@@ -279,9 +306,27 @@ async function main() {
   for (let step = 0; step < scrollSteps.length; step++) {
     const deltaY = scrollSteps[step];
     if (deltaY !== 0) {
-      await page.mouse.move(760, 460);
-      await page.mouse.wheel(0, deltaY);
-      await page.waitForTimeout(1600);
+      // Scroll the ACTUAL scrollable calendar grid container (not just window) so June & other months load!
+      await page.evaluate((dy) => {
+        const scrollables = Array.from(document.querySelectorAll('div, main, section'))
+          .filter((el) => {
+            const style = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return (
+              (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+              el.scrollHeight > el.clientHeight + 100 &&
+              rect.width > 420 &&
+              rect.height > 300
+            );
+          })
+          .sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight);
+        if (scrollables[0]) {
+          scrollables[0].scrollTop += dy;
+        } else {
+          window.scrollBy(0, dy);
+        }
+      }, deltaY);
+      await page.waitForTimeout(1800);
     }
 
     const calendarBookingHandles = await page
@@ -350,9 +395,6 @@ async function main() {
             savedSamplePanel = true;
           }
           const parsed = parseReservationPanelText(panelData.text);
-          if (panelData.headingName && (!parsed.guestName || parsed.guestName.startsWith('Airbnb Guest'))) {
-            parsed.guestName = panelData.headingName;
-          }
           if (parsed.checkInDate && parsed.checkOutDate) {
             addReservation(parsed);
             console.log(
@@ -366,6 +408,11 @@ async function main() {
               ? panelData.manageHref
               : `${origin}${panelData.manageHref}`;
             detailUrlsToVisit.set(code, fullUrl);
+          } else if (parsed.confirmationCode && !detailUrlsToVisit.has(parsed.confirmationCode)) {
+            detailUrlsToVisit.set(
+              parsed.confirmationCode,
+              `${origin}/hosting/reservations/details/${parsed.confirmationCode}`
+            );
           }
         }
       } catch {
