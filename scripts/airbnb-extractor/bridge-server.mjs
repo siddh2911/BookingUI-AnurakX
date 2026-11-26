@@ -13,7 +13,11 @@ const config = JSON.parse(
 );
 
 const PORT = Number(process.env.AIRBNB_BRIDGE_PORT || 4321);
-const profileDir = path.join(os.homedir(), '.karuna-airbnb-profile');
+const isLinuxServer = process.platform === 'linux';
+const useHeadless = process.env.HEADLESS === 'true' || (isLinuxServer && !process.env.DISPLAY);
+const profileDir =
+  process.env.AIRBNB_PROFILE_DIR ||
+  (isLinuxServer ? '/opt/myapp/airbnb-profile' : path.join(os.homedir(), '.karuna-airbnb-profile'));
 
 const ALLOWED_ORIGINS = new Set([
   'https://admin.karunavillas.com',
@@ -30,7 +34,7 @@ const SHORT_MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'
 
 // Active job state
 const job = {
-  status: 'idle', // idle | waiting_login | scanning | done | error
+  status: 'idle', // idle | needs_phone | needs_otp | waiting_login | scanning | done | error
   fromDate: '',
   toDate: '',
   currentMonth: '',
@@ -42,6 +46,8 @@ const job = {
 
 let activeContext = null;
 let loginContinueResolver = null;
+let phoneResolver = null;
+let otpResolver = null;
 let cancelRequested = false;
 
 function addLog(msg) {
@@ -414,41 +420,164 @@ async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures, t
   return newlyFound;
 }
 
+async function hasCaptchaChallenge(page) {
+  return page.evaluate(() => {
+    const text = (document.body?.innerText || '').toLowerCase();
+    const hasChallengeFrame = Boolean(
+      document.querySelector('iframe[src*="arkose"], iframe[src*="captcha"], iframe[src*="recaptcha"], iframe[src*="funcaptcha"]')
+    );
+    return (
+      hasChallengeFrame ||
+      text.includes('verify you are human') ||
+      text.includes('security check') ||
+      text.includes('solve this puzzle')
+    );
+  }).catch(() => false);
+}
+
 async function runExtractionJob(fromDate, toDate) {
   cancelRequested = false;
-  job.status = 'waiting_login';
+  job.status = 'scanning';
   job.fromDate = fromDate;
   job.toDate = toDate;
   job.currentMonth = '';
-  job.progressText = 'Opening Chrome at Airbnb Calendar — sign in with Phone + OTP if prompted, then click "Start Scanning" in Admin.';
+  job.progressText = 'Launching browser and checking Airbnb session...';
   job.logs = [];
   job.reservations = [];
   job.error = '';
 
   try {
-    addLog(`Launching Chrome for range ${fromDate} → ${toDate}...`);
-    activeContext = await chromium.launchPersistentContext(profileDir, {
-      channel: 'chrome',
-      headless: false,
+    addLog(`Launching ${useHeadless ? 'headless Chromium (server)' : 'Chrome (local)'} for ${fromDate} → ${toDate}...`);
+    const launchOpts = {
+      headless: useHeadless,
       viewport: { width: 1360, height: 860 },
-    });
+      args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    };
+    if (!isLinuxServer) {
+      launchOpts.channel = 'chrome';
+    }
+    activeContext = await chromium.launchPersistentContext(profileDir, launchOpts);
 
     const page = activeContext.pages()[0] || (await activeContext.newPage());
     await page.goto(`${config.airbnbBaseUrl}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
-    addLog('Chrome opened. Waiting for you to confirm login in Admin UI...');
+    await page.waitForTimeout(3500);
 
-    // Wait until the Admin UI calls POST /continue (or POST /stop)
-    await new Promise((resolve) => {
-      loginContinueResolver = resolve;
-    });
-    loginContinueResolver = null;
+    const needsLogin =
+      page.url().includes('/login') ||
+      page.url().includes('/authenticate') ||
+      (await page.locator('input[type="tel"], input[name*="phone"]').first().isVisible({ timeout: 1500 }).catch(() => false));
 
-    if (cancelRequested) {
-      job.status = 'idle';
-      job.progressText = 'Cancelled.';
-      await activeContext.close().catch(() => {});
-      activeContext = null;
-      return;
+    if (needsLogin) {
+      if (useHeadless) {
+        // Server headless mode: drive Phone + OTP via Admin UI inputs
+        if (!page.url().includes('/login')) {
+          await page.goto(`${config.airbnbBaseUrl}/login`, { waitUntil: 'domcontentloaded' });
+          await page.waitForTimeout(2500);
+        }
+
+        if (await hasCaptchaChallenge(page)) {
+          throw new Error('Airbnb requested a CAPTCHA / security challenge on the server IP. Please use Airbnb CSV Upload or iCal Sync instead.');
+        }
+
+        job.status = 'needs_phone';
+        job.progressText = 'Airbnb session needs login — enter your Phone Number in Admin UI to receive SMS OTP.';
+        addLog('Waiting for Phone Number from Admin UI...');
+
+        const phoneNumber = await new Promise((resolve) => {
+          phoneResolver = resolve;
+        });
+        phoneResolver = null;
+        if (cancelRequested || !phoneNumber) {
+          job.status = 'idle';
+          job.progressText = 'Cancelled.';
+          return;
+        }
+
+        addLog('Entering phone number and requesting Airbnb SMS OTP...');
+        const phoneInput = page
+          .locator('input[name="phoneInputphoneNumber"], input[data-testid="login-signup-phonenumber"], input[type="tel"]')
+          .first();
+        await phoneInput.waitFor({ state: 'visible', timeout: 10000 });
+        await phoneInput.fill(String(phoneNumber).replace(/\D/g, '').slice(-10));
+        await page.waitForTimeout(500);
+
+        const continueBtn = page
+          .locator('button[data-testid="signup-login-submit-btn"], button[type="submit"]:has-text("Continue"), button:has-text("Continue")')
+          .first();
+        await continueBtn.click();
+        await page.waitForTimeout(4000);
+
+        if (await hasCaptchaChallenge(page)) {
+          throw new Error('Airbnb requested a CAPTCHA / security puzzle after phone submission on the server IP. Please use Airbnb CSV Upload or iCal Sync instead.');
+        }
+
+        job.status = 'needs_otp';
+        job.progressText = 'SMS OTP sent by Airbnb — enter the 6-digit OTP in Admin UI.';
+        addLog('Waiting for 6-digit SMS OTP from Admin UI...');
+
+        const otpCode = await new Promise((resolve) => {
+          otpResolver = resolve;
+        });
+        otpResolver = null;
+        if (cancelRequested || !otpCode) {
+          job.status = 'idle';
+          job.progressText = 'Cancelled.';
+          return;
+        }
+
+        addLog('Submitting SMS OTP to Airbnb...');
+        const digits = String(otpCode).replace(/\D/g, '');
+        const otpSingle = page.locator('input[autocomplete="one-time-code"], input[name*="code"], input[data-testid*="otp"]').first();
+        if (await otpSingle.isVisible({ timeout: 4000 }).catch(() => false)) {
+          await otpSingle.click();
+          await page.keyboard.type(digits, { delay: 120 });
+        } else {
+          const otpBoxes = page.locator('input[inputmode="numeric"], input[maxlength="1"]');
+          const count = await otpBoxes.count();
+          if (count >= 4) {
+            for (let i = 0; i < Math.min(digits.length, count); i++) {
+              await otpBoxes.nth(i).fill(digits[i]);
+            }
+          } else {
+            await page.keyboard.type(digits, { delay: 120 });
+          }
+        }
+
+        await page.waitForTimeout(1200);
+        const verifyBtn = page.locator('button[type="submit"]:has-text("Continue"), button:has-text("Verify"), button:has-text("Submit")').first();
+        if (await verifyBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await verifyBtn.click().catch(() => {});
+        }
+        await page.waitForTimeout(5000);
+
+        if (await hasCaptchaChallenge(page)) {
+          throw new Error('Airbnb requested an extra security challenge after OTP on the server IP. Please use Airbnb CSV Upload or iCal Sync instead.');
+        }
+
+        await page.goto(`${config.airbnbBaseUrl}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(3500);
+        if (page.url().includes('/login')) {
+          throw new Error('Airbnb login did not complete (invalid/expired OTP or extra verification required).');
+        }
+        addLog('✅ Logged in to Airbnb Hosting and saved session profile!');
+      } else {
+        // Local visible Chrome mode: let user log in directly in Chrome window
+        job.status = 'waiting_login';
+        job.progressText = 'Sign in to Airbnb with Phone + OTP in Chrome, then click "I\'m Logged In — Scan".';
+        addLog('Chrome opened. Waiting for you to confirm login in Admin UI...');
+
+        await new Promise((resolve) => {
+          loginContinueResolver = resolve;
+        });
+        loginContinueResolver = null;
+        if (cancelRequested) {
+          job.status = 'idle';
+          job.progressText = 'Cancelled.';
+          return;
+        }
+      }
+    } else {
+      addLog('✅ Existing Airbnb session is already logged in — starting calendar scan automatically!');
     }
 
     job.status = 'scanning';
@@ -569,7 +698,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && urlPath === '/start') {
-    if (job.status === 'waiting_login' || job.status === 'scanning') {
+    if (job.status === 'waiting_login' || job.status === 'needs_phone' || job.status === 'needs_otp' || job.status === 'scanning') {
       return sendJson(res, 409, { error: 'An extraction is already running.' });
     }
     const body = await readJsonBody(req);
@@ -580,6 +709,28 @@ const server = http.createServer(async (req, res) => {
 
     runExtractionJob(fromDate, toDate);
     return sendJson(res, 200, { started: true, fromDate, toDate });
+  }
+
+  if (req.method === 'POST' && urlPath === '/submit-phone') {
+    const body = await readJsonBody(req);
+    const phoneNumber = String(body.phoneNumber || '').trim();
+    if (!phoneNumber) return sendJson(res, 400, { error: 'Phone number is required.' });
+    if (phoneResolver) {
+      phoneResolver(phoneNumber);
+      return sendJson(res, 200, { ok: true });
+    }
+    return sendJson(res, 400, { error: 'Not currently waiting for phone number.' });
+  }
+
+  if (req.method === 'POST' && urlPath === '/submit-otp') {
+    const body = await readJsonBody(req);
+    const otp = String(body.otp || '').trim();
+    if (!otp) return sendJson(res, 400, { error: 'OTP is required.' });
+    if (otpResolver) {
+      otpResolver(otp);
+      return sendJson(res, 200, { ok: true });
+    }
+    return sendJson(res, 400, { error: 'Not currently waiting for OTP.' });
   }
 
   if (req.method === 'POST' && urlPath === '/continue') {
@@ -593,6 +744,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && urlPath === '/stop') {
     cancelRequested = true;
     if (loginContinueResolver) loginContinueResolver();
+    if (phoneResolver) phoneResolver('');
+    if (otpResolver) otpResolver('');
     if (activeContext) {
       await activeContext.close().catch(() => {});
       activeContext = null;
@@ -605,7 +758,6 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { error: 'Not found' });
 });
 
-server.listen(PORT, () => {
-  console.log(`\n✅ Karuna Villa Airbnb Extractor Bridge running on http://localhost:${PORT}`);
-  console.log('   Open Admin → Channel Manager and click "Fetch from Airbnb" anytime.\n');
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`\n✅ Karuna Villa Airbnb Extractor Bridge running on http://127.0.0.1:${PORT} (headless=${useHeadless}, profile=${profileDir})`);
 });

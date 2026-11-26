@@ -29,7 +29,7 @@ import {
     Terminal,
 } from 'lucide-react';
 
-const AIRBNB_BRIDGE_URL = 'http://localhost:4321';
+const AIRBNB_BRIDGE_URL = `${API_BASE_URL}/api/airbnb-bridge`;
 
 interface ChannelManagerPageProps {
     rooms: Room[];
@@ -71,11 +71,12 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [bridgeOnline, setBridgeOnline] = useState<boolean>(false);
     const [extractFromDate, setExtractFromDate] = useState<string>(todayIso);
     const [extractToDate, setExtractToDate] = useState<string>(plus90Iso);
-    const [bridgeStatus, setBridgeStatus] = useState<'idle' | 'waiting_login' | 'scanning' | 'done' | 'error'>('idle');
+    const [bridgeStatus, setBridgeStatus] = useState<'idle' | 'needs_phone' | 'needs_otp' | 'waiting_login' | 'scanning' | 'done' | 'error'>('idle');
     const [bridgeProgress, setBridgeProgress] = useState<string>('');
     const [bridgeLogs, setBridgeLogs] = useState<string[]>([]);
     const [bridgeError, setBridgeError] = useState<string>('');
-    const [copiedBridgeCmd, setCopiedBridgeCmd] = useState<boolean>(false);
+    const [airbnbPhone, setAirbnbPhone] = useState<string>('');
+    const [airbnbOtp, setAirbnbOtp] = useState<string>('');
     const handledDoneRef = useRef<boolean>(false);
 
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -88,10 +89,13 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
 
     const checkBridgeHealth = async () => {
         try {
-            const res = await fetch(`${AIRBNB_BRIDGE_URL}/health`);
+            const res = await fetch(`${AIRBNB_BRIDGE_URL}/health`, { credentials: 'include' });
             if (res.ok) {
-                setBridgeOnline(true);
-                return true;
+                const data = await res.json().catch(() => ({}));
+                if (data.ok) {
+                    setBridgeOnline(true);
+                    return true;
+                }
             }
         } catch { /* offline */ }
         setBridgeOnline(false);
@@ -102,12 +106,12 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         checkBridgeHealth();
     }, []);
 
-    // Poll local bridge while waiting for login or scanning
+    // Poll server bridge while waiting for phone, OTP, login, or scanning
     useEffect(() => {
-        if (bridgeStatus !== 'waiting_login' && bridgeStatus !== 'scanning') return;
+        if (bridgeStatus !== 'waiting_login' && bridgeStatus !== 'needs_phone' && bridgeStatus !== 'needs_otp' && bridgeStatus !== 'scanning') return;
         const id = window.setInterval(async () => {
             try {
-                const res = await fetch(`${AIRBNB_BRIDGE_URL}/status`);
+                const res = await fetch(`${AIRBNB_BRIDGE_URL}/status`, { credentials: 'include' });
                 if (!res.ok) return;
                 const data = await res.json();
                 setBridgeStatus(data.status || 'idle');
@@ -123,7 +127,6 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                         setUploadedReservations(extracted);
                         setUploadedIcsContent('');
                         setUploadedIcsName(`Airbnb Extractor (${extracted.length} bookings)`);
-                        // Automatically run conflict preview so Override Confirmation opens right away!
                         setSyncStatus('checking');
                         setErrorMessage('');
                         try {
@@ -162,38 +165,79 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         setBridgeError('');
         const ok = await checkBridgeHealth();
         if (!ok) {
-            setBridgeError('Local Airbnb Bridge is not running. Start it with the command shown below, then try again.');
+            setBridgeError('Server Airbnb extractor service is offline. Make sure airbnb-bridge is running on srv1225912.');
             return;
         }
         handledDoneRef.current = false;
+        setAirbnbOtp('');
         try {
             const res = await fetch(`${AIRBNB_BRIDGE_URL}/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ fromDate: extractFromDate, toDate: extractToDate }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Could not start extractor');
-            setBridgeStatus('waiting_login');
-            setBridgeProgress('Chrome opened — log in to Airbnb with Phone + OTP if prompted, then click "Start Scanning".');
+            setBridgeStatus('scanning');
+            setBridgeProgress('Checking Airbnb session on server...');
             setBridgeLogs([]);
         } catch (err: any) {
             setBridgeError(err?.message || 'Failed to start Airbnb extractor.');
         }
     };
 
+    const handleSubmitAirbnbPhone = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!airbnbPhone.trim()) return;
+        setBridgeError('');
+        try {
+            const res = await fetch(`${AIRBNB_BRIDGE_URL}/submit-phone`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ phoneNumber: airbnbPhone.trim() }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Failed to submit phone number');
+            setBridgeProgress('Sending phone number to Airbnb — waiting for SMS OTP...');
+        } catch (err: any) {
+            setBridgeError(err?.message || 'Failed to submit phone number.');
+        }
+    };
+
+    const handleSubmitAirbnbOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!airbnbOtp.trim()) return;
+        setBridgeError('');
+        try {
+            const res = await fetch(`${AIRBNB_BRIDGE_URL}/submit-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ otp: airbnbOtp.trim() }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Failed to submit OTP');
+            setAirbnbOtp('');
+            setBridgeProgress('Verifying OTP with Airbnb...');
+        } catch (err: any) {
+            setBridgeError(err?.message || 'Failed to submit OTP.');
+        }
+    };
+
     const handleContinueAirbnbScan = async () => {
         try {
-            await fetch(`${AIRBNB_BRIDGE_URL}/continue`, { method: 'POST' });
+            await fetch(`${AIRBNB_BRIDGE_URL}/continue`, { method: 'POST', credentials: 'include' });
             setBridgeStatus('scanning');
         } catch {
-            setBridgeError('Lost connection to local bridge.');
+            setBridgeError('Lost connection to extractor service.');
         }
     };
 
     const handleStopAirbnbExtractor = async () => {
         try {
-            await fetch(`${AIRBNB_BRIDGE_URL}/stop`, { method: 'POST' });
+            await fetch(`${AIRBNB_BRIDGE_URL}/stop`, { method: 'POST', credentials: 'include' });
         } catch { /* ignore */ }
         setBridgeStatus('idle');
         setBridgeProgress('');
@@ -680,10 +724,10 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                     <div>
                         <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#FF5A5F]" />
-                            Airbnb Live Calendar Extractor (Full Guest Names &amp; Earnings)
+                            Airbnb Live Calendar Extractor (Works on Mobile &amp; Desktop)
                         </h2>
                         <p className="text-xs text-slate-500 mt-0.5">
-                            Opens Chrome on your computer so you can sign in with Phone + OTP, extracts bookings across your custom dates, and checks for date overrides automatically.
+                            Runs on your server — if your Airbnb session is saved it extracts automatically; if login is needed, enter Phone &amp; SMS OTP right here.
                         </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -695,13 +739,13 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                             }`}
                         >
                             <span className={`w-2 h-2 rounded-full ${bridgeOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-                            {bridgeOnline ? 'Local Bridge Connected' : 'Local Bridge Offline'}
+                            {bridgeOnline ? 'Extractor Service Ready' : 'Extractor Service Offline'}
                         </span>
                         <button
                             type="button"
                             onClick={checkBridgeHealth}
                             className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
-                            title="Re-check local bridge"
+                            title="Re-check server extractor service"
                         >
                             <RefreshCw size={14} />
                         </button>
@@ -709,31 +753,76 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                 </div>
 
                 {!bridgeOnline && (
-                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                        <div className="space-y-1">
-                            <div className="font-semibold text-slate-700 flex items-center gap-1.5">
-                                <Terminal size={14} className="text-slate-500" />
-                                Start the local extractor bridge once on your Mac, then click Fetch:
-                            </div>
-                            <code className="block font-mono text-[11px] text-slate-600 bg-white px-2.5 py-1.5 rounded border border-slate-200 break-all">
-                                cd "/Users/siddhantsingh/Documents/BookingUI-AnurakX/scripts/airbnb-extractor" &amp;&amp; npm run bridge
-                            </code>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                navigator.clipboard?.writeText(
-                                    'cd "/Users/siddhantsingh/Documents/BookingUI-AnurakX/scripts/airbnb-extractor" && npm run bridge'
-                                );
-                                setCopiedBridgeCmd(true);
-                                setTimeout(() => setCopiedBridgeCmd(false), 2000);
-                            }}
-                            className="px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold inline-flex items-center gap-1.5 shrink-0"
-                        >
-                            {copiedBridgeCmd ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                            {copiedBridgeCmd ? 'Copied' : 'Copy Command'}
-                        </button>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center gap-2">
+                        <Terminal size={14} className="text-slate-500 shrink-0" />
+                        <span>Server extractor service is offline. Start <code>airbnb-bridge</code> on <code>srv1225912</code> (port 4321) to enable one-click mobile &amp; desktop extraction.</span>
                     </div>
+                )}
+
+                {/* In-UI Phone Number Prompt (when server Airbnb session needs login) */}
+                {bridgeStatus === 'needs_phone' && (
+                    <form onSubmit={handleSubmitAirbnbPhone} className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+                        <div className="text-xs font-bold text-amber-900">
+                            Step 1: Enter your Airbnb Host Phone Number (India +91) to receive SMS OTP
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                                type="tel"
+                                value={airbnbPhone}
+                                onChange={(e) => setAirbnbPhone(e.target.value)}
+                                placeholder="e.g. 9818570858"
+                                className="flex-1 p-2.5 rounded-lg border border-amber-300 bg-white text-sm font-semibold"
+                                required
+                            />
+                            <button
+                                type="submit"
+                                className="px-4 py-2.5 rounded-lg bg-[#FF5A5F] hover:bg-[#e0484d] text-white text-xs font-bold"
+                            >
+                                Send SMS OTP
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleStopAirbnbExtractor}
+                                className="px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                {/* In-UI 6-Digit SMS OTP Prompt */}
+                {bridgeStatus === 'needs_otp' && (
+                    <form onSubmit={handleSubmitAirbnbOtp} className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3">
+                        <div className="text-xs font-bold text-emerald-900">
+                            Step 2: Enter the 6-digit SMS OTP sent by Airbnb
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={airbnbOtp}
+                                onChange={(e) => setAirbnbOtp(e.target.value.replace(/\D/g, ''))}
+                                placeholder="6-digit OTP"
+                                className="flex-1 p-2.5 rounded-lg border border-emerald-300 bg-white text-sm font-mono tracking-widest font-bold"
+                                required
+                            />
+                            <button
+                                type="submit"
+                                className="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+                            >
+                                Verify OTP &amp; Scan
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleStopAirbnbExtractor}
+                                className="px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
