@@ -49,7 +49,7 @@ function parseFlexibleDate(raw) {
   return '';
 }
 
-function parseReservationPanelText(rawText) {
+function parseReservationPanelText(rawText, fallbackPillName = '') {
   const text = String(rawText || '').replace(/\r/g, '');
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 
@@ -84,11 +84,21 @@ function parseReservationPanelText(rawText) {
   const checkInDate = parseWithRefYear(checkInRaw);
   const checkOutDate = parseWithRefYear(checkOutRaw);
 
-  // Full guest name is directly after "Who's coming"
+  // Full guest name is directly after "Who's coming" (upcoming) or from top of panel / calendar pill (past stays)
   let guestName = findAfterLabel(/^Who['’]s\s+coming$/i);
   if (!guestName || /^\+?\d|adult|guest/i.test(guestName)) {
     const groupLine = lines.find((l) => /['’]s\s+group\s+of\s+\d+/i.test(l));
     if (groupLine) guestName = groupLine.replace(/['’]s\s+group\s+of\s+\d+.*$/i, '').trim();
+  }
+  if (!guestName) {
+    const cleanPill = String(fallbackPillName || '')
+      .replace(/\b\d+\s*(?:adult|guest|night)s?\b/gi, '')
+      .replace(/[₹$€£][\d,.]+/g, '')
+      .replace(/^\+\d+\s*/, '')
+      .trim();
+    if (cleanPill && cleanPill.length >= 2 && cleanPill.length <= 40 && !/^\d+$/.test(cleanPill)) {
+      guestName = cleanPill;
+    }
   }
   if (!guestName) {
     guestName = confirmationCode ? `Airbnb Guest (${confirmationCode})` : 'Airbnb Guest';
@@ -408,9 +418,9 @@ async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
   for (const el of handles) {
     try {
       const box = await el.boundingBox();
-      // Only click booking pills inside the calendar grid (x: 40..900, y >= 160);
-      // NEVER click top navbar (y < 160) or anything inside the right-side guest panel (x > 900).
-      if (!box || box.width < 20 || box.y < 160 || box.x < 40 || box.x > 900) continue;
+      // Only click booking pills inside the calendar grid (x: 40..900, y >= 115);
+      // NEVER click top navbar (y < 115) or anything inside the right-side guest panel (x > 900).
+      if (!box || box.width < 20 || box.y < 115 || box.x < 40 || box.x > 900) continue;
 
       const isInsideGuestPanel = await el.evaluate((node) => {
         if (node.closest('aside, [role="dialog"], [role="complementary"]')) return true;
@@ -453,7 +463,8 @@ async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
       });
 
       if (!panelText) continue;
-      const parsed = parseReservationPanelText(panelText);
+      const pillLabel = sig.split('|')[0] || '';
+      const parsed = parseReservationPanelText(panelText, pillLabel);
       if (!parsed.checkInDate || !parsed.checkOutDate) continue;
 
       const key = parsed.confirmationCode || `${parsed.checkInDate}_${parsed.checkOutDate}_${parsed.guestName}`;
