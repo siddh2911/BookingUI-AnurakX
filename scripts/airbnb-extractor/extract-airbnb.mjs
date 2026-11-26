@@ -336,7 +336,7 @@ async function navigateCalendarToMonth(page, year, month) {
         }
 
         if (clickedOption) {
-          await page.waitForTimeout(1600);
+          await page.waitForTimeout(2600);
           currentLabel = await getVisibleCalendarMonthLabel(page);
           if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
         } else {
@@ -356,35 +356,34 @@ async function navigateCalendarToMonth(page, year, month) {
       return t.toLowerCase() === full.toLowerCase() || t.toLowerCase() === `${shortName} ${y}`.toLowerCase();
     });
     if (nodes[0]) {
-      nodes[0].scrollIntoView({ behavior: 'instant', block: 'start' });
+      nodes[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
       return true;
     }
     return false;
   }, { full: targetFull, shortName: targetShort, y: year }).catch(() => false);
 
   if (jumped) {
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(2000);
     currentLabel = await getVisibleCalendarMonthLabel(page);
     if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
   }
 
-  // 2) Scroll the calendar container UP (for earlier months) or DOWN (for later months) until target appears
+  // 3) Slowly scroll the calendar container UP (for earlier months) or DOWN (for later months) until target appears
   const curParsed = parseMonthYearFromLabel(currentLabel, new Date().getFullYear()) || {
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
   };
   const diffMonths = (year - curParsed.year) * 12 + (month - curParsed.month);
-  const stepDelta = diffMonths < 0 ? -750 : 750;
+  const stepDelta = diffMonths < 0 ? -550 : 550;
 
   let stuckCount = 0;
   for (let attempt = 0; attempt < 10; attempt++) {
     const res = await scrollCalendarContainer(page, stepDelta);
-    // Also send a real wheel event over the calendar grid in case Airbnb uses virtualized wheel scrolling
     if (!res.moved) {
-      await page.mouse.move(820, 420);
+      await page.mouse.move(700, 420);
       await page.mouse.wheel(0, stepDelta);
     }
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1500);
     currentLabel = await getVisibleCalendarMonthLabel(page);
     if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
     if (!res.moved) {
@@ -433,7 +432,7 @@ async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
       clickedSignatures.add(sig);
 
       await el.click({ timeout: 2000 }).catch(() => {});
-      await page.waitForTimeout(1200);
+      await page.waitForTimeout(2200);
 
       // Read ONLY the left reservation panel (must contain Check-in + Checkout + Cancellation policy / Confirmation code)
       const panelText = await page.evaluate(() => {
@@ -523,6 +522,7 @@ async function main() {
 
     const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures);
     console.log(`   → Found ${found} new booking(s) in ${visibleMonth} (Total: ${reservationsByKey.size}).`);
+    await page.waitForTimeout(1500);
   }
 
   const reservations = Array.from(reservationsByKey.values())
