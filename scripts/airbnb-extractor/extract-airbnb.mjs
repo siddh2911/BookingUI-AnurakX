@@ -324,11 +324,13 @@ async function navigateCalendarToMonth(page, year, month) {
         let clickedOption = false;
         for (const sel of optionSelectors) {
           const opt = page.locator(sel).first();
-          if (await opt.isVisible({ timeout: 300 }).catch(() => false)) {
+          if ((await opt.count().catch(() => 0)) > 0) {
             await opt.scrollIntoViewIfNeeded().catch(() => {});
-            await opt.click({ timeout: 1500 }).catch(() => {});
-            clickedOption = true;
-            break;
+            if (await opt.isVisible({ timeout: 400 }).catch(() => false)) {
+              await opt.click({ timeout: 1500 }).catch(() => {});
+              clickedOption = true;
+              break;
+            }
           }
         }
 
