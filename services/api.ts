@@ -357,6 +357,7 @@ export interface IcalEventPreview {
   summary: string;
   guestName: string;
   source: string;
+  totalAmount?: number;
   checkInDate: string;
   checkOutDate: string;
 }

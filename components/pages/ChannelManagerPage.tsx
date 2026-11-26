@@ -599,10 +599,19 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                                     <Calendar size={12} /> {conflict.checkInDate} → {conflict.checkOutDate}
                                                 </span>
                                             </div>
-                                            <div className="font-semibold text-slate-800 text-sm">{conflict.guestName}</div>
-                                            {conflict.summary && conflict.summary !== conflict.guestName && (
-                                                <div className="text-slate-500 mt-0.5">{conflict.summary}</div>
-                                            )}
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div>
+                                                    <div className="font-semibold text-slate-800 text-sm">{conflict.guestName}</div>
+                                                    {conflict.summary && conflict.summary !== conflict.guestName && (
+                                                        <div className="text-slate-500 mt-0.5">{conflict.summary}</div>
+                                                    )}
+                                                </div>
+                                                {Number(conflict.totalAmount) > 0 && (
+                                                    <span className="font-bold text-emerald-800 shrink-0 text-sm">
+                                                        ₹{Number(conflict.totalAmount).toLocaleString()}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Conflicting Existing Booking(s) */}
