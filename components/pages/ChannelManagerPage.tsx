@@ -154,7 +154,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                 source: BookingSource.AIRBNB,
                                 reservations: extracted,
                             });
-                            if (previewRes.conflicts.length > 0) {
+                            if (previewRes.conflicts.length > 0 || previewRes.ready.length > 0) {
                                 setPreview(previewRes);
                                 setSelectedOverrideUids(new Set());
                                 setSyncStatus('confirm_override');
@@ -458,15 +458,15 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                     source: importSource,
                 });
 
-            if (previewRes.conflicts.length > 0) {
-                // Stop and ask Admin explicitly whether to override conflicting dates
+            if (previewRes.conflicts.length > 0 || previewRes.ready.length > 0) {
+                // Always show preview of safe guests + any conflicting dates for explicit confirmation
                 setPreview(previewRes);
                 setSelectedOverrideUids(new Set());
                 setSyncStatus('confirm_override');
                 return;
             }
 
-            // No conflicts — import directly
+            // Nothing new or conflicting (everything already synced)
             await executeFinalImport([]);
         } catch (err: any) {
             setErrorMessage(err?.message || 'Failed to fetch or parse iCal calendar.');
@@ -994,105 +994,172 @@ curl -s http://127.0.0.1:4321/health`}
                 )}
             </div>
 
-            {/* EXPLICIT DATE OVERRIDE CONFIRMATION PANEL */}
+            {/* EXPLICIT IMPORT & DATE OVERRIDE CONFIRMATION PANEL */}
             {syncStatus === 'confirm_override' && preview && (
-                <div className="bg-white rounded-2xl shadow-md border-2 border-amber-300 overflow-hidden animate-in fade-in duration-300">
-                    <div className="p-5 bg-amber-50/90 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className={`bg-white rounded-2xl shadow-md border-2 overflow-hidden animate-in fade-in duration-300 ${
+                    preview.conflicts.length > 0 ? 'border-amber-300' : 'border-emerald-300'
+                }`}>
+                    <div className={`p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        preview.conflicts.length > 0 ? 'bg-amber-50/90 border-amber-200' : 'bg-emerald-50/90 border-emerald-200'
+                    }`}>
                         <div className="flex items-start gap-3">
-                            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700 shrink-0">
-                                <ShieldAlert size={22} />
+                            <div className={`p-2.5 rounded-xl shrink-0 ${
+                                preview.conflicts.length > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                                {preview.conflicts.length > 0 ? <ShieldAlert size={22} /> : <CheckCircle2 size={22} />}
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">
-                                    Date Override Confirmation — Room {preview.roomNumber}
+                                    {preview.conflicts.length > 0 ? 'Import & Date Override Confirmation' : 'Import Confirmation'} — Room {preview.roomNumber}
                                 </h3>
                                 <p className="text-sm text-slate-700 mt-0.5">
-                                    Found <b>{preview.conflicts.length}</b> date conflict{preview.conflicts.length > 1 ? 's' : ''} that can be overridden
                                     {preview.ready.length > 0 && (
-                                        <> (plus <b>{preview.ready.length}</b> non-conflicting booking{preview.ready.length > 1 ? 's' : ''} ready to import)</>
-                                    )}. <b>Should I override these existing bookings?</b>
+                                        <>
+                                            <b>{preview.ready.length}</b> safe booking{preview.ready.length > 1 ? 's' : ''} ready to import
+                                        </>
+                                    )}
+                                    {preview.ready.length > 0 && preview.conflicts.length > 0 && ' · '}
+                                    {preview.conflicts.length > 0 && (
+                                        <>
+                                            <b>{preview.conflicts.length}</b> date conflict{preview.conflicts.length > 1 ? 's' : ''} requiring override confirmation
+                                        </>
+                                    )}
+                                    {preview.alreadySynced.length > 0 && (
+                                        <> · <b>{preview.alreadySynced.length}</b> already synced</>
+                                    )}
                                 </p>
                             </div>
                         </div>
-                        <button
-                            type="button"
-                            onClick={toggleAllOverrides}
-                            className="px-3 py-1.5 rounded-lg border border-amber-300 bg-white hover:bg-amber-100 text-xs font-bold text-amber-800 shrink-0 self-start sm:self-center"
-                        >
-                            {selectedOverrideUids.size === preview.conflicts.length ? 'Deselect All' : 'Select All to Override'}
-                        </button>
+                        {preview.conflicts.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={toggleAllOverrides}
+                                className="px-3 py-1.5 rounded-lg border border-amber-300 bg-white hover:bg-amber-100 text-xs font-bold text-amber-800 shrink-0 self-start sm:self-center"
+                            >
+                                {selectedOverrideUids.size === preview.conflicts.length ? 'Deselect All' : 'Select All to Override'}
+                            </button>
+                        )}
                     </div>
 
-                    <div className="divide-y divide-slate-100 max-h-[420px] overflow-y-auto">
-                        {preview.conflicts.map((conflict) => {
-                            const checked = selectedOverrideUids.has(conflict.uid);
-                            return (
-                                <label
-                                    key={conflict.uid}
-                                    className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${
-                                        checked ? 'bg-amber-50/60' : 'hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={() => toggleOverrideUid(conflict.uid)}
-                                        className="mt-1 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
-                                    />
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                                        {/* Incoming iCal Booking */}
-                                        <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200">
-                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                                <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-700">
-                                                    Incoming ({conflict.source})
-                                                </span>
-                                                <span className="inline-flex items-center gap-1 font-bold text-emerald-900">
-                                                    <Calendar size={12} /> {conflict.checkInDate} → {conflict.checkOutDate}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div>
-                                                    <div className="font-semibold text-slate-800 text-sm">{conflict.guestName}</div>
-                                                    {conflict.summary && conflict.summary !== conflict.guestName && (
-                                                        <div className="text-slate-500 mt-0.5">{conflict.summary}</div>
-                                                    )}
-                                                </div>
-                                                {Number(conflict.totalAmount) > 0 && (
-                                                    <span className="font-bold text-emerald-800 shrink-0 text-sm">
-                                                        ₹{Number(conflict.totalAmount).toLocaleString()}
+                    <div className="max-h-[480px] overflow-y-auto divide-y divide-slate-200">
+                        {/* SAFE (NON-CONFLICTING) GUESTS SECTION */}
+                        {preview.ready.length > 0 && (
+                            <div className="p-4 bg-emerald-50/30 space-y-2.5">
+                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-800">
+                                    <CheckCircle2 size={14} className="text-emerald-600" />
+                                    Safe Bookings Ready to Import ({preview.ready.length})
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                    {preview.ready.map((item) => (
+                                        <div
+                                            key={item.uid}
+                                            className="p-3 rounded-xl bg-white border border-emerald-200 text-xs flex items-start justify-between gap-3"
+                                        >
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                    <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-700">
+                                                        {item.source || preview.source}
                                                     </span>
+                                                    <span className="inline-flex items-center gap-1 font-bold text-emerald-900">
+                                                        <Calendar size={12} /> {item.checkInDate} → {item.checkOutDate}
+                                                    </span>
+                                                </div>
+                                                <div className="font-semibold text-slate-900 text-sm truncate">
+                                                    {item.guestName}
+                                                </div>
+                                                {item.summary && item.summary !== item.guestName && (
+                                                    <div className="text-slate-500 mt-0.5 truncate">{item.summary}</div>
                                                 )}
                                             </div>
+                                            {Number(item.totalAmount) > 0 && (
+                                                <span className="font-bold text-emerald-800 shrink-0 text-sm">
+                                                    ₹{Number(item.totalAmount).toLocaleString()}
+                                                </span>
+                                            )}
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
-                                        {/* Conflicting Existing Booking(s) */}
-                                        <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200 space-y-2">
-                                            <div className="font-bold uppercase tracking-wider text-[10px] text-rose-700 flex items-center gap-1">
-                                                <AlertTriangle size={11} /> Existing Booking{conflict.existingBookings.length > 1 ? 's' : ''} (Will be cancelled if overridden)
-                                            </div>
-                                            {conflict.existingBookings.map((eb) => (
-                                                <div key={eb.id} className="flex items-center justify-between gap-2">
-                                                    <div>
-                                                        <div className="font-semibold text-slate-800 text-sm">
-                                                            {eb.guestName}{' '}
-                                                            <span className="text-[11px] font-normal text-slate-500">({eb.bookingSource})</span>
-                                                        </div>
-                                                        <div className="text-rose-800 font-medium">
-                                                            {eb.checkInDate} → {eb.checkOutDate} · {eb.status}
-                                                        </div>
-                                                    </div>
-                                                    {eb.totalAmount > 0 && (
-                                                        <span className="font-bold text-slate-700 shrink-0">
-                                                            ₹{Number(eb.totalAmount).toLocaleString()}
+                        {/* CONFLICTING GUESTS SECTION */}
+                        {preview.conflicts.length > 0 && (
+                            <div className="divide-y divide-slate-100">
+                                <div className="px-4 py-2.5 bg-amber-50/50 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
+                                    <AlertTriangle size={14} className="text-amber-600" />
+                                    Conflicting Bookings — Select Any to Override ({preview.conflicts.length})
+                                </div>
+                                {preview.conflicts.map((conflict) => {
+                                    const checked = selectedOverrideUids.has(conflict.uid);
+                                    return (
+                                        <label
+                                            key={conflict.uid}
+                                            className={`p-4 flex items-start gap-4 cursor-pointer transition-colors ${
+                                                checked ? 'bg-amber-50/60' : 'hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => toggleOverrideUid(conflict.uid)}
+                                                className="mt-1 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                            />
+                                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                                {/* Incoming iCal Booking */}
+                                                <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                                        <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-700">
+                                                            Incoming ({conflict.source})
                                                         </span>
-                                                    )}
+                                                        <span className="inline-flex items-center gap-1 font-bold text-emerald-900">
+                                                            <Calendar size={12} /> {conflict.checkInDate} → {conflict.checkOutDate}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div>
+                                                            <div className="font-semibold text-slate-800 text-sm">{conflict.guestName}</div>
+                                                            {conflict.summary && conflict.summary !== conflict.guestName && (
+                                                                <div className="text-slate-500 mt-0.5">{conflict.summary}</div>
+                                                            )}
+                                                        </div>
+                                                        {Number(conflict.totalAmount) > 0 && (
+                                                            <span className="font-bold text-emerald-800 shrink-0 text-sm">
+                                                                ₹{Number(conflict.totalAmount).toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </label>
-                            );
-                        })}
+
+                                                {/* Conflicting Existing Booking(s) */}
+                                                <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200 space-y-2">
+                                                    <div className="font-bold uppercase tracking-wider text-[10px] text-rose-700 flex items-center gap-1">
+                                                        <AlertTriangle size={11} /> Existing Booking{conflict.existingBookings.length > 1 ? 's' : ''} (Will be cancelled if overridden)
+                                                    </div>
+                                                    {conflict.existingBookings.map((eb) => (
+                                                        <div key={eb.id} className="flex items-center justify-between gap-2">
+                                                            <div>
+                                                                <div className="font-semibold text-slate-800 text-sm">
+                                                                    {eb.guestName}{' '}
+                                                                    <span className="text-[11px] font-normal text-slate-500">({eb.bookingSource})</span>
+                                                                </div>
+                                                                <div className="text-rose-800 font-medium">
+                                                                    {eb.checkInDate} → {eb.checkOutDate} · {eb.status}
+                                                                </div>
+                                                            </div>
+                                                            {eb.totalAmount > 0 && (
+                                                                <span className="font-bold text-slate-700 shrink-0">
+                                                                    ₹{Number(eb.totalAmount).toLocaleString()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
@@ -1107,21 +1174,33 @@ curl -s http://127.0.0.1:4321/health`}
                         >
                             Cancel
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => executeFinalImport([])}
-                            className="px-4 py-2.5 rounded-lg border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-semibold"
-                        >
-                            No, Keep Existing ({preview.ready.length > 0 ? `Import ${preview.ready.length} Safe Only` : 'Skip All'})
-                        </button>
-                        <button
-                            type="button"
-                            disabled={selectedOverrideUids.size === 0}
-                            onClick={() => executeFinalImport(Array.from(selectedOverrideUids))}
-                            className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            Yes, Override Selected ({selectedOverrideUids.size}) &amp; Import
-                        </button>
+                        {preview.conflicts.length === 0 ? (
+                            <button
+                                type="button"
+                                onClick={() => executeFinalImport([])}
+                                className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm"
+                            >
+                                Confirm &amp; Import {preview.ready.length} Safe Booking{preview.ready.length > 1 ? 's' : ''}
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => executeFinalImport([])}
+                                    className="px-4 py-2.5 rounded-lg border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-semibold"
+                                >
+                                    No, Keep Existing ({preview.ready.length > 0 ? `Import ${preview.ready.length} Safe Only` : 'Skip All'})
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={selectedOverrideUids.size === 0}
+                                    onClick={() => executeFinalImport(Array.from(selectedOverrideUids))}
+                                    className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    Yes, Override Selected ({selectedOverrideUids.size}) &amp; Import
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
