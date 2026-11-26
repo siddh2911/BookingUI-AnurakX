@@ -56,7 +56,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [uploadedIcsContent, setUploadedIcsContent] = useState('');
     const [uploadedReservations, setUploadedReservations] = useState<StructuredReservationInput[] | null>(null);
     const [importSource, setImportSource] = useState<string>(BookingSource.AIRBNB);
-    const [saveUrlForAutoSync, setSaveUrlForAutoSync] = useState(true);
+    const [saveUrlForAutoSync, setSaveUrlForAutoSync] = useState(false);
 
     const [syncStatus, setSyncStatus] = useState<'idle' | 'checking' | 'confirm_override' | 'importing' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string>('');
@@ -165,6 +165,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                     overrideUids: [],
                                 });
                                 setLastResult(importRes);
+                                clearUploadedFile();
                                 setSyncStatus('success');
                                 await onRefreshBookings();
                             }
@@ -419,6 +420,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
             setLastResult(res);
             setPreview(null);
             setSelectedOverrideUids(new Set());
+            clearUploadedFile();
             setSyncStatus('success');
             await onRefreshBookings();
         } catch (err: any) {
@@ -678,7 +680,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                 )}
                             </div>
 
-                            {(importSource === BookingSource.AIRBNB || importSource === BookingSource.BOOKING_COM) && !uploadedIcsContent && (
+                            {(importSource === BookingSource.AIRBNB || importSource === BookingSource.BOOKING_COM) && !uploadedIcsContent && !uploadedReservations && (
                                 <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
                                     <input
                                         type="checkbox"
@@ -686,7 +688,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                         onChange={(e) => setSaveUrlForAutoSync(e.target.checked)}
                                         className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                                     />
-                                    Save link for hourly auto-sync
+                                    Save iCal link on this room (manual import only, no automatic sync)
                                 </label>
                             )}
                         </div>
