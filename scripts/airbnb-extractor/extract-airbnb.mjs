@@ -19,26 +19,10 @@ const profileDir = path.join(os.homedir(), '.karuna-airbnb-profile');
 
 function parseFlexibleDate(raw) {
   if (!raw) return '';
-  let cleaned = String(raw).trim()
+  const cleaned = String(raw).trim()
     .replace(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s*/i, '')
-    .replace(/\s+at\s+.*$/i, '')
-    .replace(/\s+\d{1,2}:\d{2}.*$/i, '')
     .trim();
-
   if (/^\d{4}-\d{2}-\d{2}/.test(cleaned)) return cleaned.slice(0, 10);
-
-  // If year is missing (e.g. "26 Nov" or "Nov 26"), append current year (or next year if >60 days in past)
-  if (!/\b20\d{2}\b/.test(cleaned)) {
-    const now = new Date();
-    const withYear = `${cleaned} ${now.getFullYear()}`;
-    const testDate = new Date(withYear);
-    if (!Number.isNaN(testDate.getTime())) {
-      const diffDays = (testDate.getTime() - now.getTime()) / 86400000;
-      const year = diffDays < -60 ? now.getFullYear() + 1 : now.getFullYear();
-      cleaned = `${cleaned} ${year}`;
-    }
-  }
-
   const parsed = new Date(cleaned);
   if (!Number.isNaN(parsed.getTime())) {
     const y = parsed.getFullYear();
@@ -49,162 +33,81 @@ function parseFlexibleDate(raw) {
   return '';
 }
 
-/**
- * Extracts Guest Name, Check-in, Check-out, Who's coming, Earnings ("You earn"),
- * Confirmation code, and Phone number from Airbnb's Today drawer / Calendar side panel / Manage Reservation page.
- */
-function parseReservationPanelText(rawText, fallbackCode = '') {
-  const text = String(rawText || '').replace(/\r/g, '');
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-
-  const findAfterLabel = (labelRegex) => {
-    for (let i = 0; i < lines.length; i++) {
-      if (labelRegex.test(lines[i])) {
-        const rest = lines[i].replace(labelRegex, '').replace(/^[:\s-]+/, '').trim();
-        if (rest) return rest;
-        if (i + 1 < lines.length) return lines[i + 1];
+function parseCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
       }
-    }
-    return '';
-  };
-
-  // Confirmation code
-  const codeMatch =
-    text.match(/Confirmation\s*code[\s:\n]+([A-Z0-9]{8,14})/i) ||
-    text.match(/\b(HM[A-Z0-9]{8})\b/);
-  const confirmationCode = (codeMatch ? codeMatch[1] : fallbackCode || '').toUpperCase();
-
-  // Reference year from "Booking date" (e.g. "Wednesday, 25 November 2026") if present
-  const bookingDateRaw = findAfterLabel(/^Booking\s+date$/i);
-  const yearMatch = bookingDateRaw.match(/\b(20\d{2})\b/);
-  const refYear = yearMatch ? Number(yearMatch[1]) : new Date().getFullYear();
-
-  const parseWithRefYear = (raw) => {
-    if (!raw) return '';
-    if (/\b20\d{2}\b/.test(raw) || /^\d{4}-\d{2}-\d{2}/.test(raw)) return parseFlexibleDate(raw);
-    return parseFlexibleDate(`${raw} ${refYear}`);
-  };
-
-  // Check-in & Check-out
-  const checkInRaw = findAfterLabel(/^Check-?in$/i) || findAfterLabel(/^Check-?in\b/i);
-  const checkOutRaw = findAfterLabel(/^Check-?out$/i) || findAfterLabel(/^Check-?out\b/i);
-  let checkInDate = parseWithRefYear(checkInRaw);
-  let checkOutDate = parseWithRefYear(checkOutRaw);
-
-  if (!checkInDate || !checkOutDate) {
-    const rangeMatch = text.match(
-      /(\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?|[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?)\s*[–—-]\s*(\d{1,2}\s+[A-Za-z]{3,9}(?:\s+\d{4})?|[A-Za-z]{3,9}\s+\d{1,2}(?:,?\s+\d{4})?|\d{1,2})/
-    );
-    if (rangeMatch) {
-      if (!checkInDate) checkInDate = parseWithRefYear(rangeMatch[1]);
-      if (!checkOutDate) {
-        const endStr = rangeMatch[2];
-        if (/^\d{1,2}$/.test(endStr) && checkInDate) {
-          const [y, m] = checkInDate.split('-');
-          checkOutDate = `${y}-${m}-${endStr.padStart(2, '0')}`;
-        } else {
-          checkOutDate = parseWithRefYear(endStr);
-        }
-      }
+    } else if (ch === ',' && !inQuotes) {
+      out.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
     }
   }
-
-  // Guest Name: Airbnb puts the full guest name directly after "Who's coming"
-  let guestName = findAfterLabel(/^Who['’]s\s+coming$/i);
-  if (!guestName || /^\+?\d|adult|guest/i.test(guestName)) {
-    // Fallback: look for "<Name>'s group of N"
-    const groupLine = lines.find((l) => /['’]s\s+group\s+of\s+\d+/i.test(l));
-    if (groupLine) {
-      guestName = groupLine.replace(/['’]s\s+group\s+of\s+\d+.*$/i, '').trim();
-    }
-  }
-  if (!guestName) {
-    guestName = confirmationCode ? `Airbnb Guest (${confirmationCode})` : 'Airbnb Guest';
-  }
-
-  // Who's coming (guest count, e.g. "3 adults" or "group of 4")
-  const whosComing =
-    lines.find((l) => /^\d+\s+(?:adult|guest)s?(?:,\s*\d+\s+(?:child|children|infant|pet)s?)?$/i.test(l)) ||
-    lines.find((l) => /group\s+of\s+\d+/i.test(l)) ||
-    '';
-
-  // Earnings: check "You earn", OR the currency line right below "Cancellation policy" / right above "Total for N night(s)"
-  let totalAmount = 0;
-  const earnLabelVal =
-    findAfterLabel(/^You\s+earn$/i) ||
-    findAfterLabel(/^Your\s+earnings$/i) ||
-    findAfterLabel(/^Payout$/i);
-  if (earnLabelVal && /\d/.test(earnLabelVal)) {
-    totalAmount = Number(String(earnLabelVal).replace(/[^0-9.]/g, '')) || 0;
-  }
-  if (totalAmount === 0) {
-    // Look for currency line right before "Total for X night"
-    for (let i = 1; i < lines.length; i++) {
-      if (/^Total\s+for\s+\d+\s+night/i.test(lines[i]) && /[₹$€£]\s*[\d,]+/.test(lines[i - 1])) {
-        totalAmount = Number(lines[i - 1].replace(/[^0-9.]/g, '')) || 0;
-        break;
-      }
-    }
-  }
-  if (totalAmount === 0) {
-    // Look for first currency line after "Cancellation policy"
-    const cancelIdx = lines.findIndex((l) => /^Cancellation\s+policy$/i.test(l));
-    if (cancelIdx >= 0) {
-      for (let i = cancelIdx + 1; i < Math.min(lines.length, cancelIdx + 6); i++) {
-        if (/[₹$€£]\s*[\d,]+/.test(lines[i])) {
-          totalAmount = Number(lines[i].replace(/[^0-9.]/g, '')) || 0;
-          break;
-        }
-      }
-    }
-  }
-
-  // Phone number (full phone from Manage reservation, or fallback to Suggested door code last-4 digits)
-  let phone = '';
-  const phoneMatch =
-    text.match(/(?:Phone|Mobile|Call)[^\n+]*(\+\d[\d\s\-()]{7,18})/i) ||
-    text.match(/(\+\d{1,3}[\s-]?\d{3,5}[\s-]?\d{3,6}[\s-]?\d{0,4})/);
-  if (phoneMatch) {
-    phone = phoneMatch[1].replace(/\s+/g, ' ').trim();
-  } else {
-    const doorCode = findAfterLabel(/^Suggested\s+door\s+code$/i);
-    if (/^\d{4}$/.test(doorCode)) {
-      phone = `****${doorCode}`;
-    }
-  }
-
-  const noteParts = [];
-  if (whosComing) noteParts.push(`Guests: ${whosComing}`);
-  if (confirmationCode) noteParts.push(`Code: ${confirmationCode}`);
-
-  return {
-    confirmationCode,
-    guestName,
-    phone,
-    checkInDate,
-    checkOutDate,
-    whosComing,
-    totalAmount,
-    source: 'Airbnb',
-    notes: noteParts.join(' | ') || 'Extracted from Airbnb Host',
-  };
+  out.push(cur.trim());
+  return out;
 }
 
-async function extractFromReservationDetailsPage(page, url, fallbackCode = '') {
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(2500);
+function parseAirbnbCsv(csvText, fromDate, toDate) {
+  const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return [];
+  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
+  const idx = (...names) => headers.findIndex((h) => names.some((n) => h.includes(n)));
 
-  // Click "Show phone number" or "Call" if hidden behind a button
-  try {
-    const showPhone = page.locator('button:has-text("Show phone"), button:has-text("Call"), a:has-text("Show phone")').first();
-    if (await showPhone.isVisible({ timeout: 1500 })) {
-      await showPhone.click().catch(() => {});
-      await page.waitForTimeout(800);
-    }
-  } catch { /* ignore */ }
+  const iCode = idx('confirmation code', 'code');
+  const iStatus = idx('status');
+  const iGuest = idx('guest name', 'guest');
+  const iContact = idx('contact', 'phone');
+  const iStart = idx('start date', 'check-in', 'checkin');
+  const iEnd = idx('end date', 'check-out', 'checkout');
+  const iListing = idx('listing');
+  const iEarnings = idx('earnings', 'payout', 'total');
+  const iAdults = idx('adults', 'guests');
 
-  const bodyText = await page.evaluate(() => document.body?.innerText || '');
-  return parseReservationPanelText(bodyText, fallbackCode);
+  const rows = [];
+  for (const line of lines.slice(1)) {
+    const cols = parseCsvLine(line);
+    const status = iStatus >= 0 ? cols[iStatus] || '' : '';
+    if (/cancel/i.test(status)) continue;
+
+    const checkInDate = parseFlexibleDate(iStart >= 0 ? cols[iStart] : '');
+    const checkOutDate = parseFlexibleDate(iEnd >= 0 ? cols[iEnd] : '');
+    if (!checkInDate || !checkOutDate) continue;
+    if (checkOutDate < fromDate || checkInDate > toDate) continue;
+
+    const code = iCode >= 0 ? cols[iCode] : '';
+    const guestName = iGuest >= 0 ? cols[iGuest] : '';
+    const phone = iContact >= 0 ? cols[iContact] : '';
+    const listing = iListing >= 0 ? cols[iListing] : '';
+    const adults = iAdults >= 0 ? cols[iAdults] : '';
+    const rawEarnings = iEarnings >= 0 ? cols[iEarnings] : '0';
+    const totalAmount = Number(String(rawEarnings).replace(/[^0-9.]/g, '')) || 0;
+
+    rows.push({
+      confirmationCode: code,
+      guestName: guestName || (code ? `Airbnb Guest (${code})` : 'Airbnb Guest'),
+      phone,
+      checkInDate,
+      checkOutDate,
+      whosComing: adults ? `${adults} guests` : '',
+      totalAmount,
+      listing,
+      source: 'Airbnb',
+      notes: [adults ? `Guests: ${adults}` : '', code ? `Code: ${code}` : '', listing ? `Listing: ${listing}` : '']
+        .filter(Boolean)
+        .join(' | '),
+    });
+  }
+  return rows.sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
 }
 
 function resolveRoomNumber(listingName, defaultRoom) {
@@ -218,301 +121,110 @@ function resolveRoomNumber(listingName, defaultRoom) {
 
 async function main() {
   console.log('\n=======================================================');
-  console.log('  Karuna Villa — Interactive Airbnb Host Extractor');
+  console.log('  Karuna Villa — Airbnb Reservations Importer');
   console.log('=======================================================\n');
 
-  const context = await chromium.launchPersistentContext(profileDir, {
-    channel: 'chrome',
-    headless: false,
-    viewport: { width: 1360, height: 860 },
-    acceptDownloads: true,
-  });
-
-  const page = context.pages()[0] || (await context.newPage());
-
-  console.log('1. Opening Airbnb login in Chrome...');
-  await page.goto(`${config.airbnbBaseUrl}/login`, { waitUntil: 'domcontentloaded' });
-
-  console.log('\n👉 Please log in to Airbnb with your PHONE NUMBER and OTP in the Chrome window.');
-  console.log('   (Complete any verification Airbnb asks for.)');
-  await rl.question('\nPress ENTER here once you are logged in to Airbnb Hosting... ');
-
-  let origin = config.airbnbBaseUrl;
-  try {
-    const currentOrigin = new URL(page.url()).origin;
-    if (currentOrigin.includes('airbnb')) origin = currentOrigin;
-  } catch { /* fallback */ }
-
-  const reservationsByKey = new Map();
-  const detailUrlsToVisit = new Map(); // code -> url
-
-  const addReservation = (res) => {
-    if (!res || !res.checkInDate || !res.checkOutDate) return;
-    const key = res.confirmationCode || `${res.checkInDate}_${res.checkOutDate}_${res.guestName}`;
-    const prev = reservationsByKey.get(key);
-    if (!prev) {
-      reservationsByKey.set(key, res);
-    } else {
-      reservationsByKey.set(key, {
-        ...prev,
-        ...res,
-        guestName: res.guestName && !res.guestName.startsWith('Airbnb Guest') ? res.guestName : prev.guestName,
-        phone: res.phone || prev.phone,
-        totalAmount: res.totalAmount > 0 ? res.totalAmount : prev.totalAmount,
-        whosComing: res.whosComing || prev.whosComing,
-      });
-    }
-  };
-
-  // =========================================================================
-  // STEP 2: Ask for Custom Date Range to search all customers
-  // =========================================================================
   const todayIso = new Date().toISOString().slice(0, 10);
   const plus90 = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
 
-  console.log('\n📅 Custom Date Range Search (press ENTER for defaults):');
+  console.log('📅 Custom Date Range (press ENTER for defaults):');
   const fromInput = (await rl.question(`   From Date (YYYY-MM-DD) [${todayIso}]: `)).trim();
   const toInput = (await rl.question(`   To Date   (YYYY-MM-DD) [${plus90}]: `)).trim();
   const fromDate = parseFlexibleDate(fromInput) || todayIso;
   const toDate = parseFlexibleDate(toInput) || plus90;
-  console.log(`   Searching all Airbnb customers between ${fromDate} and ${toDate}...`);
 
-  // =========================================================================
-  // STEP 3: Open Calendar -> Scroll across months -> Click each guest profile -> Read Left/Side Panel
-  // =========================================================================
-  console.log(`\n2. Opening Calendar (${origin}/hosting/calendar)...`);
-  await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(4000);
+  // Option 1: Use an already-downloaded Airbnb CSV (zero browser automation needed!)
+  const csvPathInput = (
+    await rl.question('\n📄 Path to Airbnb Reservations CSV (or press ENTER to open Airbnb in Chrome): ')
+  ).trim();
 
-  // Calculate backward & forward month scrolls to cover fromDate -> toDate
-  const nowMs = Date.now();
-  const fromMs = new Date(fromDate).getTime();
-  const toMs = new Date(toDate).getTime();
-  const pastMonths = fromMs < nowMs ? Math.min(12, Math.ceil((nowMs - fromMs) / (28 * 86400000))) : 0;
-  const futureMonths = toMs > nowMs ? Math.min(12, Math.ceil((toMs - nowMs) / (28 * 86400000))) : 0;
+  let reservations = [];
+  let context = null;
 
-  // Build scroll plan: start at today (0), scroll UP for past months, then return & scroll DOWN for future months
-  const scrollSteps = [0];
-  for (let p = 1; p <= pastMonths; p++) scrollSteps.push(-950);
-  if (futureMonths > 0 && pastMonths > 0) {
-    // Jump back down past today
-    for (let p = 1; p <= pastMonths; p++) scrollSteps.push(950);
-  }
-  for (let f = 1; f <= futureMonths; f++) scrollSteps.push(950);
+  if (csvPathInput) {
+    const resolved = path.resolve(csvPathInput.replace(/^['"]|['"]$/g, ''));
+    const csvText = fs.readFileSync(resolved, 'utf8');
+    reservations = parseAirbnbCsv(csvText, fromDate, toDate);
+    console.log(`✅ Parsed ${reservations.length} reservation(s) between ${fromDate} and ${toDate} from CSV.`);
+  } else {
+    context = await chromium.launchPersistentContext(profileDir, {
+      channel: 'chrome',
+      headless: false,
+      viewport: { width: 1360, height: 860 },
+      acceptDownloads: true,
+    });
 
-  const clickedSignatures = new Set();
-  let savedSamplePanel = false;
+    const page = context.pages()[0] || (await context.newPage());
+    console.log('\n1. Opening Airbnb Hosting Reservations...');
+    await page.goto(`${config.airbnbBaseUrl}/hosting/reservations/all`, { waitUntil: 'domcontentloaded' });
 
-  for (let step = 0; step < scrollSteps.length; step++) {
-    const deltaY = scrollSteps[step];
-    if (deltaY !== 0) {
-      // Scroll the ACTUAL scrollable calendar grid container (not just window) so June & other months load!
-      await page.evaluate((dy) => {
-        const scrollables = Array.from(document.querySelectorAll('div, main, section'))
-          .filter((el) => {
-            const style = window.getComputedStyle(el);
-            const rect = el.getBoundingClientRect();
-            return (
-              (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-              el.scrollHeight > el.clientHeight + 100 &&
-              rect.width > 420 &&
-              rect.height > 300
-            );
-          })
-          .sort((a, b) => b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight);
-        if (scrollables[0]) {
-          scrollables[0].scrollTop += dy;
-        } else {
-          window.scrollBy(0, dy);
-        }
-      }, deltaY);
-      await page.waitForTimeout(1800);
-    }
+    console.log('\n👉 In the Chrome window:');
+    console.log('   1) Log in with your phone number & OTP if prompted.');
+    console.log('   2) On Hosting → Reservations → All, click "Export" → "Download CSV" (or just press ENTER once the list is visible).');
 
-    const calendarBookingHandles = await page
-      .locator('button:has(img), [role="button"]:has(img), a[href*="/hosting/reservations/details/"]')
-      .elementHandles();
-
-    console.log(`   [View ${step + 1}/${scrollSteps.length}] Scanning ${calendarBookingHandles.length} profile pill(s)...`);
-
-    for (let i = 0; i < calendarBookingHandles.length; i++) {
+    // Automatically capture the CSV if the user clicks Airbnb's Export -> Download CSV button
+    let downloadedCsvPath = '';
+    page.on('download', async (download) => {
       try {
-        const el = calendarBookingHandles[i];
-        const box = await el.boundingBox();
-        if (!box || box.width < 20 || box.y < 100) continue; // skip top navbar avatar
+        const target = path.join(__dirname, 'airbnb-export.csv');
+        await download.saveAs(target);
+        downloadedCsvPath = target;
+        console.log(`\n   📥 Captured Airbnb CSV download: ${target}`);
+      } catch { /* ignore */ }
+    });
 
-        const sig = await el.evaluate((node) => {
-          const img = node.querySelector('img');
-          return `${(node.innerText || '').trim().slice(0, 40)}|${img?.getAttribute('alt') || ''}|${img?.getAttribute('src')?.slice(-24) || ''}`;
-        }).catch(() => '');
-        if (!sig || clickedSignatures.has(sig)) continue;
-        clickedSignatures.add(sig);
+    await rl.question('\nPress ENTER here once the CSV is downloaded (or reservations list is loaded)... ');
 
-        await el.scrollIntoViewIfNeeded().catch(() => {});
-        await el.click({ timeout: 2000 }).catch(() => {});
-        await page.waitForTimeout(1500);
-
-        // Read the FULL left/side reservation panel (must include BOTH Check-in AND You earn / Who's coming / Manage reservation)
-        const panelData = await page.evaluate(() => {
-          const allContainers = Array.from(
-            document.querySelectorAll('aside, [role="dialog"], [role="complementary"], [data-testid*="panel"], [data-testid*="drawer"], section, div')
-          ).filter((node) => {
-            const t = node.innerText || '';
-            if (t.length < 80 || t.length > 6000) return false;
-            const hasDates = /Check-?in/i.test(t) && /Check-?out/i.test(t);
-            const hasDetails = /You\s+earn|Your\s+earnings|Who['’]s\s+coming|Manage\s+reservation|Confirmation\s+code/i.test(t);
-            return hasDates && hasDetails;
-          });
-          // Smallest container that STILL has BOTH dates AND earnings/manage/who's coming (so nothing is cut off!)
-          allContainers.sort((a, b) => (a.innerText?.length || 99999) - (b.innerText?.length || 99999));
-          const best = allContainers[0];
-          const text = best ? best.innerText : '';
-
-          // Also grab heading text inside panel for accurate guest name
-          let headingName = '';
-          if (best) {
-            const headings = Array.from(best.querySelectorAll('h1, h2, h3'))
-              .map((h) => (h.innerText || '').trim())
-              .filter((s) => s.length >= 2 && s.length <= 48 && !/Check-?in|Check-?out|Reservation|Earnings|Who|Payout|^\d/i.test(s));
-            headingName = headings[0] || '';
-          }
-
-          const manageLink = Array.from((best || document).querySelectorAll('a')).find(
-            (a) =>
-              /manage reservation/i.test(a.innerText || '') ||
-              (a.getAttribute('href') || '').includes('/hosting/reservations/details/')
-          );
-          return {
-            text,
-            headingName,
-            manageHref: manageLink?.getAttribute('href') || '',
-          };
+    if (downloadedCsvPath && fs.existsSync(downloadedCsvPath)) {
+      const csvText = fs.readFileSync(downloadedCsvPath, 'utf8');
+      reservations = parseAirbnbCsv(csvText, fromDate, toDate);
+      console.log(`✅ Parsed ${reservations.length} reservation(s) (${fromDate} → ${toDate}) from official Airbnb CSV.`);
+    } else {
+      // Single-pass read of the visible Reservations table (no clicking loops, no "Who's coming" clicks)
+      const rows = await page.evaluate(() => {
+        const out = [];
+        document.querySelectorAll('table tbody tr').forEach((tr) => {
+          const cells = Array.from(tr.querySelectorAll('td')).map((td) => (td.innerText || '').trim().replace(/\s+/g, ' '));
+          const link = tr.querySelector('a[href*="/hosting/reservations/details/"]');
+          const m = link?.getAttribute('href')?.match(/details\/([A-Z0-9]+)/i);
+          if (cells.length >= 4) out.push({ cells, code: m ? m[1].toUpperCase() : '' });
         });
-
-        if (panelData.text) {
-          if (!savedSamplePanel) {
-            fs.writeFileSync(path.join(__dirname, 'debug-panel.txt'), panelData.text);
-            savedSamplePanel = true;
-          }
-          const parsed = parseReservationPanelText(panelData.text);
-          if (parsed.checkInDate && parsed.checkOutDate) {
-            addReservation(parsed);
-            console.log(
-              `   📌 Found: ${parsed.guestName} | ${parsed.checkInDate} → ${parsed.checkOutDate} | ${parsed.whosComing || '-'} | ₹${parsed.totalAmount}`
-            );
-          }
-          if (panelData.manageHref) {
-            const m = panelData.manageHref.match(/details\/([A-Z0-9]+)/i);
-            const code = m ? m[1].toUpperCase() : parsed.confirmationCode || `CAL_${step}_${i}`;
-            const fullUrl = panelData.manageHref.startsWith('http')
-              ? panelData.manageHref
-              : `${origin}${panelData.manageHref}`;
-            detailUrlsToVisit.set(code, fullUrl);
-          } else if (parsed.confirmationCode && !detailUrlsToVisit.has(parsed.confirmationCode)) {
-            detailUrlsToVisit.set(
-              parsed.confirmationCode,
-              `${origin}/hosting/reservations/details/${parsed.confirmationCode}`
-            );
-          }
-        }
-      } catch {
-        /* ignore individual click errors */
-      }
-    }
-  }
-
-  // =========================================================================
-  // STEP 3b: Also scan Hosting -> Reservations (All & Completed) so June & all other months are captured!
-  // =========================================================================
-  const reservationPages = [`${origin}/hosting/reservations/all`];
-  if (fromDate < todayIso) {
-    reservationPages.push(`${origin}/hosting/reservations/completed`);
-  }
-
-  for (const resPageUrl of reservationPages) {
-    console.log(`\n   Scanning ${resPageUrl} for bookings across all months (${fromDate} → ${toDate})...`);
-    try {
-      await page.goto(resPageUrl, { waitUntil: 'domcontentloaded' });
-      try {
-        await page.waitForSelector('a[href*="/hosting/reservations/details/"], table tbody tr', { timeout: 10000 });
-      } catch { /* continue */ }
-      await page.waitForTimeout(2500);
-
-      // Scroll down up to 5 times to trigger lazy-loading of older/newer reservations
-      for (let s = 0; s < 5; s++) {
-        const foundLinks = await page.evaluate(() => {
-          const out = [];
-          document.querySelectorAll('a[href*="/hosting/reservations/details/"]').forEach((a) => {
-            const href = a.getAttribute('href') || '';
-            const m = href.match(/details\/([A-Z0-9]+)/i);
-            if (m) out.push({ code: m[1].toUpperCase(), href });
-          });
-          // Also scan plain text for HM... confirmation codes in table rows
-          const matches = (document.body?.innerText || '').match(/\bHM[A-Z0-9]{8}\b/g) || [];
-          for (const code of matches) {
-            out.push({ code: code.toUpperCase(), href: `/hosting/reservations/details/${code.toUpperCase()}` });
-          }
-          return out;
+        return out;
+      });
+      for (const r of rows) {
+        const joined = r.cells.join(' | ');
+        const dates = joined.match(/\b(?:\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})\b/g) || [];
+        const checkInDate = parseFlexibleDate(dates[0]);
+        const checkOutDate = parseFlexibleDate(dates[1]);
+        if (!checkInDate || !checkOutDate || checkOutDate < fromDate || checkInDate > toDate) continue;
+        const amtMatch = joined.match(/(?:₹|INR|\$|USD)\s*([\d,]+(?:\.\d{1,2})?)/i);
+        reservations.push({
+          confirmationCode: r.code,
+          guestName: r.cells[1] || r.cells[0] || (r.code ? `Airbnb Guest (${r.code})` : 'Airbnb Guest'),
+          phone: '',
+          checkInDate,
+          checkOutDate,
+          whosComing: '',
+          totalAmount: amtMatch ? Number(amtMatch[1].replace(/,/g, '')) : 0,
+          listing: r.cells[4] || '',
+          source: 'Airbnb',
+          notes: r.code ? `Code: ${r.code}` : 'Extracted from Airbnb Reservations',
         });
-
-        for (const l of foundLinks) {
-          if (!detailUrlsToVisit.has(l.code)) {
-            const fullUrl = l.href.startsWith('http') ? l.href : `${origin}${l.href}`;
-            detailUrlsToVisit.set(l.code, fullUrl);
-          }
-        }
-
-        // Click "Next" or "Show more" if paginated, otherwise scroll down
-        const nextBtn = page.locator('button[aria-label="Next"], button:has-text("Show more"), a[aria-label="Next"]').first();
-        if (await nextBtn.isVisible({ timeout: 800 }).catch(() => false)) {
-          const disabled = await nextBtn.isDisabled().catch(() => true);
-          if (!disabled) {
-            await nextBtn.click().catch(() => {});
-            await page.waitForTimeout(2000);
-            continue;
-          }
-        }
-        await page.evaluate(() => window.scrollBy(0, 1200));
-        await page.waitForTimeout(1200);
       }
-      console.log(`   Total unique reservation codes collected so far: ${detailUrlsToVisit.size}`);
-    } catch (err) {
-      console.log(`   (Could not scan ${resPageUrl}: ${err.message})`);
+      console.log(`✅ Read ${reservations.length} reservation(s) from visible table.`);
     }
   }
-
-  // =========================================================================
-  // STEP 4: Visit each "Manage reservation" detail page to extract full Phone Number & Earnings
-  // =========================================================================
-  if (detailUrlsToVisit.size > 0) {
-    console.log(`\n4. Opening ${detailUrlsToVisit.size} "Manage reservation" page(s) to extract phone numbers & earnings...`);
-    for (const [code, url] of detailUrlsToVisit.entries()) {
-      try {
-        console.log(`   🔎 Reading ${code} (${url})...`);
-        const detail = await extractFromReservationDetailsPage(page, url, code);
-        addReservation(detail);
-      } catch (err) {
-        console.log(`   ⚠️ Could not read ${code}: ${err.message}`);
-      }
-    }
-  }
-
-  // Filter strictly to the custom date range [fromDate, toDate] provided by the user
-  const reservations = Array.from(reservationsByKey.values())
-    .filter((r) => r.checkInDate && r.checkOutDate && r.checkOutDate >= fromDate && r.checkInDate <= toDate)
-    .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
 
   const outJsonPath = path.join(__dirname, 'airbnb-upcoming.json');
   fs.writeFileSync(
     outJsonPath,
     JSON.stringify({ source: 'Airbnb', fromDate, toDate, extractedAt: new Date().toISOString(), reservations }, null, 2)
   );
-  console.log(`\n💾 Saved ${reservations.length} reservation(s) (${fromDate} to ${toDate}) to: ${outJsonPath}`);
+  console.log(`\n💾 Saved ${reservations.length} reservation(s) to: ${outJsonPath}`);
 
   if (reservations.length === 0) {
-    console.log('\n⚠️  No upcoming bookings were found automatically.');
-    console.log('   Tip: Open a booking in the Chrome window right now, or export CSV from Airbnb Hosting → Reservations.');
-    await context.close();
+    console.log('\nNo reservations matched that date range.');
+    if (context) await context.close();
     rl.close();
     return;
   }
@@ -524,23 +236,30 @@ async function main() {
       Phone: r.phone || '-',
       CheckIn: r.checkInDate,
       CheckOut: r.checkOutDate,
-      Guests: r.whosComing || '-',
-      YouEarn: r.totalAmount ? `₹${r.totalAmount}` : '-',
+      Amount: r.totalAmount ? `₹${r.totalAmount}` : '-',
       Room: resolveRoomNumber(r.listing),
     }))
   );
 
-  const pushNow = (await rl.question('\n5. Update these bookings in Admin Panel now? (y/N): ')).trim().toLowerCase();
+  const pushNow = (await rl.question('\nUpdate these bookings in Admin Panel now? (y/N): ')).trim().toLowerCase();
   if (pushNow !== 'y' && pushNow !== 'yes') {
-    console.log(`\nSkipped direct push. You can upload ${outJsonPath} anytime in Admin → Channel Manager → Import Calendar.`);
-    await context.close();
+    console.log(`\nYou can upload ${outJsonPath} anytime in Admin → Channel Manager → Import Calendar.`);
+    if (context) await context.close();
     rl.close();
     return;
   }
 
+  if (!context) {
+    context = await chromium.launchPersistentContext(profileDir, {
+      channel: 'chrome',
+      headless: false,
+      viewport: { width: 1360, height: 860 },
+    });
+  }
+
   const adminPage = await context.newPage();
   await adminPage.goto(`${config.adminUiBaseUrl}/channels`, { waitUntil: 'domcontentloaded' });
-  await rl.question('\n👉 Make sure you are signed in to Karuna Villa Admin in the Chrome tab, then press ENTER to sync... ');
+  await rl.question('\n👉 Make sure you are signed in to Karuna Villa Admin in Chrome, then press ENTER to sync... ');
 
   const defaultRoom =
     (await rl.question(`Target Room Number [${config.defaultRoomNumber || '101'}]: `)).trim() ||
@@ -585,9 +304,7 @@ async function main() {
             `   Should I override this date? (y/N): `
           )
         ).trim().toLowerCase();
-        if (ans === 'y' || ans === 'yes') {
-          overrideUids.push(c.uid);
-        }
+        if (ans === 'y' || ans === 'yes') overrideUids.push(c.uid);
       }
     }
 
