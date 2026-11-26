@@ -5,6 +5,9 @@ import { API_BASE_URL } from '../../constants/api';
 import {
     previewRoomIcalImport,
     confirmRoomIcalImport,
+    previewStructuredReservations,
+    confirmStructuredReservations,
+    StructuredReservationInput,
     IcalPreviewResponse,
     IcalImportResult,
 } from '../../services/api';
@@ -46,6 +49,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [importUrl, setImportUrl] = useState('');
     const [uploadedIcsName, setUploadedIcsName] = useState('');
     const [uploadedIcsContent, setUploadedIcsContent] = useState('');
+    const [uploadedReservations, setUploadedReservations] = useState<StructuredReservationInput[] | null>(null);
     const [importSource, setImportSource] = useState<string>(BookingSource.AIRBNB);
     const [saveUrlForAutoSync, setSaveUrlForAutoSync] = useState(true);
 
@@ -92,21 +96,109 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         document.body.removeChild(element);
     };
 
+    const parseCsvLine = (line: string): string[] => {
+        const out: string[] = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+                else inQuotes = !inQuotes;
+            } else if (ch === ',' && !inQuotes) {
+                out.push(cur.trim());
+                cur = '';
+            } else {
+                cur += ch;
+            }
+        }
+        out.push(cur.trim());
+        return out;
+    };
+
+    const parseDateFlex = (raw: string): string => {
+        const s = (raw || '').trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        const d = new Date(s);
+        if (Number.isNaN(d.getTime())) return '';
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
             const text = typeof reader.result === 'string' ? reader.result : '';
-            setUploadedIcsContent(text);
-            setUploadedIcsName(file.name);
-            setErrorMessage('');
+            const lowerName = file.name.toLowerCase();
+            if (lowerName.endsWith('.json')) {
+                try {
+                    const parsed = JSON.parse(text);
+                    const list = Array.isArray(parsed) ? parsed : parsed?.reservations;
+                    if (!Array.isArray(list) || list.length === 0) {
+                        setErrorMessage('JSON file has no reservations array.');
+                        setSyncStatus('error');
+                        return;
+                    }
+                    setUploadedReservations(list);
+                    setUploadedIcsContent('');
+                    setUploadedIcsName(`${file.name} (${list.length} bookings)`);
+                    setErrorMessage('');
+                } catch {
+                    setErrorMessage('Invalid JSON file.');
+                    setSyncStatus('error');
+                }
+            } else if (lowerName.endsWith('.csv')) {
+                const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+                if (lines.length < 2) {
+                    setErrorMessage('CSV file appears empty.');
+                    setSyncStatus('error');
+                    return;
+                }
+                const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
+                const idx = (...names: string[]) => headers.findIndex((h) => names.some((n) => h.includes(n)));
+                const iCode = idx('confirmation code', 'code');
+                const iStatus = idx('status');
+                const iGuest = idx('guest name', 'guest');
+                const iContact = idx('contact', 'phone');
+                const iStart = idx('start date', 'check-in', 'checkin');
+                const iEnd = idx('end date', 'check-out', 'checkout');
+                const iEarnings = idx('earnings', 'payout', 'total');
+                const rows: StructuredReservationInput[] = [];
+                for (const line of lines.slice(1)) {
+                    const cols = parseCsvLine(line);
+                    if (iStatus >= 0 && /cancel/i.test(cols[iStatus] || '')) continue;
+                    const checkInDate = parseDateFlex(iStart >= 0 ? cols[iStart] : '');
+                    const checkOutDate = parseDateFlex(iEnd >= 0 ? cols[iEnd] : '');
+                    if (!checkInDate || !checkOutDate) continue;
+                    rows.push({
+                        confirmationCode: iCode >= 0 ? cols[iCode] : '',
+                        guestName: iGuest >= 0 ? cols[iGuest] : '',
+                        phone: iContact >= 0 ? cols[iContact] : '',
+                        checkInDate,
+                        checkOutDate,
+                        totalAmount: iEarnings >= 0 ? (Number(String(cols[iEarnings] || '0').replace(/[^0-9.]/g, '')) || 0) : 0,
+                        source: importSource,
+                    });
+                }
+                setUploadedReservations(rows);
+                setUploadedIcsContent('');
+                setUploadedIcsName(`${file.name} (${rows.length} bookings)`);
+                setErrorMessage('');
+            } else {
+                setUploadedReservations(null);
+                setUploadedIcsContent(text);
+                setUploadedIcsName(file.name);
+                setErrorMessage('');
+            }
         };
         reader.readAsText(file);
     };
 
     const clearUploadedFile = () => {
         setUploadedIcsContent('');
+        setUploadedReservations(null);
         setUploadedIcsName('');
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -116,13 +208,19 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         setSyncStatus('importing');
         setErrorMessage('');
         try {
-            const res = await confirmRoomIcalImport(selectedRoom.number, {
-                url: uploadedIcsContent ? undefined : importUrl.trim(),
-                icsContent: uploadedIcsContent || undefined,
-                source: importSource,
-                overrideUids,
-                saveUrl: saveUrlForAutoSync && !uploadedIcsContent,
-            });
+            const res = uploadedReservations
+                ? await confirmStructuredReservations(selectedRoom.number, {
+                    source: importSource,
+                    reservations: uploadedReservations,
+                    overrideUids,
+                })
+                : await confirmRoomIcalImport(selectedRoom.number, {
+                    url: uploadedIcsContent ? undefined : importUrl.trim(),
+                    icsContent: uploadedIcsContent || undefined,
+                    source: importSource,
+                    overrideUids,
+                    saveUrl: saveUrlForAutoSync && !uploadedIcsContent,
+                });
             setLastResult(res);
             setPreview(null);
             setSelectedOverrideUids(new Set());
@@ -140,8 +238,8 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
             setSyncStatus('error');
             return;
         }
-        if (!uploadedIcsContent && !importUrl.trim()) {
-            setErrorMessage('Please paste an iCal URL or upload a .ics file.');
+        if (!uploadedReservations && !uploadedIcsContent && !importUrl.trim()) {
+            setErrorMessage('Please paste an iCal URL or upload an .ics / Airbnb .csv / extractor .json file.');
             setSyncStatus('error');
             return;
         }
@@ -152,11 +250,16 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         setLastResult(null);
 
         try {
-            const previewRes = await previewRoomIcalImport(selectedRoom.number, {
-                url: uploadedIcsContent ? undefined : importUrl.trim(),
-                icsContent: uploadedIcsContent || undefined,
-                source: importSource,
-            });
+            const previewRes = uploadedReservations
+                ? await previewStructuredReservations(selectedRoom.number, {
+                    source: importSource,
+                    reservations: uploadedReservations,
+                })
+                : await previewRoomIcalImport(selectedRoom.number, {
+                    url: uploadedIcsContent ? undefined : importUrl.trim(),
+                    icsContent: uploadedIcsContent || undefined,
+                    source: importSource,
+                });
 
             if (previewRes.conflicts.length > 0) {
                 // Stop and ask Admin explicitly whether to override conflicting dates
@@ -359,7 +462,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".ics,text/calendar"
+                                    accept=".ics,.csv,.json,text/calendar,text/csv,application/json"
                                     onChange={handleFileUpload}
                                     className="hidden"
                                 />
@@ -368,7 +471,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
                                     onClick={() => fileInputRef.current?.click()}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700"
                                 >
-                                    <Upload size={13} /> Or Upload .ics File
+                                    <Upload size={13} /> Upload .ics / Airbnb .csv / Extractor .json
                                 </button>
                                 {uploadedIcsName && (
                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700">

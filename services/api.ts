@@ -436,3 +436,56 @@ export const confirmRoomIcalImport = async (
   }
   return data;
 };
+
+export interface StructuredReservationInput {
+  confirmationCode?: string;
+  guestName?: string;
+  phone?: string;
+  checkInDate: string;
+  checkOutDate: string;
+  totalAmount?: number;
+  source?: string;
+  notes?: string;
+}
+
+export const previewStructuredReservations = async (
+  roomNumber: string,
+  payload: { source: string; reservations: StructuredReservationInput[] }
+): Promise<IcalPreviewResponse> => {
+  const response = await fetch(`${API_BASE_URL}/rooms/${encodeURIComponent(roomNumber)}/reservations/preview`, {
+    method: 'POST',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  const data = await response.json().catch(() => ({ error: 'Failed to preview reservations' }));
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to preview reservations');
+  }
+  return data;
+};
+
+export const confirmStructuredReservations = async (
+  roomNumber: string,
+  payload: { source: string; reservations: StructuredReservationInput[]; overrideUids: string[] }
+): Promise<IcalImportResult> => {
+  const response = await fetch(`${API_BASE_URL}/rooms/${encodeURIComponent(roomNumber)}/reservations/import`, {
+    method: 'POST',
+    headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+    redirect: 'manual',
+    credentials: 'include',
+  });
+  if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
+    throw new Error('AUTH_EXPIRED');
+  }
+  const data = await response.json().catch(() => ({ error: 'Failed to import reservations' }));
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to import reservations');
+  }
+  return data;
+};

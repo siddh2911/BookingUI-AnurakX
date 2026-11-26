@@ -1,0 +1,9 @@
+{
+  "airbnbBaseUrl": "https://www.airbnb.co.in",
+  "adminApiBaseUrl": "https://api.karunavillas.com",
+  "adminUiBaseUrl": "https://admin.karunavillas.com",
+  "defaultRoomNumber": "101",
+  "listingToRoom": {
+    "Karuna Villa": "101"
+  }
+}
