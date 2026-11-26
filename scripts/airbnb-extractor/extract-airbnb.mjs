@@ -236,57 +236,117 @@ async function main() {
   };
 
   // =========================================================================
-  // STEP 2: Go straight to Calendar -> Click each booked guest profile -> Extract details + Manage reservation
+  // STEP 2: Ask for Custom Date Range to search all customers
+  // =========================================================================
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const plus90 = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+
+  console.log('\n📅 Custom Date Range Search (press ENTER for defaults):');
+  const fromInput = (await rl.question(`   From Date (YYYY-MM-DD) [${todayIso}]: `)).trim();
+  const toInput = (await rl.question(`   To Date   (YYYY-MM-DD) [${plus90}]: `)).trim();
+  const fromDate = parseFlexibleDate(fromInput) || todayIso;
+  const toDate = parseFlexibleDate(toInput) || plus90;
+  console.log(`   Searching all Airbnb customers between ${fromDate} and ${toDate}...`);
+
+  // =========================================================================
+  // STEP 3: Open Calendar -> Scroll across months -> Click each guest profile -> Read Left/Side Panel
   // =========================================================================
   console.log(`\n2. Opening Calendar (${origin}/hosting/calendar)...`);
   await page.goto(`${origin}/hosting/calendar`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(4000);
 
-  // Find clickable guest booking bars / avatars inside the calendar
-  const calendarBookingHandles = await page.locator(
-    'button:has(img[alt]), [role="button"]:has(img[alt]), a[href*="/hosting/reservations/details/"]'
-  ).elementHandles();
+  // Calculate how many month scrolls to cover fromDate -> toDate
+  const monthsSpan = Math.max(
+    1,
+    Math.min(
+      12,
+      Math.ceil((new Date(toDate).getTime() - new Date(fromDate).getTime()) / (28 * 86400000)) + 1
+    )
+  );
 
-  console.log(`   Found ${calendarBookingHandles.length} potential guest profile pill(s) on Calendar...`);
-  for (let i = 0; i < Math.min(calendarBookingHandles.length, 30); i++) {
-    try {
-      const el = calendarBookingHandles[i];
-      const box = await el.boundingBox();
-      if (!box || box.width < 20 || box.y < 110) continue; // skip top navbar avatar
+  const clickedSignatures = new Set();
 
-      await el.click({ timeout: 2000 }).catch(() => {});
-      await page.waitForTimeout(1500);
+  for (let step = 0; step < monthsSpan; step++) {
+    const calendarBookingHandles = await page
+      .locator('button:has(img), [role="button"]:has(img), a[href*="/hosting/reservations/details/"]')
+      .elementHandles();
 
-      const panelText = await page.evaluate(() => {
-        const panel = document.querySelector('aside, [role="dialog"], [data-testid*="panel"], [data-testid*="drawer"]');
-        return (panel || document.body)?.innerText || '';
-      });
+    console.log(`   [Month view ${step + 1}/${monthsSpan}] Scanning ${calendarBookingHandles.length} profile pill(s)...`);
 
-      if (/Check-?in|You earn|Confirmation code|Manage reservation/i.test(panelText)) {
-        const parsed = parseReservationPanelText(panelText);
-        if (parsed.checkInDate && parsed.checkOutDate) {
-          addReservation(parsed);
-          console.log(
-            `   📌 Calendar booking: ${parsed.guestName} | ${parsed.checkInDate} → ${parsed.checkOutDate} | ₹${parsed.totalAmount}`
+    for (let i = 0; i < calendarBookingHandles.length; i++) {
+      try {
+        const el = calendarBookingHandles[i];
+        const box = await el.boundingBox();
+        if (!box || box.width < 20 || box.y < 100) continue; // skip top navbar avatar
+
+        const sig = await el.evaluate((node) => {
+          const img = node.querySelector('img');
+          return `${(node.innerText || '').trim().slice(0, 40)}|${img?.getAttribute('alt') || ''}|${img?.getAttribute('src')?.slice(-24) || ''}`;
+        }).catch(() => '');
+        if (!sig || clickedSignatures.has(sig)) continue;
+        clickedSignatures.add(sig);
+
+        await el.scrollIntoViewIfNeeded().catch(() => {});
+        await el.click({ timeout: 2000 }).catch(() => {});
+        await page.waitForTimeout(1400);
+
+        // Read the left/side reservation panel containing Check-in / You earn / Manage reservation
+        const panelData = await page.evaluate(() => {
+          const candidates = Array.from(
+            document.querySelectorAll('aside, [role="dialog"], [role="complementary"], [data-testid*="panel"], [data-testid*="drawer"], section, div')
+          ).filter((node) => {
+            const t = node.innerText || '';
+            return (
+              t.length > 40 &&
+              t.length < 4000 &&
+              /Check-?in/i.test(t) &&
+              (/Check-?out/i.test(t) || /You\s+earn/i.test(t) || /Manage\s+reservation/i.test(t))
+            );
+          });
+          // Pick the most specific (smallest) container that holds the full guest info panel
+          candidates.sort((a, b) => (a.innerText?.length || 9999) - (b.innerText?.length || 9999));
+          const best = candidates[0];
+          const text = best ? best.innerText : '';
+
+          const manageLink = Array.from((best || document).querySelectorAll('a')).find(
+            (a) =>
+              /manage reservation/i.test(a.innerText || '') ||
+              (a.getAttribute('href') || '').includes('/hosting/reservations/details/')
           );
-        }
-
-        // Check for "Manage reservation" link inside the side panel
-        const manageHref = await page.evaluate(() => {
-          const a = Array.from(document.querySelectorAll('a')).find((node) =>
-            /manage reservation/i.test(node.innerText || '') ||
-            (node.getAttribute('href') || '').includes('/hosting/reservations/details/')
-          );
-          return a?.getAttribute('href') || '';
+          return {
+            text,
+            manageHref: manageLink?.getAttribute('href') || '',
+          };
         });
-        if (manageHref) {
-          const m = manageHref.match(/details\/([A-Z0-9]+)/i);
-          const code = m ? m[1].toUpperCase() : parsed.confirmationCode || `CAL_${i}`;
-          const fullUrl = manageHref.startsWith('http') ? manageHref : `${origin}${manageHref}`;
-          detailUrlsToVisit.set(code, fullUrl);
+
+        if (panelData.text) {
+          const parsed = parseReservationPanelText(panelData.text);
+          if (parsed.checkInDate && parsed.checkOutDate) {
+            addReservation(parsed);
+            console.log(
+              `   📌 Found: ${parsed.guestName} | ${parsed.checkInDate} → ${parsed.checkOutDate} | ${parsed.whosComing || '-'} | ₹${parsed.totalAmount}`
+            );
+          }
+          if (panelData.manageHref) {
+            const m = panelData.manageHref.match(/details\/([A-Z0-9]+)/i);
+            const code = m ? m[1].toUpperCase() : parsed.confirmationCode || `CAL_${step}_${i}`;
+            const fullUrl = panelData.manageHref.startsWith('http')
+              ? panelData.manageHref
+              : `${origin}${panelData.manageHref}`;
+            detailUrlsToVisit.set(code, fullUrl);
+          }
         }
+      } catch {
+        /* ignore individual click errors */
       }
-    } catch { /* ignore */ }
+    }
+
+    // Scroll calendar grid forward to next month if more months remain
+    if (step + 1 < monthsSpan) {
+      await page.mouse.move(760, 460);
+      await page.mouse.wheel(0, 900);
+      await page.waitForTimeout(1800);
+    }
   }
 
   // =========================================================================
@@ -305,17 +365,17 @@ async function main() {
     }
   }
 
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const reservations = Array.from(reservationsByKey.values()).filter(
-    (r) => r.checkInDate && r.checkOutDate && r.checkOutDate >= todayIso
-  );
+  // Filter strictly to the custom date range [fromDate, toDate] provided by the user
+  const reservations = Array.from(reservationsByKey.values())
+    .filter((r) => r.checkInDate && r.checkOutDate && r.checkOutDate >= fromDate && r.checkInDate <= toDate)
+    .sort((a, b) => a.checkInDate.localeCompare(b.checkInDate));
 
   const outJsonPath = path.join(__dirname, 'airbnb-upcoming.json');
   fs.writeFileSync(
     outJsonPath,
-    JSON.stringify({ source: 'Airbnb', extractedAt: new Date().toISOString(), reservations }, null, 2)
+    JSON.stringify({ source: 'Airbnb', fromDate, toDate, extractedAt: new Date().toISOString(), reservations }, null, 2)
   );
-  console.log(`\n💾 Saved ${reservations.length} upcoming reservation(s) to: ${outJsonPath}`);
+  console.log(`\n💾 Saved ${reservations.length} reservation(s) (${fromDate} to ${toDate}) to: ${outJsonPath}`);
 
   if (reservations.length === 0) {
     console.log('\n⚠️  No upcoming bookings were found automatically.');
