@@ -220,6 +220,16 @@ async function navigateCalendarToMonth(page, calendarBaseUrl, year, month) {
   return true;
 }
 
+async function getVisibleCalendarMonthLabel(page) {
+  return page.evaluate(() => {
+    const monthRe = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+20\d{2}\b/i;
+    const candidates = Array.from(document.querySelectorAll('h1, h2, h3, button, span, div'))
+      .map((el) => (el.innerText || '').trim())
+      .filter((t) => t.length >= 8 && t.length <= 28 && monthRe.test(t));
+    return candidates[0] || '(unknown)';
+  }).catch(() => '(unknown)');
+}
+
 async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
   const handles = await page.locator('button:has(img), [role="button"]:has(img)').elementHandles();
   let newlyFound = 0;
@@ -313,8 +323,10 @@ async function main() {
     const { year, month } = monthsToScan[idx];
     console.log(`\n   [${idx + 1}/${monthsToScan.length}] Switching Calendar to ${MONTH_NAMES[month]} ${year}...`);
     await navigateCalendarToMonth(page, calendarBaseUrl, year, month);
+    const visibleMonth = await getVisibleCalendarMonthLabel(page);
+    console.log(`   📅 Target: ${MONTH_NAMES[month]} ${year} | Currently visible on Airbnb: ${visibleMonth}`);
     const found = await scanVisibleCalendar(page, reservationsByKey, clickedSignatures);
-    console.log(`   → Found ${found} new booking(s) in ${MONTH_NAMES[month]} ${year} (Total: ${reservationsByKey.size}).`);
+    console.log(`   → Found ${found} new booking(s) in ${visibleMonth} (Total: ${reservationsByKey.size}).`);
   }
 
   const reservations = Array.from(reservationsByKey.values())
