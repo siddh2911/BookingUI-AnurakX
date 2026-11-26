@@ -380,8 +380,23 @@ async function scanVisibleCalendar(page, reservationsByKey, clickedSignatures) {
   for (const el of handles) {
     try {
       const box = await el.boundingBox();
-      // Skip top navbar (y < 100) AND skip the entire left side panel (x < 360) so we NEVER click "Who's coming"!
-      if (!box || box.width < 20 || box.y < 100 || box.x < 360) continue;
+      // Only click booking pills inside the calendar grid (x: 40..900, y >= 160);
+      // NEVER click top navbar (y < 160) or anything inside the right-side guest panel (x > 900).
+      if (!box || box.width < 20 || box.y < 160 || box.x < 40 || box.x > 900) continue;
+
+      const isInsideGuestPanel = await el.evaluate((node) => {
+        if (node.closest('aside, [role="dialog"], [role="complementary"]')) return true;
+        let cur = node.parentElement;
+        for (let d = 0; d < 6 && cur; d++) {
+          const t = cur.innerText || '';
+          if (t.length < 4000 && /Who['’]s\s+coming|Cancellation\s+policy|Manage\s+reservation/i.test(t)) {
+            return true;
+          }
+          cur = cur.parentElement;
+        }
+        return false;
+      }).catch(() => true);
+      if (isInsideGuestPanel) continue;
 
       const sig = await el.evaluate((node) => {
         const img = node.querySelector('img');
