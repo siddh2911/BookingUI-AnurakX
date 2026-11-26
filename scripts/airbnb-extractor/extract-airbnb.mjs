@@ -284,40 +284,64 @@ async function navigateCalendarToMonth(page, year, month) {
   try {
     const selector = await findTopLeftDateSelector(page);
     if (selector) {
-      await selector.el.click({ timeout: 2000 });
-      await page.waitForTimeout(700);
-
-      // Look for exact "June 2026", "Jun 2026", or "June" inside the opened menu/popover
-      const optionSelectors = [
-        `[role="option"]:has-text("${targetFull}")`,
-        `[role="menuitem"]:has-text("${targetFull}")`,
-        `button:has-text("${targetFull}")`,
-        `li:has-text("${targetFull}")`,
-        `[role="option"]:has-text("${targetShort} ${year}")`,
-        `button:has-text("${targetShort} ${year}")`,
-        `[role="dialog"] button:has-text("${targetMonthName}")`,
-        `[role="menu"] button:has-text("${targetMonthName}")`,
-        `[role="listbox"] :text-is("${targetFull}")`,
-      ];
-
-      let clickedOption = false;
-      for (const sel of optionSelectors) {
-        const opt = page.locator(sel).first();
-        if (await opt.isVisible({ timeout: 400 }).catch(() => false)) {
-          await opt.scrollIntoViewIfNeeded().catch(() => {});
-          await opt.click({ timeout: 1500 }).catch(() => {});
-          clickedOption = true;
-          break;
-        }
-      }
-
-      if (clickedOption) {
-        await page.waitForTimeout(1600);
+      const tagName = await selector.el.evaluate((n) => n.tagName.toLowerCase()).catch(() => '');
+      if (tagName === 'select') {
+        await selector.el.selectOption({ label: targetFull }).catch(async () => {
+          await selector.el.selectOption({ label: `${targetShort} ${year}` }).catch(() => {});
+        });
+        await page.waitForTimeout(1500);
         currentLabel = await getVisibleCalendarMonthLabel(page);
         if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
       } else {
-        await page.keyboard.press('Escape').catch(() => {});
+        await selector.el.click({ timeout: 2000 });
+        await page.waitForTimeout(800);
+
+        // Log what options appeared inside the opened dropdown so we can verify
+        const visibleOpts = await page.evaluate(() => {
+          const pop = document.querySelector('[role="listbox"], [role="menu"], [role="dialog"], [data-testid*="popover"]');
+          if (!pop) return [];
+          return Array.from(pop.querySelectorAll('button, [role="option"], [role="menuitem"], li'))
+            .map((e) => (e.innerText || '').trim().replace(/\s+/g, ' '))
+            .filter((t) => t.length >= 3 && t.length <= 30)
+            .slice(0, 15);
+        }).catch(() => []);
+        if (visibleOpts.length > 0) {
+          console.log(`   🔽 Date selector "${selector.text}" options: ${visibleOpts.join(' | ')}`);
+        }
+
+        const optionSelectors = [
+          `[role="option"]:has-text("${targetFull}")`,
+          `[role="menuitem"]:has-text("${targetFull}")`,
+          `button:has-text("${targetFull}")`,
+          `li:has-text("${targetFull}")`,
+          `[role="option"]:has-text("${targetShort} ${year}")`,
+          `button:has-text("${targetShort} ${year}")`,
+          `[role="listbox"] :text-is("${targetFull}")`,
+          `[role="dialog"] button:has-text("${targetFull}")`,
+          `[role="menu"] button:has-text("${targetFull}")`,
+        ];
+
+        let clickedOption = false;
+        for (const sel of optionSelectors) {
+          const opt = page.locator(sel).first();
+          if (await opt.isVisible({ timeout: 300 }).catch(() => false)) {
+            await opt.scrollIntoViewIfNeeded().catch(() => {});
+            await opt.click({ timeout: 1500 }).catch(() => {});
+            clickedOption = true;
+            break;
+          }
+        }
+
+        if (clickedOption) {
+          await page.waitForTimeout(1600);
+          currentLabel = await getVisibleCalendarMonthLabel(page);
+          if (isMatch(currentLabel)) return { label: currentLabel, reachedBoundary: false };
+        } else {
+          await page.keyboard.press('Escape').catch(() => {});
+        }
       }
+    } else {
+      console.log('   ⚠️  Top-left date selector button not found.');
     }
   } catch { /* fallback below */ }
 
