@@ -1,11 +1,9 @@
 import React from 'react';
 import { StatCard } from './StatCard';
 import RevenueChart from './RevenueChart';
-import UpcomingArrivals from './UpcomingArrivals';
 import AvailabilityForecast from './AvailabilityForecast';
 import { PaymentQRCard } from './PaymentQRCard';
-import UrgentArrivals from './UrgentArrivals';
-import UrgentDepartures from './UrgentDepartures';
+import TodayBoard from './TodayBoard';
 import OccupancyChart from './OccupancyChart';
 import BookingStats from '../bookings/BookingStats';
 import { CreditCard, BedDouble, Users } from 'lucide-react';
@@ -34,6 +32,9 @@ interface DashboardProps {
   isRevenueVisible: boolean;
   setIsRevenueVisible: (visible: boolean) => void;
   handleSendReviewRequest?: (b: Booking) => void;
+  onUpdateStatus?: (bookingId: string, status: BookingStatus) => Promise<void> | void;
+  onAddPayment?: (booking: Booking) => Promise<void> | void;
+  onMarkRoomClean?: (room: Room) => Promise<void> | void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -57,6 +58,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   isRevenueVisible,
   setIsRevenueVisible,
   handleSendReviewRequest,
+  onUpdateStatus,
+  onAddPayment,
+  onMarkRoomClean,
 }) => {
   const { t } = useLanguage();
   const formatMultiple = (value: number) => {
@@ -66,20 +70,19 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      <UrgentArrivals
-        arrivals={upcomingArrivals}
+      <TodayBoard
+        isAdmin={isAdmin}
+        bookings={bookings}
+        upcomingArrivals={upcomingArrivals}
+        upcomingDepartures={upcomingDepartures}
         rooms={rooms}
+        housekeepingTasks={housekeepingTasks}
         today={today}
         onEditBooking={handleEditBooking}
-        housekeepingTasks={housekeepingTasks}
-      />
-      <UrgentDepartures
-        departures={upcomingDepartures}
-        rooms={rooms}
-        today={today}
-        onEditBooking={handleEditBooking}
-        housekeepingTasks={housekeepingTasks}
+        onUpdateStatus={onUpdateStatus}
+        onAddPayment={onAddPayment}
         onSendReviewRequest={handleSendReviewRequest}
+        onMarkRoomClean={onMarkRoomClean}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -240,16 +243,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           <PaymentQRCard />
         </div>
       </div>
-
-      <UpcomingArrivals
-        arrivals={upcomingArrivals}
-        rooms={rooms}
-        onEditBooking={handleEditBooking}
-        today={today}
-        housekeepingTasks={housekeepingTasks}
-      />
-
-
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {(isAdmin && isRevenueVisible) ? (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, ArrowRight } from 'lucide-react';
 import { APP_VERSION, DASHBOARD_RELOAD_KEY, GOOGLE_LOGIN_STARTED_KEY } from '../../appVersion';
+import { API_BASE_URL } from '../../constants/api';
 
 interface LoginPageProps {
     onLogin: () => void;
@@ -93,7 +94,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, isUnauthorized, errorCod
             clearPostLoginRefreshFlags();
             sessionStorage.setItem(GOOGLE_LOGIN_STARTED_KEY, `${APP_VERSION}:${Date.now()}`);
             await primeFreshAppShell();
-            window.location.href = 'https://api.karunavillas.com/oauth2/authorization/google';
+            window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
         } else {
             setTimeout(() => {
                 onLogin();

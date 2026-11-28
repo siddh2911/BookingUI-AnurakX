@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../ui/Modal';
 import SecurityModal from './SecurityModal';
 import { Room, BookingSource, PaymentMethod, Booking } from '../../types';
@@ -26,6 +26,7 @@ interface NewBookingModalProps {
    paidAmount: number;
    bookingPending: number;
    readOnly?: boolean;
+   isSubmitting?: boolean;
 }
 
 const NewBookingModal: React.FC<NewBookingModalProps> = ({
@@ -42,8 +43,9 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    paidAmount,
    bookingPending,
    readOnly = false,
+   isSubmitting = false,
 }) => {
-   const [apiAvailableRooms, setApiAvailableRooms] = useState<Room[]>([]);
+   const [rawFetchedRooms, setRawFetchedRooms] = useState<Room[]>([]);
    const [isLoadingRooms, setIsLoadingRooms] = useState<boolean>(false);
    const [roomFetchError, setRoomFetchError] = useState<string | null>(null);
    const [dateError, setDateError] = useState<string | null>(null);
@@ -58,22 +60,25 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
    const [dynamicBookingSources, setDynamicBookingSources] = useState<string[]>([]);
 
    useEffect(() => {
-      const savedPackages = localStorage.getItem('karuna_packages');
-      if (savedPackages) setDynamicPackages(JSON.parse(savedPackages));
-      else setDynamicPackages(['Honeymoon', 'Standard', 'Corporate', 'Long Stay']);
+      const safeParseArray = <T,>(key: string, fallback: T[]): T[] => {
+         try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : fallback;
+         } catch {
+            return fallback;
+         }
+      };
 
-      const savedPlans = localStorage.getItem('karuna_meal_plans');
-      if (savedPlans) setDynamicMealPlans(JSON.parse(savedPlans));
-      else setDynamicMealPlans([
+      setDynamicPackages(safeParseArray('karuna_packages', ['Honeymoon', 'Standard', 'Corporate', 'Long Stay']));
+      setDynamicMealPlans(safeParseArray('karuna_meal_plans', [
          { code: 'EP', name: 'Room Only' },
          { code: 'CP', name: 'Breakfast' },
          { code: 'MAP', name: 'Half Board' },
          { code: 'AP', name: 'Full Board' }
-      ]);
-
-      const savedSources = localStorage.getItem('karuna_booking_sources');
-      if (savedSources) setDynamicBookingSources(JSON.parse(savedSources));
-      else setDynamicBookingSources(['Direct Website', 'Walk-in', 'Booking.com', 'Airbnb', 'Expedia', 'Instagram', 'MakeMyTrip', 'Agoda', 'Goibibo']);
+      ]));
+      setDynamicBookingSources(safeParseArray('karuna_booking_sources', ['Direct Website', 'Walk-in', 'Booking.com', 'Airbnb', 'Expedia', 'Instagram', 'MakeMyTrip', 'Agoda', 'Goibibo']));
    }, []);
 
    const localNights = newBookingData.checkIn && newBookingData.checkOut
@@ -168,77 +173,121 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
 
    useEffect(() => {
       if (readOnly || !isOpen || !newBookingData.checkIn || !newBookingData.checkOut) {
-         setApiAvailableRooms([]);
+         setRawFetchedRooms([]);
+         setRoomFetchError(null);
          return;
       }
+
+      let cancelled = false;
+      const controller = new AbortController();
 
       const fetchAvailableRooms = async () => {
          setIsLoadingRooms(true);
          setRoomFetchError(null);
-         let roomsToFilter: Room[] = [];
 
          try {
             const fetchedRooms = await getAvailableRooms({
                startDate: newBookingData.checkIn,
                endDate: newBookingData.checkOut,
                hotelId: newBookingData.hotelId ?? DEFAULT_HOTEL_ID,
+               signal: controller.signal,
             });
-            roomsToFilter = fetchedRooms;
+            if (cancelled) return;
+            setRawFetchedRooms(fetchedRooms);
          } catch (error: any) {
+            if (cancelled || error?.name === 'AbortError') return;
             console.error("API Error fetching rooms:", error);
-            setRoomFetchError(error.message || 'Failed to fetch rooms');
+            setRoomFetchError(error.message || 'Failed to verify room availability. Please retry.');
+            setRawFetchedRooms([]);
+         } finally {
+            if (!cancelled) {
+               setIsLoadingRooms(false);
+            }
          }
-
-         if (roomsToFilter.length === 0 && rooms.length > 0) {
-            console.warn("API returned 0 rooms or failed. Falling back to local room list.");
-            roomsToFilter = rooms;
-         }
-
-         const validRooms = roomsToFilter.filter(room => {
-            const hasConflict = bookings.some(b => {
-               if (editingBookingId && b.id === editingBookingId) return false;
-               if (b.status === 'Cancelled' || b.status === 'Checked Out') return false;
-               if (String(b.roomId) !== String(room.id)) return false;
-
-               const bookingStart = b.checkInDate;
-               const bookingEnd = b.checkOutDate;
-               const requestStart = newBookingData.checkIn;
-               const requestEnd = newBookingData.checkOut;
-
-               return requestStart < bookingEnd && requestEnd > bookingStart;
-            });
-            return !hasConflict;
-         });
-
-         setApiAvailableRooms(validRooms);
-
-         if (!newBookingData.roomId && validRooms.length > 0) {
-            setNewBookingData((prev: any) => {
-               const defaultRate = validRooms[0].pricePerNight;
-               let newSources = prev.sources;
-               if (newSources && newSources.length > 0) {
-                  newSources = newSources.map((s: any) => {
-                     if (!s.nightlyRate || s.nightlyRate === 0 || s.nightlyRate === prev.roomRate) {
-                        return { ...s, nightlyRate: defaultRate };
-                     }
-                     return s;
-                  });
-               }
-               return {
-                  ...prev,
-                  hotelId: validRooms[0].hotelId ?? prev.hotelId ?? DEFAULT_HOTEL_ID,
-                  roomId: validRooms[0].id,
-                  roomRate: defaultRate,
-                  sources: newSources
-               };
-            });
-         }
-
-         setIsLoadingRooms(false);
       };
 
       fetchAvailableRooms();
-   }, [isOpen, newBookingData.checkIn, newBookingData.checkOut, readOnly]);
+
+      return () => {
+         cancelled = true;
+         controller.abort();
+      };
+   }, [isOpen, newBookingData.checkIn, newBookingData.checkOut, newBookingData.hotelId, readOnly]);
+
+   const apiAvailableRooms = useMemo(() => {
+      if (readOnly || !isOpen || !newBookingData.checkIn || !newBookingData.checkOut) {
+         return [];
+      }
+
+      const hasConflictForRoom = (roomId: string | number, roomNumber?: string) =>
+         bookings.some(b => {
+            if (editingBookingId && b.id === editingBookingId) return false;
+            if (b.status === 'Cancelled' || b.status === 'Checked Out') return false;
+            const bookingRoom = rooms.find(r => String(r.id) === String(b.roomId));
+            const sameRoom =
+               String(b.roomId) === String(roomId) ||
+               (roomNumber != null && bookingRoom != null && String(bookingRoom.number) === String(roomNumber)) ||
+               (roomNumber != null && String(b.roomId) === String(roomNumber));
+            if (!sameRoom) return false;
+
+            return newBookingData.checkIn < b.checkOutDate && newBookingData.checkOut > b.checkInDate;
+         });
+
+      const validRooms = rawFetchedRooms.filter(room => !hasConflictForRoom(room.id, room.number));
+
+      // When editing an existing booking, allow its originally assigned room only if it has no conflict for the selected dates
+      if (editingBookingId) {
+         const originalBooking = bookings.find(b => b.id === editingBookingId);
+         const originalRoomId = originalBooking?.roomId;
+         const originalRoom = originalRoomId ? rooms.find(r => String(r.id) === String(originalRoomId)) : undefined;
+         if (originalRoomId && !hasConflictForRoom(originalRoomId, originalRoom?.number)) {
+            if (originalRoom && !validRooms.some(r => String(r.id) === String(originalRoom.id) || String(r.number) === String(originalRoom.number))) {
+               validRooms.unshift(originalRoom);
+            }
+         }
+      }
+
+      return validRooms;
+   }, [rawFetchedRooms, bookings, rooms, editingBookingId, isOpen, readOnly, newBookingData.checkIn, newBookingData.checkOut]);
+
+   const hasSelectedAvailableRoom = apiAvailableRooms.some(r => String(r.id) === String(newBookingData.roomId));
+
+   useEffect(() => {
+      if (readOnly || !isOpen || isLoadingRooms || roomFetchError) return;
+
+      const currentRoomIsAvailable = apiAvailableRooms.some(r => String(r.id) === String(newBookingData.roomId));
+
+      if (newBookingData.roomId && !currentRoomIsAvailable) {
+         setNewBookingData((prev: any) => ({
+            ...prev,
+            roomId: ''
+         }));
+         return;
+      }
+
+      if (!newBookingData.roomId && apiAvailableRooms.length > 0) {
+         setNewBookingData((prev: any) => {
+            if (prev.roomId) return prev;
+            const defaultRate = apiAvailableRooms[0].pricePerNight;
+            let newSources = prev.sources;
+            if (newSources && newSources.length > 0) {
+               newSources = newSources.map((s: any) => {
+                  if (!s.nightlyRate || s.nightlyRate === 0 || s.nightlyRate === prev.roomRate) {
+                     return { ...s, nightlyRate: defaultRate };
+                  }
+                  return s;
+               });
+            }
+            return {
+               ...prev,
+               hotelId: apiAvailableRooms[0].hotelId ?? prev.hotelId ?? DEFAULT_HOTEL_ID,
+               roomId: apiAvailableRooms[0].id,
+               roomRate: defaultRate,
+               sources: newSources
+            };
+         });
+      }
+   }, [isOpen, readOnly, isLoadingRooms, roomFetchError, apiAvailableRooms, newBookingData.roomId, setNewBookingData]);
 
    const modalTitle = readOnly ? "Reservation Details" : editingBookingId ? "Modify Reservation" : "New Reservation";
 
@@ -259,22 +308,6 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
       : [];
 
 
-   if (editingBookingId) {
-      const originalBooking = bookings.find(b => b.id === editingBookingId);
-      if (originalBooking && !apiAvailableRooms.find(r => r.id === originalBooking.roomId)) {
-         const originalRoom = rooms.find(r => r.id === originalBooking.roomId);
-         if (originalRoom) {
-            roomOptions.push({
-               value: originalRoom.id,
-               label: `Room ${originalRoom.number} (Current)`,
-               subtitle: `${originalRoom.type} — ₹${originalRoom.pricePerNight}`,
-               icon: <div className="w-2 h-2 rounded-full bg-blue-500" />
-            });
-         }
-      }
-   }
-
-
    const sourceOptions: SelectOption[] = dynamicBookingSources.map(s => ({
       value: s,
       label: s,
@@ -287,7 +320,8 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
       <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
          <form id="new-booking-form" onSubmit={(e) => {
             e.preventDefault();
-            const selectedRoom = apiAvailableRooms.find(r => Number(r.id) === Number(newBookingData.roomId)) || rooms.find(r => Number(r.id) === Number(newBookingData.roomId));
+            const selectedRoom = apiAvailableRooms.find(r => Number(r.id) === Number(newBookingData.roomId));
+            if (!selectedRoom) return;
             handleSaveBooking(e, selectedRoom);
          }} className="min-h-[500px] pb-24 lg:pb-0">
 
@@ -700,12 +734,18 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  <div className="flex items-center gap-2 mt-2">
                                     <span className="text-2xl font-serif text-slate-400">₹</span>
                                     <input
-                                       type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
+                                       type="number" min="0" onWheel={(e) => (e.target as HTMLElement).blur()}
                                        className="text-3xl font-serif bg-transparent border-b border-white/10 outline-none w-full placeholder:text-slate-600 focus:border-white/50 transition-colors text-white"
                                        value={newBookingData.manualTotal !== undefined ? (newBookingData.manualTotal === null ? '' : newBookingData.manualTotal) : (localCalculatedTotal || '')}
                                        onChange={(e) => {
                                           const val = e.target.value;
-                                          const newTotal = val === '' ? 0 : parseFloat(val);
+                                          if (val === '') {
+                                             setNewBookingData({ ...newBookingData, manualTotal: undefined });
+                                             return;
+                                          }
+                                          const parsed = parseFloat(val);
+                                          if (isNaN(parsed) || parsed < 0) return;
+                                          const newTotal = parsed;
 
                                           const currentExtras = newBookingData.additionalCharges?.reduce((sum: number, i: any) => sum + (Number(i.amount) || 0), 0) || 0;
                                           const calculatedRoomTotal = Math.max(0, newTotal - currentExtras);
@@ -786,13 +826,15 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1 border border-white/10">
                                           <span className="text-slate-400">₹</span>
                                           <input
-                                             type="number" onWheel={(e) => (e.target as HTMLElement).blur()}
+                                             type="number" min="0" max={bookingTotal > 0 ? bookingTotal : undefined} onWheel={(e) => (e.target as HTMLElement).blur()}
                                              className="w-20 bg-transparent text-right outline-none text-white placeholder:text-white/20"
                                              placeholder="0"
                                              value={newBookingData.advance}
                                              onChange={(e) => {
-                                                const val = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                                                setNewBookingData({ ...newBookingData, advance: isNaN(val) ? 0 : val });
+                                                const raw = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                                                const maxAllowed = Math.max(0, Number(bookingTotal) || 0);
+                                                const clamped = isNaN(raw) ? 0 : Math.min(Math.max(0, raw), maxAllowed > 0 ? maxAllowed : Math.max(0, raw));
+                                                setNewBookingData({ ...newBookingData, advance: clamped });
                                              }}
                                           />
                                        </div>
@@ -896,10 +938,10 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                                  {!readOnly && (
                                     <button
                                        type="submit"
-                                       disabled={!!dateError || !!sourceDateError || isLoadingRooms}
+                                       disabled={!!dateError || !!sourceDateError || !!roomFetchError || isLoadingRooms || isSubmitting || apiAvailableRooms.length === 0 || !hasSelectedAvailableRoom}
                                        className="flex-[2] py-3 rounded-xl bg-white text-slate-900 font-bold hover:bg-slate-50 transition-colors text-sm shadow-lg disabled:opacity-50"
                                     >
-                                       {editingBookingId ? "Save Changes" : "Confirm Booking"}
+                                       {isSubmitting ? "Saving..." : editingBookingId ? "Save Changes" : "Confirm Booking"}
                                     </button>
                                  )}
                               </div>
@@ -925,10 +967,10 @@ const NewBookingModal: React.FC<NewBookingModalProps> = ({
                <button
                   type="submit"
                   form="new-booking-form"
-                  disabled={!!dateError || !!sourceDateError || isLoadingRooms}
+                  disabled={!!dateError || !!sourceDateError || !!roomFetchError || isLoadingRooms || isSubmitting || apiAvailableRooms.length === 0 || !hasSelectedAvailableRoom}
                   className="flex-[2] py-3 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors text-sm shadow-lg disabled:opacity-50"
                >
-                  {editingBookingId ? "Save" : "Confirm"}
+                  {isSubmitting ? "Saving..." : editingBookingId ? "Save" : "Confirm"}
                </button>
             </div>
          )}

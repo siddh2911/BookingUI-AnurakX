@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from '../ui/Modal';
 import { Booking, Payment, PaymentMethod, PaymentType } from '../../types';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -9,9 +9,10 @@ interface PaymentModalProps {
   selectedBooking: Booking | null;
   handleAddPayment: (e: React.FormEvent<HTMLFormElement>) => void;
   payments: Payment[];
+  isSubmitting?: boolean;
 }
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBooking, handleAddPayment, payments }) => {
+const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBooking, handleAddPayment, payments = [], isSubmitting = false }) => {
   if (!isOpen || !selectedBooking) return null;
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -39,15 +40,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBo
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {payments.map(p => (
+                {payments.map(p => {
+                  const parsedDate = p.date ? new Date(p.date) : null;
+                  const formattedDate = parsedDate && isValid(parsedDate) ? format(parsedDate, 'MMM d, yyyy') : '—';
+                  return (
                   <tr key={p.id}>
-                    <td className="px-2 py-1">{format(new Date(p.date), 'MMM d, yyyy')}</td>
+                    <td className="px-2 py-1">{formattedDate}</td>
                     <td className="px-2 py-1">₹{p.amount.toLocaleString()}</td>
                     <td className="px-2 py-1">{p.method}</td>
                     <td className="px-2 py-1">{p.type}</td>
                     <td className="px-2 py-1">{p.bookingSource || 'Unknown'}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             <div className="flex justify-end text-sm font-bold text-slate-800 mt-2">
@@ -62,6 +67,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBo
             <input
               name="amount"
               type="number"
+              min="0.01"
               step="0.01"
               required
               className="w-full border rounded-lg p-2 text-sm"
@@ -94,8 +100,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, selectedBo
           </div>
         </div>
         <div className="flex justify-end gap-3 pt-4">
-          <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
-          <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Record Payment</button>
+          <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 border rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+          <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">{isSubmitting ? 'Recording...' : 'Record Payment'}</button>
         </div>
       </form>
     </Modal>

@@ -11,9 +11,9 @@ import { RoomSchema } from './schemas';
 
 
 export const getAvailableRooms = async (
-  options: { startDate: string, endDate: string, hotelId?: number }
+  options: { startDate: string, endDate: string, hotelId?: number, signal?: AbortSignal }
 ): Promise<Room[]> => {
-  const { startDate, endDate, hotelId } = options;
+  const { startDate, endDate, hotelId, signal } = options;
   const url = new URL(`${API_BASE_URL}/available-rooms`);
   url.searchParams.append('startDate', startDate);
   url.searchParams.append('endDate', endDate);
@@ -25,7 +25,8 @@ export const getAvailableRooms = async (
 
   const response = await fetch(url.toString(), {
     redirect: 'manual',
-    credentials: 'include'
+    credentials: 'include',
+    signal,
   });
 
   if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401 || response.status === 403) {
@@ -118,7 +119,7 @@ export const getRoomDetails = async (id: number): Promise<Room> => {
 };
 
 export const updateRoomCleanStatus = async (roomNumber: string, status: 'CLEAN' | 'DIRTY' | 'INSPECTED' | 'MAINTENANCE'): Promise<void> => {
-  const url = `${API_BASE_URL}/rooms/${roomNumber}/clean-status?status=${status}`;
+  const url = `${API_BASE_URL}/rooms/${encodeURIComponent(roomNumber)}/clean-status?status=${encodeURIComponent(status)}`;
 
   console.log(`Updating room ${roomNumber} clean status to ${status}...`);
 
@@ -182,7 +183,7 @@ export const createMaintenanceTicket = async (ticket: any): Promise<any> => {
 
 export const updateMaintenanceTicketStatus = async (id: string, status: string): Promise<void> => {
   const payloadStatus = status === 'In Progress' ? 'IN_PROGRESS' : status === 'Resolved' ? 'RESOLVED' : 'OPEN';
-  const response = await fetch(`${API_BASE_URL}/maintenance/${id}/status?status=${payloadStatus}`, { 
+  const response = await fetch(`${API_BASE_URL}/maintenance/${encodeURIComponent(id)}/status?status=${encodeURIComponent(payloadStatus)}`, { 
     method: 'PUT',
     headers: csrfHeaders(),
     redirect: 'manual',
@@ -197,7 +198,7 @@ export const updateMaintenanceTicketStatus = async (id: string, status: string):
 };
 
 export const deleteMaintenanceTicket = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/maintenance/${id}`, { 
+  const response = await fetch(`${API_BASE_URL}/maintenance/${encodeURIComponent(id)}`, { 
     method: 'DELETE',
     headers: csrfHeaders(),
     redirect: 'manual',

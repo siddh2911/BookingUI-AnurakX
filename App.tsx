@@ -18,8 +18,12 @@ axios.interceptors.request.use((config) => {
   if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
     const token = getCsrfToken();
     if (token) {
-      config.headers = config.headers || {};
-      (config.headers as any)['X-XSRF-TOKEN'] = token;
+      const decodedToken = decodeURIComponent(token);
+      if (config.headers && typeof (config.headers as any).set === 'function') {
+        (config.headers as any).set('X-XSRF-TOKEN', decodedToken);
+      } else {
+        config.headers = { ...(config.headers as any), 'X-XSRF-TOKEN': decodedToken } as any;
+      }
     }
   }
   return config;
@@ -34,7 +38,7 @@ axios.interceptors.response.use(
                              window.location.pathname.startsWith('/unauthorized') ||
                              window.location.pathname.startsWith('/tv');
       if (!isHandlingAuth) {
-        window.location.href = 'https://admin.karunavillas.com/login?error=unauthorized';
+        window.location.href = `${window.location.origin}/login?error=unauthorized`;
       }
     }
     return Promise.reject(error);
@@ -56,7 +60,6 @@ import ChannelManagerPage from './components/pages/ChannelManagerPage';
 import MarketingPage from './components/pages/MarketingPage';
 import HouseRulesPage from './components/pages/HouseRulesPage';
 import LogsPage from './components/pages/LogsPage';
-import NotificationSettings from './components/settings/NotificationSettings';
 import LoginPage from './components/pages/LoginPage';
 import UnauthorizedPage from './components/pages/UnauthorizedPage';
 import TvDisplayPage from './components/pages/TvDisplayPage';
@@ -231,7 +234,7 @@ export default function App() {
 
   const checkSession = useCallback(async (): Promise<boolean> => {
       try {
-        const response = await axios.get('https://api.karunavillas.com/api/user', {
+        const response = await axios.get(`${API_BASE_URL}/api/user`, {
           timeout: 10000 // Increased timeout for slower resolutions
         });
         
@@ -264,7 +267,9 @@ export default function App() {
                   const authTokens = collectAuthTokens(data);
                   const parsedRole = getRoleFromAuthPayload(data);
                   
-                  console.log("[AUTH] Role Decided:", parsedRole, "| Auth Tokens:", Array.from(authTokens));
+                  if ((import.meta as any).env?.DEV) {
+                    console.log("[AUTH] Role Decided:", parsedRole, "| Auth Tokens:", Array.from(authTokens));
+                  }
 
                   setCurrentUser({
                     id: data.id || data.sub || 'user',
@@ -325,10 +330,12 @@ export default function App() {
         setIsUnauthorized(false);
       }
     } catch (err) {
-      console.warn("[AUTH] Backend sync failed, defaulting to View role.", err);
-      setCurrentUser({ id: 'u_mock', name: 'Mock User', role: 'View' });
-      setIsRoleVerified(true); // Verification complete (fallback)
-      setIsAuthenticated(true);
+      if ((import.meta as any).env?.DEV) {
+        console.warn("[AUTH] Backend session check failed:", err);
+      }
+      setIsAuthenticated(false);
+      setIsRoleVerified(false);
+      setLoginError('session_check_failed');
     } finally {
       setIsAuthLoading(false);
     }
@@ -358,7 +365,7 @@ export default function App() {
       
       // Clear session on backend
       await axios.post(`${API_BASE_URL}/logout`, {}, {
-        headers: csrfHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' })
+        headers: csrfHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }) as Record<string, string>
       });
     } catch (err) {
       console.error('Backend logout failed', err);
@@ -376,7 +383,7 @@ export default function App() {
       setIsUnauthorized(false);
       setLoginError(null);
       // Force reload to clear any sensitive memory/state and ensure a fresh start
-      window.location.href = 'https://admin.karunavillas.com/login';
+      window.location.href = `${window.location.origin}/login`;
     }
   }, [addLog, currentUser]);
 
@@ -425,7 +432,9 @@ export default function App() {
     const reloadKey = `${DASHBOARD_RELOAD_KEY}_${APP_VERSION}_${currentUser.id || 'anon'}`;
     if (sessionStorage.getItem(reloadKey)) return;
 
-    console.log("[AUTH] Reloading dashboard once after login.");
+    if ((import.meta as any).env?.DEV) {
+      console.log("[AUTH] Reloading dashboard once after login.");
+    }
     sessionStorage.setItem(reloadKey, 'true');
     setIsPostLoginRefreshing(true);
 
@@ -442,7 +451,9 @@ export default function App() {
   const [authRetryCount, setAuthRetryCount] = useState(0);
   useEffect(() => {
     if (isAuthenticated && !isRoleVerified && authRetryCount < 6) {
-      console.log(`[AUTH] Polling for role... Attempt ${authRetryCount + 1}`);
+      if ((import.meta as any).env?.DEV) {
+        console.log(`[AUTH] Polling for role... Attempt ${authRetryCount + 1}`);
+      }
       const timer = setTimeout(() => {
         checkSession();
         setAuthRetryCount(prev => prev + 1);
@@ -478,17 +489,21 @@ export default function App() {
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isSavingBooking, setIsSavingBooking] = useState(false);
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const isAdmin = isRoleVerified && currentUser.role === 'Administrator';
 
   useEffect(() => {
-     console.log("[AUTH] Auth State Updated:", {
-       role: currentUser.role, 
-       isRoleVerified, 
-       isAdmin, 
-       isAuthenticated 
-     });
+     if ((import.meta as any).env?.DEV) {
+       console.log("[AUTH] Auth State Updated:", {
+         role: currentUser.role, 
+         isRoleVerified, 
+         isAdmin, 
+         isAuthenticated 
+       });
+     }
 
      if (isAdmin && isRoleVerified && isAuthenticated) {
        const sessionKey = `has_refreshed_admin_sync_${APP_VERSION}_${currentUser.id || 'anon'}`;
@@ -578,9 +593,14 @@ export default function App() {
   });
 
 
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
+
   const fetchBookingPayments = useCallback(async (bookingId: string) => {
+    setIsLoadingPayments(true);
+    setPaymentsError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/payments`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(bookingId)}/payments`, {
         redirect: 'manual',
         credentials: 'include'
       });
@@ -590,12 +610,18 @@ export default function App() {
         return;
       }
 
-      if (!response.ok) throw new Error(`Failed: ${response.statusText}`);
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `Failed to load payments (${response.status})`);
+      }
       const data: Payment[] = await response.json();
-      setCurrentBookingPayments(data);
-    } catch (error) {
+      setCurrentBookingPayments(Array.isArray(data) ? data : []);
+    } catch (error: any) {
       console.error(`Error fetching payments:`, error);
+      setPaymentsError(error?.message || 'Failed to load payment history.');
       setCurrentBookingPayments([]);
+    } finally {
+      setIsLoadingPayments(false);
     }
   }, []);
 
@@ -642,8 +668,9 @@ export default function App() {
         const normalizedStatus: BookingStatus =
           rawStatus === 'CONFIRMED' ? BookingStatus.CONFIRMED :
           rawStatus === 'CHECKED_IN' || rawStatus === 'CHECKED IN' ? BookingStatus.CHECKED_IN :
-          rawStatus === 'CHECKED_OUT' || rawStatus === 'CHECKED OUT' ? BookingStatus.CHECKED_OUT :
+          rawStatus === 'CHECKED_OUT' || rawStatus === 'CHECKED OUT' || rawStatus === 'COMPLETED' ? BookingStatus.CHECKED_OUT :
           rawStatus === 'CANCELLED' ? BookingStatus.CANCELLED :
+          rawStatus === 'NO_SHOW' || rawStatus === 'NO SHOW' ? BookingStatus.NO_SHOW :
           (b.status as BookingStatus);
 
         return {
@@ -735,13 +762,6 @@ export default function App() {
     }
   }, []); // Only fetchMaintenanceTickets and initial setup depend on this now. roomsRef handles the lookup.
 
-  useEffect(() => { 
-    if (isAuthenticated) {
-      fetchBookings(); 
-    }
-  }, [fetchBookings, isAuthenticated]);
-
-
   const stats = useMemo(() => {
     const parseDate = (dateStr: string) => {
       const [y, m, d] = dateStr.split('-').map(Number);
@@ -791,12 +811,12 @@ export default function App() {
     const weekElapsedDays = Math.max(1, Math.ceil((endOfWeekToDate.getTime() - startOfWeek.getTime()) / (1000 * 60 * 60 * 24)));
     const startOfPreviousWeekToDate = addDays(startOfWeek, -7);
     const endOfPreviousWeekToDate = addDays(startOfPreviousWeekToDate, weekElapsedDays);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const endOfYear = new Date(now.getFullYear(), 11, 31);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const endOfYear = new Date(now.getFullYear() + 1, 0, 1);
     const currentMonth = now.getMonth();
     const fyStartYear = currentMonth < 3 ? now.getFullYear() - 1 : now.getFullYear();
     const startOfFY = new Date(fyStartYear, 3, 1);
-    const endOfFY = new Date(fyStartYear + 1, 2, 31);
+    const endOfFY = new Date(fyStartYear + 1, 3, 1);
 
     const occupancyToday = calculateOccupancy(startOfDay, endOfDay);
     const occupancyWeek = calculateOccupancy(startOfWeek, endOfWeek);
@@ -945,24 +965,15 @@ export default function App() {
 
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchBookings();
-      const interval = setInterval(() => {
+    if (!isAuthenticated) return;
+    fetchBookings();
+    const interval = setInterval(() => {
+      if (!document.hidden) {
         fetchBookings();
-      }, 30000); // Regular refresh every 30 seconds
-      return () => clearInterval(interval);
-    }
+      }
+    }, 30000); // Regular refresh every 30 seconds while tab is visible
+    return () => clearInterval(interval);
   }, [isAuthenticated, fetchBookings]);
-
-  useEffect(() => {
-    if (isAuthenticated && stats.totalCheckIns === 0) {
-      const retryTimer = setInterval(() => {
-        console.log("No check-ins found (0). Retrying fetch...");
-        fetchBookings();
-      }, 10000); // Check every 10 seconds if no data
-      return () => clearInterval(retryTimer);
-    }
-  }, [isAuthenticated, stats.totalCheckIns, fetchBookings]);
 
 
   const handleVoiceCommand = useCallback(async (transcript: string): Promise<string> => {
@@ -1123,7 +1134,7 @@ export default function App() {
     setEditingBookingId(booking.id);
     setIsViewOnlyMode(!isAdmin ? true : isViewOnly);
     try {
-      const response = await fetch(`${API_BASE_URL}/bookings/${booking.id}`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(booking.id)}`, {
         redirect: 'manual',
         credentials: 'include'
       });
@@ -1199,10 +1210,11 @@ export default function App() {
       console.error('Error fetching booking for edit:', error.message);
       setEditingBookingId(null);
     }
-  }, [setEditingBookingId, setNewBookingData, setIsBookingModalOpen, rooms]);
+  }, [isAdmin, setEditingBookingId, setNewBookingData, setIsBookingModalOpen, rooms]);
 
   const handleSaveBooking = useCallback(async (e: React.FormEvent<HTMLFormElement>, selectedRoom: Room | undefined) => {
     e.preventDefault();
+    if (isSavingBooking) return;
     if (!isAdmin) {
       alert("Access Denied: You do not have permission to modify bookings.");
       return;
@@ -1225,20 +1237,24 @@ export default function App() {
     });
 
     const sourcesSum = formattedSources?.length ? formattedSources.reduce((sum, src) => sum + src.amount, 0) : roomTotal;
-    const bookingTotal = newBookingData.manualTotal !== undefined ? newBookingData.manualTotal : (sourcesSum + additionalTotal);
+    const rawTotal = newBookingData.manualTotal !== undefined && newBookingData.manualTotal !== null ? Number(newBookingData.manualTotal) : (sourcesSum + additionalTotal);
+    const bookingTotal = Number.isFinite(rawTotal) && rawTotal >= 0 ? rawTotal : 0;
+    const rawAdvance = Number(advance) || 0;
+    const safeAdvance = Math.min(Math.max(0, rawAdvance), bookingTotal > 0 ? bookingTotal : Math.max(0, rawAdvance));
 
     const bookingPayload = {
       fullName: guestName, emailId: guestEmail, mobileNumber: guestPhone, hotelId: hotelId ?? DEFAULT_HOTEL_ID, checkInDate: checkIn, checkOutDate: checkOut,
-      roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: formattedSources, advanceAmount: advance,
+      roomNo: room?.number || '', nightlyRate: roomRate, bookingSources: formattedSources, advanceAmount: safeAdvance,
       paymentMethod: paymentMethod, internalNotes: notes, totalAmount: bookingTotal, additionalCharges,
       mealPlan, bookingPackage
     };
 
+    setIsSavingBooking(true);
     try {
       let response;
       let url = `${API_BASE_URL}/saveBooking`;
       let method = 'POST';
-      if (editingBookingId) { url = `${API_BASE_URL}/bookings/${editingBookingId}`; method = 'PUT'; }
+      if (editingBookingId) { url = `${API_BASE_URL}/bookings/${encodeURIComponent(editingBookingId)}`; method = 'PUT'; }
 
       response = await fetch(url, { 
         method: method, 
@@ -1252,7 +1268,22 @@ export default function App() {
         setIsUnauthorized(true);
         return;
       }
-      if (!response.ok) throw new Error(`Failed to ${editingBookingId ? 'update' : 'save'} booking.`);
+      if (!response.ok) {
+        const rawMsg = await response.text().catch(() => '');
+        let serverMsg = rawMsg;
+        try {
+          const parsed = rawMsg ? JSON.parse(rawMsg) : null;
+          if (parsed && typeof parsed === 'object') {
+            serverMsg = parsed.message || parsed.error || rawMsg;
+          }
+        } catch {
+          // Plain-text response body
+        }
+        if (response.status === 409) {
+          throw new Error(serverMsg || 'Room already booked for these dates.');
+        }
+        throw new Error(serverMsg || `Failed to ${editingBookingId ? 'update' : 'save'} booking (HTTP ${response.status}).`);
+      }
 
       addLog(editingBookingId ? 'Update Booking' : 'Create Booking', `${editingBookingId ? 'Updated' : 'Created'} booking for ${guestName}.`);
 
@@ -1280,8 +1311,10 @@ export default function App() {
     } catch (error: any) {
       console.error(`Error saving booking:`, error.message);
       alert(`Error saving booking: ${error.message}`);
+    } finally {
+      setIsSavingBooking(false);
     }
-  }, [newBookingData, rooms, editingBookingId, addLog, fetchBookings]);
+  }, [isAdmin, isSavingBooking, newBookingData, rooms, editingBookingId, addLog, fetchBookings]);
 
   const handleDeleteBooking = useCallback((bookingId: string) => {
     if (!isAdmin) {
@@ -1295,7 +1328,7 @@ export default function App() {
     if (bookingToDelete) {
       const deletingBooking = bookings.find(b => String(b.id) === String(bookingToDelete));
       const deletingRoom = deletingBooking ? rooms.find(r => String(r.id) === String(deletingBooking.roomId)) : undefined;
-      const url = `${API_BASE_URL}/bookings/${bookingToDelete}`;
+      const url = `${API_BASE_URL}/bookings/${encodeURIComponent(bookingToDelete)}`;
       fetch(url, { method: 'DELETE', headers: csrfHeaders(), redirect: 'manual', credentials: 'include' })
         .then(response => { 
           if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 302 || response.status === 401) {
@@ -1317,19 +1350,24 @@ export default function App() {
   }, [bookingToDelete, bookings, rooms, fetchBookings]);
 
   const handleAddPayment = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); if (!selectedBooking) return;
+    e.preventDefault(); if (!selectedBooking || isSubmittingPayment) return;
     if (!isAdmin) {
       alert("Access Denied: You do not have permission to add payments.");
       return;
     }
     const formData = new FormData(e.currentTarget);
     const amount = parseFloat(formData.get('amount') as string);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Please enter a valid payment amount greater than 0.");
+      return;
+    }
     const method = formData.get('method') as PaymentMethod;
     const type = formData.get('type') as PaymentType;
     const bookingSource = formData.get('bookingSource') as BookingSource || undefined;
 
+    setIsSubmittingPayment(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/bookings/${selectedBooking.id}/payments`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(selectedBooking.id)}/payments`, {
         method: 'POST', headers: csrfHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ bookingId: selectedBooking.id, amount, method, type, bookingSource, date: new Date().toISOString() }),
         redirect: 'manual',
@@ -1340,23 +1378,24 @@ export default function App() {
         setIsUnauthorized(true);
         return;
       }
-      if (!response.ok) throw new Error('Failed to add payment');
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `Failed to add payment (${response.status})`);
+      }
 
       await fetchBookingPayments(selectedBooking.id); fetchBookings();
-      setIsPaymentModalOpen(false); setSelectedBooking(null);
+      setIsPaymentModalOpen(false);
     } catch (error: any) { alert(error.message); }
-  }, [selectedBooking, fetchBookings, fetchBookingPayments]);
+    finally { setIsSubmittingPayment(false); }
+  }, [isAdmin, isSubmittingPayment, selectedBooking, fetchBookings, fetchBookingPayments]);
 
   const updateBookingStatus = useCallback(async (bookingId: string, status: BookingStatus) => {
-    if (!isAdmin && status !== BookingStatus.CONFIRMED && status !== BookingStatus.CHECKED_IN && status !== BookingStatus.CHECKED_OUT && status !== BookingStatus.CANCELLED) {
-      // Allow nothing actually, because status updates modify
-    }
     if (!isAdmin) {
       alert("Access Denied: You do not have permission to update booking statuses.");
       return;
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/bookings/${bookingId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/bookings/${encodeURIComponent(bookingId)}/status`, {
         method: 'PUT', headers: csrfHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ status }),
         redirect: 'manual',
         credentials: 'include'
@@ -1366,36 +1405,25 @@ export default function App() {
         setIsUnauthorized(true);
         return;
       }
-      if (!response.ok) throw new Error('Failed');
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.message || `Failed to update status (${response.status})`);
+      }
 
       if (status === BookingStatus.CHECKED_OUT) {
-        setBookings(prev => {
-          const b = prev.find(bk => bk.id.toString() === bookingId.toString());
-          if (b) {
-            setHousekeepingTasks(hTasks => {
-              const existing = hTasks.find(t => t.roomId === b.roomId);
-              if (existing) return hTasks.map(t => t.roomId === b.roomId ? { ...t, status: 'Dirty' } : t);
-              return [...hTasks, { id: `hk_auto_${Date.now()}`, roomId: b.roomId, status: 'Dirty', priority: 'High' }];
-            });
-
-            const actualRoom = rooms.find(r => r.id === b.roomId);
-            if (actualRoom) {
-              import('./services/api').then(api => {
-                api.updateRoomCleanStatus(actualRoom.number, 'DIRTY').catch(console.error);
-              });
-            }
-
-            if (b.mobileNumber) {
-               addLog('WhatsApp Review Request', `Sent automated checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber}).`);
-            }
-          }
-          return prev;
-        });
+        const checkedOutBooking = bookings.find(bk => String(bk.id) === String(bookingId));
+        if (checkedOutBooking) {
+          setHousekeepingTasks(hTasks => {
+            const existing = hTasks.find(t => t.roomId === checkedOutBooking.roomId);
+            if (existing) return hTasks.map(t => t.roomId === checkedOutBooking.roomId ? { ...t, status: 'Dirty' } : t);
+            return [...hTasks, { id: `hk_auto_${Date.now()}`, roomId: checkedOutBooking.roomId, status: 'Dirty', priority: 'High' }];
+          });
+        }
       }
 
       fetchBookings();
     } catch (error: any) { alert(error.message); }
-  }, [fetchBookings]);
+  }, [isAdmin, bookings, fetchBookings]);
 
   const handleDashboardFilter = useCallback((filter: any) => { setBookingFilter(filter); }, [setBookingFilter]);
 
@@ -1426,15 +1454,29 @@ export default function App() {
 
   const handleSendReviewRequest = useCallback((b: Booking) => {
     if (window.confirm(`Are you sure you want to send a WhatsApp message for review to ${b.guestName}?`)) {
-      addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber || b.guestPhone || 'No Phone Number'}).`);
+      addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.guestPhone || 'No Phone Number'}).`);
       alert(`WhatsApp Review Request sent to ${b.guestName}`);
     }
   }, [addLog]);
 
+  const handleMarkRoomClean = useCallback(async (room: Room) => {
+    const api = await import('./services/api');
+    await api.updateRoomCleanStatus(room.number, 'CLEAN');
+    setRooms(prev => prev.map(r => (r.id === room.id ? { ...r, cleanStatus: 'CLEAN' } : r)));
+    setHousekeepingTasks(prev => {
+      const exists = prev.find(t => t.roomId === room.id);
+      if (exists) return prev.map(t => (t.roomId === room.id ? { ...t, status: 'Clean', lastCleanedAt: new Date().toISOString() } : t));
+      return [...prev, { id: `hk_clean_${room.id}`, roomId: room.id, status: 'Clean', priority: 'Normal', lastCleanedAt: new Date().toISOString() }];
+    });
+  }, []);
+
   const dashboardProps = {
     isAdmin, stats, upcomingArrivals, upcomingDepartures, rooms, logs, availabilityForecast, bookings, housekeepingTasks,
     forecastPage, setForecastPage, handleDashboardFilter, handleEditBooking, handleOpenNewBooking, handleOpenDayDetails,
-    today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue, handleSendReviewRequest
+    today, isRevenueVisible, setIsRevenueVisible: handleToggleRevenue, handleSendReviewRequest,
+    onUpdateStatus: updateBookingStatus,
+    onAddPayment: async (booking: Booking) => { setSelectedBooking(booking); await fetchBookingPayments(booking.id); setIsPaymentModalOpen(true); },
+    onMarkRoomClean: handleMarkRoomClean,
   };
 
   const bookingProps = {
@@ -1532,6 +1574,7 @@ export default function App() {
           paidAmount={paidAmount}
           bookingPending={bookingPending}
           readOnly={isViewOnlyMode}
+          isSubmitting={isSavingBooking}
         />
 
         {selectedBooking && (
@@ -1539,9 +1582,17 @@ export default function App() {
             isOpen={!!selectedBooking}
             onClose={() => setSelectedBooking(null)}
             booking={selectedBooking}
+            payments={currentBookingPayments}
+            isLoadingPayments={isLoadingPayments}
+            paymentsError={paymentsError}
+            onLoadPayments={() => fetchBookingPayments(selectedBooking.id)}
             onAddPayment={() => { setIsPaymentModalOpen(true); }}
+            onUpdateStatus={isAdmin ? async (status) => {
+              await updateBookingStatus(selectedBooking.id, status);
+              setSelectedBooking(prev => prev ? { ...prev, status } : null);
+            } : undefined}
             onSendReviewRequest={(b) => {
-              addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.mobileNumber || 'No Phone Number'}).`);
+              addLog('WhatsApp Review Request', `Manually sent checkout review request via WhatsApp to ${b.guestName} (${b.guestPhone || 'No Phone Number'}).`);
               alert(`WhatsApp Review Request sent to ${b.guestName}`);
             }}
           />
@@ -1550,8 +1601,10 @@ export default function App() {
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}
-          booking={selectedBooking}
-          onProcessPayment={handleAddPayment}
+          selectedBooking={selectedBooking}
+          handleAddPayment={handleAddPayment}
+          payments={currentBookingPayments}
+          isSubmitting={isSubmittingPayment}
         />
 
         <DayDetailsModal

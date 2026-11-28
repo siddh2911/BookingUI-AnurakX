@@ -3,34 +3,41 @@ import { Room, HousekeepingTask, MaintenanceTicket, Booking } from '../../types'
 import HousekeepingGrid from '../rooms/HousekeepingGrid';
 import MaintenanceBoard from '../rooms/MaintenanceBoard';
 import RoomTvManager from '../rooms/RoomTvManager';
+import AutoSchedulePanel from '../rooms/AutoSchedulePanel';
 
 export default function RoomsPage({
     rooms, setRooms, bookings, housekeepingTasks, setHousekeepingTasks, maintenanceTickets, setMaintenanceTickets
 }: {
     rooms: Room[]; setRooms: any; bookings: Booking[]; housekeepingTasks: HousekeepingTask[]; setHousekeepingTasks: any; maintenanceTickets: MaintenanceTicket[]; setMaintenanceTickets: any;
 }) {
-    const [activeTab, setActiveTab] = useState<'housekeeping' | 'maintenance' | 'plans' | 'tvs'>('housekeeping');
+    const [activeTab, setActiveTab] = useState<'housekeeping' | 'maintenance' | 'plans' | 'tvs' | 'schedule'>('housekeeping');
     
+    const safeReadJson = <T,>(key: string, fallback: T): T => {
+        try {
+            const saved = localStorage.getItem(key);
+            if (!saved) return fallback;
+            const parsed = JSON.parse(saved);
+            return Array.isArray(parsed) ? (parsed as unknown as T) : fallback;
+        } catch {
+            return fallback;
+        }
+    };
+
     // Mock state for room plans (persisted to localStorage for now)
-    const [packages, setPackages] = useState<string[]>(() => {
-        const saved = localStorage.getItem('karuna_packages');
-        return saved ? JSON.parse(saved) : ['Honeymoon', 'Standard', 'Corporate', 'Long Stay'];
-    });
-    const [mealPlans, setMealPlans] = useState<{code: string, name: string}[]>(() => {
-        const saved = localStorage.getItem('karuna_meal_plans');
-        return saved ? JSON.parse(saved) : [
+    const [packages, setPackages] = useState<string[]>(() =>
+        safeReadJson('karuna_packages', ['Honeymoon', 'Standard', 'Corporate', 'Long Stay'])
+    );
+    const [mealPlans, setMealPlans] = useState<{code: string, name: string}[]>(() =>
+        safeReadJson('karuna_meal_plans', [
             { code: 'EP', name: 'Room Only' },
             { code: 'CP', name: 'Breakfast' },
             { code: 'MAP', name: 'Half Board' },
             { code: 'AP', name: 'Full Board' }
-        ];
-    });
-    const [bookingSources, setBookingSources] = useState<string[]>(() => {
-        const saved = localStorage.getItem('karuna_booking_sources');
-        if (saved) return JSON.parse(saved);
-        // Default to the enum values
-        return ['Direct Website', 'Walk-in', 'Booking.com', 'Airbnb', 'Expedia', 'Instagram', 'MakeMyTrip', 'Agoda', 'Goibibo'];
-    });
+        ])
+    );
+    const [bookingSources, setBookingSources] = useState<string[]>(() =>
+        safeReadJson('karuna_booking_sources', ['Direct Website', 'Walk-in', 'Booking.com', 'Airbnb', 'Expedia', 'Instagram', 'MakeMyTrip', 'Agoda', 'Goibibo'])
+    );
 
     React.useEffect(() => {
         localStorage.setItem('karuna_packages', JSON.stringify(packages));
@@ -90,6 +97,15 @@ export default function RoomsPage({
                     >
                         Room TVs
                     </button>
+                    <button
+                        onClick={() => setActiveTab('schedule')}
+                        className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${activeTab === 'schedule'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                            }`}
+                    >
+                        Auto Check-In/Out
+                    </button>
                 </div>
             </div>
 
@@ -143,10 +159,16 @@ export default function RoomsPage({
                             } catch (e) { console.error('Failed API sync:', e); }
                         }}
                         onDeleteTicket={async (ticketId) => {
+                            const previousTickets = maintenanceTickets;
                             setMaintenanceTickets((prev: any) => prev.filter((t: any) => t.id !== ticketId));
                             try {
+                                const { deleteMaintenanceTicket } = await import('../../services/api');
                                 await deleteMaintenanceTicket(ticketId);
-                            } catch (e) { console.error(e); }
+                            } catch (e) {
+                                console.error('Failed to delete maintenance ticket:', e);
+                                setMaintenanceTickets(previousTickets);
+                                alert('Failed to delete maintenance ticket. Please try again.');
+                            }
                         }}
                     />
                 ) : activeTab === 'tvs' ? (
@@ -317,6 +339,8 @@ export default function RoomsPage({
                             </div>
                         </div>
                     </div>
+                ) : activeTab === 'schedule' ? (
+                    <AutoSchedulePanel />
                 ) : null}
             </div>
         </div>

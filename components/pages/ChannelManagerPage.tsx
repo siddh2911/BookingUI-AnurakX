@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Room, Booking, BookingSource } from '../../types';
 import { generateICal } from '../../services/iCalUtils';
 import { API_BASE_URL } from '../../constants/api';
+import { csrfHeaders } from '../../services/csrf';
 import {
     previewRoomIcalImport,
     confirmRoomIcalImport,
@@ -65,9 +66,15 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
     const [lastResult, setLastResult] = useState<IcalImportResult | null>(null);
     const [copiedExport, setCopiedExport] = useState(false);
 
-    // Live Airbnb Local Bridge Extractor state
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const plus90Iso = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+    // Live Airbnb Local Bridge Extractor state (use local timezone dates, not UTC)
+    const formatLocalDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    const todayIso = formatLocalDate(new Date());
+    const plus90Iso = formatLocalDate(new Date(Date.now() + 90 * 86400000));
     const [bridgeOnline, setBridgeOnline] = useState<boolean>(false);
     const [extractFromDate, setExtractFromDate] = useState<string>(todayIso);
     const [extractToDate, setExtractToDate] = useState<string>(plus90Iso);
@@ -194,7 +201,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         try {
             const res = await fetch(`${AIRBNB_BRIDGE_URL}/start`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify({ fromDate: extractFromDate, toDate: extractToDate }),
             });
@@ -215,7 +222,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         try {
             const res = await fetch(`${AIRBNB_BRIDGE_URL}/submit-phone`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify({ phoneNumber: airbnbPhone.trim() }),
             });
@@ -234,7 +241,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
         try {
             const res = await fetch(`${AIRBNB_BRIDGE_URL}/submit-otp`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
                 credentials: 'include',
                 body: JSON.stringify({ otp: airbnbOtp.trim() }),
             });
@@ -249,7 +256,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
 
     const handleContinueAirbnbScan = async () => {
         try {
-            await fetch(`${AIRBNB_BRIDGE_URL}/continue`, { method: 'POST', credentials: 'include' });
+            await fetch(`${AIRBNB_BRIDGE_URL}/continue`, { method: 'POST', headers: csrfHeaders(), credentials: 'include' });
             setBridgeStatus('scanning');
         } catch {
             setBridgeError('Lost connection to extractor service.');
@@ -258,7 +265,7 @@ const ChannelManagerPage: React.FC<ChannelManagerPageProps> = ({ rooms, bookings
 
     const handleStopAirbnbExtractor = async () => {
         try {
-            await fetch(`${AIRBNB_BRIDGE_URL}/stop`, { method: 'POST', credentials: 'include' });
+            await fetch(`${AIRBNB_BRIDGE_URL}/stop`, { method: 'POST', headers: csrfHeaders(), credentials: 'include' });
         } catch { /* ignore */ }
         setBridgeStatus('idle');
         setBridgeProgress('');

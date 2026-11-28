@@ -23,5 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 graphify-out/
-graphify-out/
 .graphify_python
+
+# Airbnb extractor sensitive outputs & debug dumps
+scripts/airbnb-extractor/airbnb-upcoming.json
+scripts/airbnb-extractor/debug-*.json
+scripts/airbnb-extractor/debug-*.txt
+scripts/airbnb-extractor/config.json

@@ -29,6 +29,7 @@ export enum BookingStatus {
   CHECKED_IN = 'Checked In',
   CHECKED_OUT = 'Checked Out',
   CANCELLED = 'Cancelled',
+  NO_SHOW = 'No Show',
 }
 
 export enum PaymentMethod {
@@ -103,6 +104,8 @@ export interface AuditLog {
   action: string;
   user: string;
   details: string;
+  severity?: 'INFO' | 'WARNING' | 'CRITICAL' | string;
+  ipAddress?: string;
 }
 
 export interface User {

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import TvDisplayPage from './components/pages/TvDisplayPage';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,12 +15,14 @@ const isTvMode = window.location.pathname.startsWith('/tv');
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    {isTvMode ? (
-      <TvDisplayPage />
-    ) : (
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    )}
+    <ErrorBoundary>
+      {isTvMode ? (
+        <TvDisplayPage />
+      ) : (
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      )}
+    </ErrorBoundary>
   </React.StrictMode>
 );

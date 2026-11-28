@@ -643,6 +643,8 @@ async function runExtractionJob(fromDate, toDate) {
   }
 }
 
+const BRIDGE_TOKEN = process.env.AIRBNB_BRIDGE_TOKEN || '';
+
 function setCors(req, res) {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.has(origin)) {
@@ -650,7 +652,7 @@ function setCors(req, res) {
     res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Bridge-Token');
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
 }
 
@@ -660,7 +662,12 @@ function sendJson(res, status, data) {
 }
 
 function readJsonBody(req) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    const contentType = String(req.headers['content-type'] || '').toLowerCase();
+    if (!contentType.includes('application/json')) {
+      reject(new Error('Content-Type must be application/json'));
+      return;
+    }
     let raw = '';
     req.on('data', (chunk) => { raw += chunk; });
     req.on('end', () => {
@@ -675,6 +682,17 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204);
     res.end();
     return;
+  }
+
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    return sendJson(res, 403, { error: 'Origin not allowed.' });
+  }
+  if (BRIDGE_TOKEN && req.headers['x-bridge-token'] !== BRIDGE_TOKEN) {
+    return sendJson(res, 401, { error: 'Unauthorized bridge request.' });
+  }
+  if (req.method === 'POST' && origin && !ALLOWED_ORIGINS.has(origin)) {
+    return sendJson(res, 403, { error: 'Forbidden cross-origin POST.' });
   }
 
   const urlPath = (req.url || '/').split('?')[0];
@@ -701,7 +719,12 @@ const server = http.createServer(async (req, res) => {
     if (job.status === 'waiting_login' || job.status === 'needs_phone' || job.status === 'needs_otp' || job.status === 'scanning') {
       return sendJson(res, 409, { error: 'An extraction is already running.' });
     }
-    const body = await readJsonBody(req);
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      return sendJson(res, 415, { error: err.message });
+    }
     const todayIso = new Date().toISOString().slice(0, 10);
     const plus90 = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
     const fromDate = parseFlexibleDate(body.fromDate) || todayIso;
@@ -712,7 +735,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && urlPath === '/submit-phone') {
-    const body = await readJsonBody(req);
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      return sendJson(res, 415, { error: err.message });
+    }
     const phoneNumber = String(body.phoneNumber || '').trim();
     if (!phoneNumber) return sendJson(res, 400, { error: 'Phone number is required.' });
     if (phoneResolver) {
@@ -723,7 +751,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && urlPath === '/submit-otp') {
-    const body = await readJsonBody(req);
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      return sendJson(res, 415, { error: err.message });
+    }
     const otp = String(body.otp || '').trim();
     if (!otp) return sendJson(res, 400, { error: 'OTP is required.' });
     if (otpResolver) {

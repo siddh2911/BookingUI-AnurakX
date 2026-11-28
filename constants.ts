@@ -23,6 +23,6 @@ export const INITIAL_HOUSEKEEPING_TASKS: HousekeepingTask[] = [
 ];
 
 export const INITIAL_MAINTENANCE_TICKETS: MaintenanceTicket[] = [
-  { id: 'mt_1', roomId: 101, category: 'Appliance', description: 'AC unit is making a loud noise', severity: 'Medium', status: 'Open', reportedAt: new Date().toISOString() },
-  { id: 'mt_2', roomId: 201, category: 'Plumbing', description: 'Leaky faucet in master bath', severity: 'Low', status: 'Resolved', reportedAt: new Date(Date.now() - 86400000).toISOString(), resolvedAt: new Date().toISOString() },
+  { id: 'mt_1', roomNumber: '101', category: 'Appliance', description: 'AC unit is making a loud noise', severity: 'Medium', status: 'Open', reportedAt: new Date().toISOString() },
+  { id: 'mt_2', roomNumber: '201', category: 'Plumbing', description: 'Leaky faucet in master bath', severity: 'Low', status: 'Resolved', reportedAt: new Date(Date.now() - 86400000).toISOString(), resolvedAt: new Date().toISOString() },
 ];
