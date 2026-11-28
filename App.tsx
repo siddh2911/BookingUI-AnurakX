@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { getAvailabilityForecast, syncRoomTv } from './services/api';
 import { API_BASE_URL, DEFAULT_HOTEL_ID } from './constants/api';
 import { Room, Booking, AuditLog, User, RoomStatus, BookingStatus, BookingSource, PaymentMethod, PaymentType, Payment, HousekeepingTask, HousekeepingStatus, MaintenanceTicket } from './types';
@@ -1536,6 +1537,7 @@ export default function App() {
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <LanguageProvider>
       <>
         <Routes>
@@ -1628,5 +1630,6 @@ export default function App() {
         />
       </>
     </LanguageProvider>
+    </MotionConfig>
   );
 }

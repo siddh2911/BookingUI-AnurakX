@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Menu, X, Bell, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import VoiceAssistantDrawer from './VoiceAssistantDrawer';
 import { User, Room, AuditLog } from '../types';
@@ -27,6 +28,7 @@ interface Message {
 }
 
 export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBooking, rooms, currentUser, isAdmin = false, isVerifying, logs }: DashboardLayoutProps) {
+    const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [isThinking, setIsThinking] = useState(false);
@@ -328,7 +330,14 @@ export default function DashboardLayout({ onLogout, onDashboardClick, onVoiceBoo
                 )}
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
-                    <Outlet />
+                    <motion.div
+                        key={location.pathname}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.22, ease: 'easeOut' }}
+                    >
+                        <Outlet />
+                    </motion.div>
                 </main>
             </div>
         </div>

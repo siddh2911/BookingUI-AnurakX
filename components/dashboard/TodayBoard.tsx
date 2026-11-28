@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
   LogIn,
@@ -162,14 +163,15 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
     [...upcomingDepartures, ...bookings].forEach(b => {
       const eff = getEffectiveStatus(b);
       if (!isActive(eff)) return;
-      if (b.checkOutDate === today) {
+      if (b.checkOutDate === today || b.checkOutDate === tomorrow) {
         depMap.set(String(b.id), b);
       }
     });
     const departures = Array.from(depMap.values()).sort((a, b) => {
       const aOut = getEffectiveStatus(a) === BookingStatus.CHECKED_OUT ? 1 : 0;
       const bOut = getEffectiveStatus(b) === BookingStatus.CHECKED_OUT ? 1 : 0;
-      return aOut - bOut;
+      if (aOut !== bOut) return aOut - bOut;
+      return a.checkOutDate.localeCompare(b.checkOutDate);
     });
 
     const inhouse = bookings
@@ -186,7 +188,7 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
       departuresList: departures,
       inHouseList: inhouse,
     };
-  }, [bookings, upcomingArrivals, upcomingDepartures, today, optimisticStatuses]);
+  }, [bookings, upcomingArrivals, upcomingDepartures, today, tomorrow, optimisticStatuses]);
 
   const commitPendingActionNow = async () => {
     const pending = pendingActionRef.current;
@@ -340,84 +342,111 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('arrivals')}
-              className={`min-h-[40px] px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all ${
+              className={`relative min-h-[40px] px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-colors ${
                 activeTab === 'arrivals'
                   ? night
-                    ? 'bg-slate-950 text-white shadow'
-                    : 'bg-white text-slate-900 shadow-sm'
+                    ? 'text-white'
+                    : 'text-slate-900'
                   : night
                   ? 'text-slate-400 hover:text-white'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <LogIn size={13} className="hidden sm:block" />
-              Arrivals
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  todayArrivalsCount > 0
-                    ? 'bg-blue-600 text-white'
-                    : night
-                    ? 'bg-slate-700 text-slate-300'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {arrivalsList.length}
+              {activeTab === 'arrivals' && (
+                <motion.span
+                  layoutId="todayBoardTabPill"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                  className={`absolute inset-0 rounded-lg ${night ? 'bg-slate-950 shadow' : 'bg-white shadow-sm'}`}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-1 sm:gap-1.5">
+                <LogIn size={13} className="hidden sm:block" />
+                Arrivals
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    todayArrivalsCount > 0
+                      ? 'bg-blue-600 text-white'
+                      : night
+                      ? 'bg-slate-700 text-slate-300'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {arrivalsList.length}
+                </span>
               </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('departures')}
-              className={`min-h-[40px] px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all ${
+              className={`relative min-h-[40px] px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-colors ${
                 activeTab === 'departures'
                   ? night
-                    ? 'bg-slate-950 text-white shadow'
-                    : 'bg-white text-slate-900 shadow-sm'
+                    ? 'text-white'
+                    : 'text-slate-900'
                   : night
                   ? 'text-slate-400 hover:text-white'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <LogOut size={13} className="hidden sm:block" />
-              Departures
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  departuresList.length > 0
-                    ? 'bg-amber-500 text-white'
-                    : night
-                    ? 'bg-slate-700 text-slate-300'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {departuresList.length}
+              {activeTab === 'departures' && (
+                <motion.span
+                  layoutId="todayBoardTabPill"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                  className={`absolute inset-0 rounded-lg ${night ? 'bg-slate-950 shadow' : 'bg-white shadow-sm'}`}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-1 sm:gap-1.5">
+                <LogOut size={13} className="hidden sm:block" />
+                Departures
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    departuresList.length > 0
+                      ? 'bg-amber-500 text-white'
+                      : night
+                      ? 'bg-slate-700 text-slate-300'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {departuresList.length}
+                </span>
               </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('inhouse')}
-              className={`min-h-[40px] px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all ${
+              className={`relative min-h-[40px] px-2 sm:px-3.5 py-2 rounded-lg text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-colors ${
                 activeTab === 'inhouse'
                   ? night
-                    ? 'bg-slate-950 text-white shadow'
-                    : 'bg-white text-slate-900 shadow-sm'
+                    ? 'text-white'
+                    : 'text-slate-900'
                   : night
                   ? 'text-slate-400 hover:text-white'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Users size={13} className="hidden sm:block" />
-              In-house
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                  inHouseList.length > 0
-                    ? 'bg-emerald-600 text-white'
-                    : night
-                    ? 'bg-slate-700 text-slate-300'
-                    : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                {inHouseList.length}
+              {activeTab === 'inhouse' && (
+                <motion.span
+                  layoutId="todayBoardTabPill"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                  className={`absolute inset-0 rounded-lg ${night ? 'bg-slate-950 shadow' : 'bg-white shadow-sm'}`}
+                />
+              )}
+              <span className="relative z-10 inline-flex items-center gap-1 sm:gap-1.5">
+                <Users size={13} className="hidden sm:block" />
+                In-house
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    inHouseList.length > 0
+                      ? 'bg-emerald-600 text-white'
+                      : night
+                      ? 'bg-slate-700 text-slate-300'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {inHouseList.length}
+                </span>
               </span>
             </button>
             </div>
@@ -475,7 +504,7 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
               {activeTab === 'arrivals'
                 ? 'No upcoming arrivals scheduled'
                 : activeTab === 'departures'
-                ? 'No departures scheduled for today'
+                ? 'No departures scheduled for today or tomorrow'
                 : 'No guests currently in-house'}
             </p>
           </div>
@@ -487,7 +516,8 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
               className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth overscroll-x-contain pb-2 -mx-1 px-1 relative z-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
-            {activeRows.map(booking => {
+            <AnimatePresence mode="popLayout">
+            {activeRows.map((booking, cardIdx) => {
               const effStatus = getEffectiveStatus(booking);
               const room = getRoomForBooking(booking);
               const roomNum = room?.number || String(booking.roomId);
@@ -495,39 +525,72 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
               const balance = getPendingBalance(booking);
               const isTodayArrival = booking.checkInDate === today;
               const isTomorrowArrival = booking.checkInDate === tomorrow;
+              const isTodayDeparture = booking.checkOutDate === today;
+              const isTomorrowDeparture = booking.checkOutDate === tomorrow;
 
               const blockReasons: string[] = [];
               if (dirty) blockReasons.push('Room dirty');
               if (balance > 0) blockReasons.push(`₹${balance.toLocaleString()} due`);
               const checkInBlocked = blockReasons.length > 0;
 
+              const daysUntilArrival = (() => {
+                const [ty, tm, td] = today.split('-').map(Number);
+                const [cy, cm, cd] = booking.checkInDate.split('-').map(Number);
+                if (!ty || !cy) return 0;
+                const todayMs = Date.UTC(ty, tm - 1, td);
+                const checkInMs = Date.UTC(cy, cm - 1, cd);
+                return Math.round((checkInMs - todayMs) / (1000 * 60 * 60 * 24));
+              })();
+
               const badgeLabel =
-                effStatus === BookingStatus.CHECKED_IN
-                  ? 'In-House'
-                  : effStatus === BookingStatus.CHECKED_OUT
+                effStatus === BookingStatus.CHECKED_OUT
                   ? 'Checked Out'
                   : activeTab === 'departures'
-                  ? 'Departing Today'
-                  : isTodayArrival
-                  ? 'Today'
-                  : isTomorrowArrival
-                  ? 'Tomorrow'
-                  : booking.checkInDate;
+                  ? isTodayDeparture
+                    ? 'Departing Today'
+                    : isTomorrowDeparture
+                    ? 'Departing Tomorrow'
+                    : booking.checkOutDate
+                  : effStatus === BookingStatus.CHECKED_IN
+                  ? 'In-House'
+                  : isTodayArrival || daysUntilArrival <= 0
+                  ? 'Arriving Today'
+                  : isTomorrowArrival || daysUntilArrival === 1
+                  ? 'Arriving Tomorrow'
+                  : `In ${daysUntilArrival} Days`;
 
               const badgeClass =
-                effStatus === BookingStatus.CHECKED_IN
-                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                  : effStatus === BookingStatus.CHECKED_OUT
+                effStatus === BookingStatus.CHECKED_OUT
                   ? 'bg-slate-200 text-slate-700 border-slate-300'
-                  : activeTab === 'departures' || isTodayArrival
+                  : activeTab === 'departures'
+                  ? isTodayDeparture
+                    ? 'bg-amber-100 text-amber-700 border-amber-200'
+                    : 'bg-blue-100 text-blue-700 border-blue-200'
+                  : effStatus === BookingStatus.CHECKED_IN
+                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                  : isTodayArrival || daysUntilArrival <= 0
                   ? 'bg-amber-100 text-amber-700 border-amber-200'
-                  : 'bg-blue-100 text-blue-700 border-blue-200';
+                  : isTomorrowArrival || daysUntilArrival === 1
+                  ? 'bg-blue-100 text-blue-700 border-blue-200'
+                  : 'bg-indigo-100 text-indigo-700 border-indigo-200';
 
               return (
-                <div
-                  key={booking.id}
+                <motion.div
+                  key={`${activeTab}-${booking.id}`}
+                  layout
+                  initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 360,
+                    damping: 28,
+                    delay: Math.min(cardIdx * 0.04, 0.2),
+                  }}
+                  whileHover={{ y: -3 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => onEditBooking(booking, !isAdmin)}
-                  className={`w-[calc(100%-1.25rem)] max-w-[340px] sm:w-[330px] lg:w-[340px] shrink-0 snap-start backdrop-blur-md rounded-xl p-4 sm:p-5 transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-sm group/card border ${
+                  className={`w-[calc(100%-1.25rem)] max-w-[340px] sm:w-[330px] lg:w-[340px] shrink-0 snap-start backdrop-blur-md rounded-xl p-4 sm:p-5 transition-colors duration-300 cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md group/card border ${
                     night
                       ? 'bg-slate-800/70 hover:bg-slate-800 border-slate-700 hover:border-blue-500/50'
                       : 'bg-white/60 hover:bg-white/95 border-slate-200 hover:border-blue-300'
@@ -725,9 +788,10 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
                         </button>
                       )}
                   </div>
-                </div>
+                </motion.div>
               );
             })}
+            </AnimatePresence>
             </div>
 
             {/* Mobile Swipe Pagination Dots */}
@@ -755,22 +819,30 @@ const TodayBoard: React.FC<TodayBoardProps> = ({
       </div>
 
       {/* Optimistic Undo Toast (mobile-safe positioning above bottom nav) */}
-      {pendingToast && (
-        <div className="fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between sm:justify-start gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-xs font-semibold truncate">{pendingToast.label}</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleUndo}
-            className="min-h-[34px] shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 text-white text-xs font-bold transition"
+      <AnimatePresence>
+        {pendingToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+            className="fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between sm:justify-start gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700"
           >
-            <RotateCcw size={12} />
-            Undo
-          </button>
-        </div>
-      )}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-xs font-semibold truncate">{pendingToast.label}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="min-h-[34px] shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 text-white text-xs font-bold transition"
+            >
+              <RotateCcw size={12} />
+              Undo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
